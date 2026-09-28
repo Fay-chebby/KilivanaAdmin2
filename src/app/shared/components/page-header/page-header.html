@@ -1,1 +1,14 @@
-<p>page-header works!</p>
+@if (breadcrumb().length) {
+  <nav class="crumbs" aria-label="Breadcrumb">
+    @for (crumb of breadcrumb(); track $index; let last = $last) {
+      <span [class.current]="last">{{ crumb }}</span>
+      @if (!last) {
+        <span class="sep">/</span>
+      }
+    }
+  </nav>
+}
+<div class="row">
+  <h1>{{ title() }}</h1>
+  <div class="meta"><ng-content /></div>
+</div>

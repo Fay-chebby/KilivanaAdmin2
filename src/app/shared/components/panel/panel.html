@@ -1,1 +1,14 @@
-<p>panel works!</p>
+<section class="panel">
+  <header class="panel__head">
+    <div>
+      <h2 class="panel__title">{{ title() }}</h2>
+      @if (subtitle()) {
+        <p class="panel__subtitle">{{ subtitle() }}</p>
+      }
+    </div>
+    <ng-content select="[panel-actions]" />
+  </header>
+  <div class="panel__body">
+    <ng-content />
+  </div>
+</section>
