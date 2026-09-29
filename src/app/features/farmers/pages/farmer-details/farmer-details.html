@@ -1,1 +1,280 @@
-<p>farmer-details works!</p>
+@if (farmer(); as f) {
+  <section class="page">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/dashboard">AgriAdmin</a> / <a routerLink="/farmers">Farmers</a> /
+      <span>{{ f.name }}</span>
+    </nav>
+
+    <header class="head">
+      <h1>{{ f.name }}</h1>
+      <div class="head-actions">
+        <a class="btn ghost" routerLink="/farmers">← Back</a>
+        <a class="btn plain" [routerLink]="['/farmers', f.id, 'edit']">Edit</a>
+        @switch (f.status) {
+          @case ('pending') {
+            <button type="button" class="btn reject" (click)="dialog.set('reject')">Reject</button>
+            <button type="button" class="btn approve" (click)="dialog.set('approve')">
+              Approve
+            </button>
+          }
+          @case ('verified') {
+            <button type="button" class="btn reject" (click)="dialog.set('suspend')">
+              Suspend
+            </button>
+          }
+          @case ('suspended') {
+            <button type="button" class="btn approve" (click)="dialog.set('reinstate')">
+              Reinstate
+            </button>
+          }
+        }
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- left rail -->
+      <aside>
+        <div class="card profile">
+          <span class="avatar lg" [style.background]="avatarColor(f.name)">{{
+            initials(f.name)
+          }}</span>
+          <h2>{{ f.name }}</h2>
+          <span class="code">{{ f.code }}</span>
+          <app-farmer-badge [tone]="statusTone(f.status)">{{
+            statusLabel[f.status]
+          }}</app-farmer-badge>
+
+          <dl>
+            <div>
+              <dt>Region</dt>
+              <dd>{{ f.region }}</dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd>{{ f.phone }}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd class="trunc" [title]="f.email">{{ f.email }}</dd>
+            </div>
+            <div>
+              <dt>Joined</dt>
+              <dd>{{ f.joinedAt | date: 'yyyy-MM-dd' }}</dd>
+            </div>
+            <div>
+              <dt>Farms</dt>
+              <dd>{{ f.farms }}</dd>
+            </div>
+            <div>
+              <dt>Rating</dt>
+              <dd>
+                @if (f.rating !== null) {
+                  <span class="star">★</span> {{ f.rating | number: '1.1-1' }}
+                } @else {
+                  –
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Revenue</dt>
+              <dd>{{ f.revenue ? 'GHS ' + (f.revenue | number: '1.0-0') : '—' }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="card">
+          <h3 class="label">KYC status</h3>
+          <app-farmer-badge [tone]="kycTone(f.kyc)">{{ kycLabel[f.kyc] }}</app-farmer-badge>
+          <p class="note">
+            @switch (f.kyc) {
+              @case ('approved') {
+                Documents verified.
+              }
+              @case ('rejected') {
+                {{ f.statusReason || 'Documents were rejected.' }}
+              }
+              @default {
+                Awaiting document review.
+              }
+            }
+          </p>
+          @if (f.kyc !== 'approved') {
+            <a class="link" routerLink="/kyc">Open KYC review</a>
+          }
+        </div>
+
+        @if (f.statusReason && (f.status === 'suspended' || f.status === 'rejected')) {
+          <div class="card reason">
+            <h3 class="label">
+              {{ f.status === 'suspended' ? 'Suspension reason' : 'Rejection reason' }}
+            </h3>
+            <p class="note">{{ f.statusReason }}</p>
+          </div>
+        }
+      </aside>
+
+      <!-- main -->
+      <div class="main">
+        <div class="tabs" role="tablist">
+          @for (t of tabs; track t.id) {
+            <button
+              type="button"
+              role="tab"
+              [class.on]="tab() === t.id"
+              [attr.aria-selected]="tab() === t.id"
+              (click)="tab.set(t.id)"
+            >
+              {{ t.label }}
+            </button>
+          }
+        </div>
+
+        @switch (tab()) {
+          @case ('overview') {
+            <div class="two">
+              <div class="card">
+                <h3 class="label">Crop portfolio</h3>
+                <ul class="list">
+                  @for (c of f.cropPortfolio; track c.name) {
+                    <li>
+                      <span>{{ c.name }}</span
+                      ><app-farmer-badge tone="green">Active</app-farmer-badge>
+                    </li>
+                  }
+                </ul>
+              </div>
+              <div class="card">
+                <h3 class="label">Performance</h3>
+                <ul class="list">
+                  <li>
+                    <span>Total orders</span><strong>{{ f.performance.totalOrders }}</strong>
+                  </li>
+                  <li>
+                    <span>Completion rate</span
+                    ><strong>{{ f.performance.completionRate | number: '1.1-1' }}%</strong>
+                  </li>
+                  <li>
+                    <span>Avg response</span><strong>{{ f.performance.avgResponse }}</strong>
+                  </li>
+                  <li>
+                    <span>Disputes</span><strong>{{ f.performance.disputes }}</strong>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="label">Recent orders</h3>
+              <ng-container *ngTemplateOutlet="ordersTable" />
+            </div>
+          }
+
+          @case ('farms') {
+            @if (f.farmList.length) {
+              <div class="farm-grid">
+                @for (farm of f.farmList; track farm.id) {
+                  <app-farm-card [farm]="farm" />
+                }
+              </div>
+            } @else {
+              <div class="card empty">
+                <strong>No farms yet</strong
+                ><span>Farms this farmer registers will appear here.</span>
+              </div>
+            }
+          }
+
+          @case ('orders') {
+            <div class="card"><ng-container *ngTemplateOutlet="ordersTable" /></div>
+          }
+
+          @case ('documents') {
+            <div class="card">
+              <ul class="list">
+                @for (d of f.documents; track d.id) {
+                  <li>
+                    <div>
+                      <strong>{{ d.name }}</strong
+                      ><small>Uploaded {{ d.uploadedAt | date: 'mediumDate' }}</small>
+                    </div>
+                    <app-farmer-badge
+                      [tone]="
+                        d.status === 'approved'
+                          ? 'green'
+                          : d.status === 'rejected'
+                            ? 'red'
+                            : 'amber'
+                      "
+                    >
+                      {{
+                        d.status === 'approved'
+                          ? 'Approved'
+                          : d.status === 'rejected'
+                            ? 'Rejected'
+                            : 'Pending'
+                      }}
+                    </app-farmer-badge>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        }
+
+        <ng-template #ordersTable>
+          @if (f.orders.length) {
+            <div class="scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Product</th>
+                    <th>Buyer</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (o of f.orders; track o.id) {
+                    <tr>
+                      <td class="mono">
+                        <a [routerLink]="['/orders', o.id]">{{ o.id }}</a>
+                      </td>
+                      <td>{{ o.product }}</td>
+                      <td>{{ o.buyer }}</td>
+                      <td class="mono">GHS {{ o.amount | number: '1.0-0' }}</td>
+                      <td>
+                        <app-farmer-badge [tone]="orderTone(o.status)">{{
+                          orderLabel[o.status]
+                        }}</app-farmer-badge>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="note">No orders yet.</p>
+          }
+        </ng-template>
+      </div>
+    </div>
+  </section>
+
+  @if (dialog(); as action) {
+    <app-farmer-action-dialog
+      [farmer]="f"
+      [action]="action"
+      (confirmed)="confirm($event)"
+      (cancelled)="dialog.set(null)"
+    />
+  }
+} @else {
+  <section class="page">
+    <div class="card empty">
+      <strong>Farmer not found</strong>
+      <span>This farmer may have been removed.</span>
+      <a class="btn solid" routerLink="/farmers">Back to farmers</a>
+    </div>
+  </section>
+}

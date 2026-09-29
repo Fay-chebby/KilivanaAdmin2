@@ -1,1 +1,20 @@
-<p>edit-farmer works!</p>
+@if (farmer(); as f) {
+  <section class="page">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/dashboard">AgriAdmin</a> / <a routerLink="/farmers">Farmers</a> /
+      <a [routerLink]="['/farmers', f.id]">{{ f.name }}</a> / <span>Edit</span>
+    </nav>
+    <h1>Edit {{ f.name }}</h1>
+    <app-farmer-form
+      [farmer]="f"
+      submitLabel="Save changes"
+      (submitted)="save($event)"
+      (cancelled)="cancel()"
+    />
+  </section>
+} @else {
+  <section class="page">
+    <h1>Farmer not found</h1>
+    <a routerLink="/farmers">Back to farmers</a>
+  </section>
+}

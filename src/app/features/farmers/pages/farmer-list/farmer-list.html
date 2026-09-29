@@ -1,1 +1,219 @@
-<p>farmer-list works!</p>
+<section class="page">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a routerLink="/dashboard">AgriAdmin</a> / <span>Farmers</span>
+  </nav>
+
+  <header class="head">
+    <h1>Farmer Management</h1>
+    <div class="head-actions">
+      <button type="button" class="btn ghost" (click)="exportCsv()">Export</button>
+      <a class="btn solid" routerLink="/farmers/new">+ Add Farmer</a>
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats">
+    @for (s of statCards(); track s.label) {
+      <article class="stat" [attr.data-tone]="s.tone">
+        <div class="stat-top">
+          <span class="stat-label">{{ s.label }}</span>
+          <span class="stat-icon" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              @switch (s.icon) {
+                @case ('users') {
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                }
+                @case ('check') {
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+                }
+                @case ('clock') {
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                }
+                @case ('ban') {
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="m5.6 5.6 12.8 12.8" />
+                }
+              }
+            </svg>
+          </span>
+        </div>
+        <strong class="stat-value">{{ s.value }}</strong>
+        <span class="stat-hint">{{ s.hint }}</span>
+      </article>
+    }
+  </div>
+
+  <app-farmer-filters (changed)="onFilters($event)" />
+
+  @if (selected().size) {
+    <div class="bulk" role="status">
+      {{ selected().size }} selected
+      <button type="button" class="link" (click)="clearSelection()">Clear</button>
+    </div>
+  }
+
+  <div class="table-card">
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="chk">
+              <input
+                type="checkbox"
+                aria-label="Select all"
+                [checked]="allSelected()"
+                (change)="toggleAll()"
+              />
+            </th>
+            <th>Farmer</th>
+            <th>ID</th>
+            <th>Region</th>
+            <th>Crops</th>
+            <th>Status</th>
+            <th>KYC</th>
+            <th>Farms</th>
+            <th>Rating</th>
+            <th>Revenue</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of rows(); track f.id) {
+            <tr class="row" tabindex="0" (click)="open(f)" (keydown.enter)="open(f)">
+              <td class="chk" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  [attr.aria-label]="'Select ' + f.name"
+                  [checked]="selected().has(f.id)"
+                  (change)="toggleOne(f.id)"
+                />
+              </td>
+              <td>
+                <div class="person">
+                  <span class="avatar" [style.background]="avatarColor(f.name)">{{
+                    initials(f.name)
+                  }}</span>
+                  <div>
+                    <strong>{{ f.name }}</strong
+                    ><small>{{ f.email }}</small>
+                  </div>
+                </div>
+              </td>
+              <td class="mono">{{ f.code }}</td>
+              <td>{{ f.region }}</td>
+              <td>
+                <div class="crops">
+                  @for (c of f.crops; track c) {
+                    <span class="crop">{{ c }}</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <app-farmer-badge [tone]="statusTone(f.status)">{{
+                  statusLabel[f.status]
+                }}</app-farmer-badge>
+              </td>
+              <td>
+                <app-farmer-badge [tone]="kycTone(f.kyc)">{{ kycLabel[f.kyc] }}</app-farmer-badge>
+              </td>
+              <td>{{ f.farms }}</td>
+              <td>
+                <span class="star">★</span>
+                {{ f.rating !== null ? (f.rating | number: '1.1-1') : '–' }}
+              </td>
+              <td class="mono">{{ f.revenue ? 'GHS ' + (f.revenue | number: '1.0-0') : '—' }}</td>
+              <td (click)="$event.stopPropagation()">
+                <div class="actions">
+                  @switch (f.status) {
+                    @case ('pending') {
+                      <button
+                        type="button"
+                        class="btn sm approve"
+                        (click)="ask('approve', f, $event)"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        class="btn sm reject"
+                        (click)="ask('reject', f, $event)"
+                      >
+                        Reject
+                      </button>
+                    }
+                    @case ('verified') {
+                      <button
+                        type="button"
+                        class="btn sm plain"
+                        (click)="ask('suspend', f, $event)"
+                      >
+                        Suspend
+                      </button>
+                    }
+                    @case ('suspended') {
+                      <button
+                        type="button"
+                        class="btn sm plain"
+                        (click)="ask('reinstate', f, $event)"
+                      >
+                        Reinstate
+                      </button>
+                    }
+                    @default {
+                      <span class="muted">—</span>
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="11" class="empty">
+                <strong>No farmers match these filters</strong>
+                <span>Clear the search or pick a different region or status.</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="foot">
+      <span>Showing {{ rows().length }} of {{ filtered().length }} farmers</span>
+      <nav class="pager" aria-label="Pagination">
+        @for (p of pages(); track p) {
+          <button
+            type="button"
+            [class.on]="p === page()"
+            [attr.aria-current]="p === page() ? 'page' : null"
+            (click)="page.set(p)"
+          >
+            {{ p }}
+          </button>
+        }
+      </nav>
+    </footer>
+  </div>
+</section>
+
+@if (dialog(); as d) {
+  <app-farmer-action-dialog
+    [farmer]="d.farmer"
+    [action]="d.action"
+    (confirmed)="confirm($event)"
+    (cancelled)="dialog.set(null)"
+  />
+}

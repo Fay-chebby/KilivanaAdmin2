@@ -1,1 +1,72 @@
-<p>farmer-form works!</p>
+<form class="card" [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <div class="grid">
+    <div class="field">
+      <label for="name">Full name</label>
+      <input
+        id="name"
+        formControlName="name"
+        autocomplete="name"
+        [attr.aria-invalid]="invalid('name')"
+      />
+      @if (invalid('name')) {
+        <small class="err">Enter the farmer's full name.</small>
+      }
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        [attr.aria-invalid]="invalid('email')"
+      />
+      @if (invalid('email')) {
+        <small class="err">Enter a valid email address.</small>
+      }
+    </div>
+    <div class="field">
+      <label for="phone">Phone</label>
+      <input
+        id="phone"
+        type="tel"
+        formControlName="phone"
+        placeholder="+233 24 000 0000"
+        [attr.aria-invalid]="invalid('phone')"
+      />
+      @if (invalid('phone')) {
+        <small class="err">Enter a valid phone number.</small>
+      }
+    </div>
+    <div class="field">
+      <label for="region">Region</label>
+      <select id="region" formControlName="region" [attr.aria-invalid]="invalid('region')">
+        <option value="" disabled>Select a region</option>
+        @for (r of regions; track r) {
+          <option [value]="r">{{ r }}</option>
+        }
+      </select>
+      @if (invalid('region')) {
+        <small class="err">Choose a region.</small>
+      }
+    </div>
+    <div class="field full">
+      <label for="crops">Crops</label>
+      <input
+        id="crops"
+        formControlName="crops"
+        placeholder="Cocoa, Maize"
+        [attr.aria-invalid]="invalid('crops')"
+      />
+      <small class="hint">Separate crops with commas.</small>
+      @if (invalid('crops')) {
+        <small class="err">Add at least one crop.</small>
+      }
+    </div>
+  </div>
+
+  <footer>
+    <button type="button" class="btn" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="btn solid">{{ submitLabel() }}</button>
+  </footer>
+</form>

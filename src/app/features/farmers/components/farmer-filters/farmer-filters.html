@@ -1,1 +1,37 @@
-<p>farmer-filters works!</p>
+<div class="filters">
+  <label class="search">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+    <input
+      type="search"
+      placeholder="Search farmers…"
+      aria-label="Search farmers"
+      [(ngModel)]="search"
+      (ngModelChange)="emit()"
+    />
+  </label>
+
+  <select aria-label="Filter by region" [(ngModel)]="region" (ngModelChange)="emit()">
+    <option value="">All Regions</option>
+    @for (r of regions; track r) {
+      <option [value]="r">{{ r }}</option>
+    }
+  </select>
+
+  <select aria-label="Filter by status" [(ngModel)]="status" (ngModelChange)="emit()">
+    <option value="">All Statuses</option>
+    @for (s of statuses; track s.value) {
+      <option [value]="s.value">{{ s.label }}</option>
+    }
+  </select>
+</div>

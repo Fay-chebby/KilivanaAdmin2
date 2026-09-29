@@ -1,0 +1,65 @@
+<div class="backdrop" (click)="cancelled.emit()" (keydown.escape)="cancelled.emit()">
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="cfg().title"
+    (click)="$event.stopPropagation()"
+  >
+    <header>
+      <h3>{{ cfg().title }}</h3>
+      <button type="button" class="x" aria-label="Close" (click)="cancelled.emit()">×</button>
+    </header>
+
+    <div class="body">
+      <div class="who">
+        <span class="avatar" [style.background]="color()">{{ initials() }}</span>
+        <div>
+          <strong>{{ farmer().name }}</strong>
+          <small>{{ farmer().code }} · {{ farmer().region }}</small>
+        </div>
+      </div>
+
+      @switch (action()) {
+        @case ('approve') {
+          <p>
+            Approving <strong>{{ farmer().name }}</strong> will grant them full platform access to
+            list products and fulfil orders.
+          </p>
+        }
+        @case ('reinstate') {
+          <p>
+            Reinstating <strong>{{ farmer().name }}</strong> restores their access to list products
+            and fulfil orders.
+          </p>
+        }
+        @default {
+          <label for="reason"
+            >{{ action() === 'reject' ? 'Rejection reason' : 'Suspension reason' }}
+            <span class="req">*</span></label
+          >
+          <textarea
+            id="reason"
+            rows="3"
+            [placeholder]="cfg().placeholder"
+            [ngModel]="reason()"
+            (ngModelChange)="reason.set($event)"
+          ></textarea>
+        }
+      }
+    </div>
+
+    <footer>
+      <button type="button" class="btn" (click)="cancelled.emit()">Cancel</button>
+      <button
+        type="button"
+        class="btn solid"
+        [class.danger]="cfg().danger"
+        [disabled]="!canConfirm()"
+        (click)="submit()"
+      >
+        {{ cfg().confirm }}
+      </button>
+    </footer>
+  </div>
+</div>
