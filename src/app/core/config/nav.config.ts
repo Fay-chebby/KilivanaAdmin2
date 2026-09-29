@@ -26,11 +26,11 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Operations',
     items: [
-      { label: 'Orders', icon: 'cart', route: '/orders', badge: 142 },
+      { label: 'Orders', icon: 'cart', route: '/orders' },
       { label: 'Payments & Finance', icon: 'card', route: '/payments' },
-      { label: 'KYC & Verification', icon: 'shield-check', route: '/kyc', badge: 23 },
+      { label: 'KYC & Verification', icon: 'shield-check', route: '/kyc' },
       { label: 'Logistics', icon: 'compass', route: '/logistics' },
-      { label: 'Disputes & Support', icon: 'flag', route: '/disputes', badge: 8 },
+      { label: 'Disputes & Support', icon: 'flag', route: '/disputes' },
     ],
   },
   {

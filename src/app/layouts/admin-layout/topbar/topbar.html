@@ -14,15 +14,21 @@
 
     <button type="button" class="icon-btn bell" aria-label="Notifications">
       <app-icon name="bell" [size]="17" />
-      @if (unreadNotifications() > 0) {
+      @if (unreadNotifications > 0) {
         <span class="bell__dot"></span>
       }
     </button>
 
-    <button type="button" class="profile">
-      <span class="profile__avatar">{{ user().initials }}</span>
-      <span class="profile__name">{{ user().name }}</span>
-      <app-icon name="chevron-down" [size]="13" />
-    </button>
+    <div class="profile-menu">
+      <button type="button" class="profile">
+        <span class="profile__avatar">{{ user().initials }}</span>
+        <span class="profile__name">{{ user().name }}</span>
+        <app-icon name="chevron-down" [size]="13" />
+      </button>
+      <div class="profile-menu__dropdown">
+        <span class="profile-menu__role">{{ user().role }}</span>
+        <button type="button" (click)="logout()">Sign out</button>
+      </div>
+    </div>
   </div>
 </header>

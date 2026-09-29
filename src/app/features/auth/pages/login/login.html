@@ -1,1 +1,47 @@
-<p>login works!</p>
+<div class="card">
+  <div class="brand">
+    <span class="brand__logo"><app-icon name="leaf" [size]="20" /></span>
+    <div>
+      <h1>AgriAdmin</h1>
+      <p>Sign in to the platform console</p>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (errorMessage()) {
+      <div class="alert">{{ errorMessage() }}</div>
+    }
+
+    <label class="field">
+      <span>Email</span>
+      <input type="email" formControlName="email" placeholder="admin@kilivana.com" autocomplete="username" />
+      @if (form.controls.email.invalid && form.controls.email.touched) {
+        <small>Enter a valid email address.</small>
+      }
+    </label>
+
+    <label class="field">
+      <span>Password</span>
+      <div class="password">
+        <input [type]="showPassword() ? 'text' : 'password'" formControlName="password" placeholder="••••••••" autocomplete="current-password" />
+        <button type="button" class="password__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+          <app-icon [name]="showPassword() ? 'shield-check' : 'lock'" [size]="15" />
+        </button>
+      </div>
+      @if (form.controls.password.invalid && form.controls.password.touched) {
+        <small>Password must be at least 6 characters.</small>
+      }
+    </label>
+
+    <div class="row">
+      <label class="remember"><input type="checkbox" /> Remember me</label>
+      <a routerLink="/forgot-password">Forgot password?</a>
+    </div>
+
+    <button type="submit" class="btn btn--primary submit" [disabled]="loading()">
+      {{ loading() ? 'Signing in…' : 'Sign in' }}
+    </button>
+  </form>
+
+  <p class="hint">Demo admin: admin&#64;kilivana.com / Admin&#64;123</p>
+</div>
