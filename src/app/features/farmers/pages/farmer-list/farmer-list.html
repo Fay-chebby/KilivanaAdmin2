@@ -137,6 +137,12 @@
               <td class="mono">{{ f.revenue ? 'GHS ' + (f.revenue | number: '1.0-0') : '—' }}</td>
               <td (click)="$event.stopPropagation()">
                 <div class="actions">
+                  <a
+                    class="btn sm plain"
+                    [routerLink]="['/farmers', f.id]"
+                    [attr.aria-label]="'View ' + f.name"
+                    >View</a
+                  >
                   @switch (f.status) {
                     @case ('pending') {
                       <button

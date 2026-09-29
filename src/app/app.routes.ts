@@ -22,6 +22,7 @@ import { AuthLayout } from './layouts/auth-layout/auth-layout';
 import { Login } from './features/auth/pages/login/login';
 
 import { authGuard } from './core/guards/auth-guard';
+import { FARMER_ROUTES } from './features/farmers/Farmers.routes ';
 
 export const routes: Routes = [
   {
@@ -55,7 +56,7 @@ export const routes: Routes = [
 
       {
         path: 'farmers',
-        component: FarmerList,
+        children: FARMER_ROUTES,
       },
 
       {

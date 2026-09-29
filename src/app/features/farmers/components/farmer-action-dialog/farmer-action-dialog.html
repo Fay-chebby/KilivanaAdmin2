@@ -20,6 +20,32 @@
         </div>
       </div>
 
+      <dl class="facts">
+        <div>
+          <dt>Email</dt>
+          <dd>{{ farmer().email }}</dd>
+        </div>
+        <div>
+          <dt>Phone</dt>
+          <dd>{{ farmer().phone }}</dd>
+        </div>
+        <div>
+          <dt>Crops</dt>
+          <dd>{{ farmer().crops.join(', ') }}</dd>
+        </div>
+        <div>
+          <dt>Farms</dt>
+          <dd>{{ farmer().farms }}</dd>
+        </div>
+        <div>
+          <dt>KYC</dt>
+          <dd>{{ kycLabel[farmer().kyc] }}</dd>
+        </div>
+      </dl>
+      <a class="profile-link" [routerLink]="['/farmers', farmer().id]" (click)="cancelled.emit()"
+        >View full profile</a
+      >
+
       @switch (action()) {
         @case ('approve') {
           <p>

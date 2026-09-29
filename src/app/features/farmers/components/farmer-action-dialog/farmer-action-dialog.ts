@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Farmer, FarmerAction, avatarColor, initials } from '../../models/farmer.model';
+import { RouterLink } from '@angular/router';
+import { Farmer, FarmerAction, KYC_LABEL, avatarColor, initials } from '../../models/farmer.model';
 
 const CONFIG: Record<
   FarmerAction,
@@ -38,7 +39,7 @@ const CONFIG: Record<
 
 @Component({
   selector: 'app-farmer-action-dialog',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './farmer-action-dialog.html',
   styleUrl: './farmer-action-dialog.scss',
@@ -49,6 +50,7 @@ export class FarmerActionDialog {
   readonly confirmed = output<string>();
   readonly cancelled = output<void>();
 
+  readonly kycLabel = KYC_LABEL;
   readonly reason = signal('');
   readonly cfg = computed(() => CONFIG[this.action()]);
   readonly canConfirm = computed(() => !this.cfg().needsReason || this.reason().trim().length > 0);

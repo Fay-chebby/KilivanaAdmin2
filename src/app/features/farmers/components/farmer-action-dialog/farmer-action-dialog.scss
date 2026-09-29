@@ -134,3 +134,27 @@ footer {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.facts {
+  margin: 0 0 8px;
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  dt {
+    color: #9ca3af;
+  }
+  dd {
+    margin: 0;
+    font-weight: 500;
+    text-align: right;
+  }
+}
+.profile-link {
+  display: inline-block;
+  margin-bottom: 14px;
+  color: #0f7b3e;
+  font-size: 11px;
+}
