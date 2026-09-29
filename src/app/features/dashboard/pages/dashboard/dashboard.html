@@ -1,1 +1,29 @@
-<p>dashboard works!</p>
+<app-page-header title="Dashboard" [breadcrumb]="['AgriAdmin', 'Dashboard']">
+  @if (data(); as d) {
+    Last updated: {{ d.stats.updatedAt | date: 'dd MMM y, HH:mm' }}
+  }
+</app-page-header>
+
+@if (loading()) {
+  <app-loading-spinner label="Loading dashboard…" />
+} @else if (error()) {
+  <div class="error">
+    <p>{{ error() }}</p>
+    <button type="button" (click)="load()">Try again</button>
+  </div>
+} @else if (data(); as d) {
+  <div class="stack">
+    <app-stats-row [stats]="d.stats" />
+    <app-mini-stats-row [stats]="d.stats" />
+
+    <div class="split">
+      <app-order-chart [data]="d.orderTrend" />
+      <app-crop-donut [slices]="d.cropMix" />
+    </div>
+
+    <div class="split">
+      <app-activity-list [items]="d.activity" />
+      <app-alerts-panel [alerts]="d.alerts" />
+    </div>
+  </div>
+}

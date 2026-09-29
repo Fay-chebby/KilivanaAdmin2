@@ -1,1 +1,64 @@
-<p>sidebar works!</p>
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <div class="brand">
+    <span class="brand__logo"><app-icon name="leaf" [size]="16" /></span>
+    @if (!collapsed()) {
+      <div class="brand__text">
+        <span class="brand__title">AgriAdmin</span>
+        <span class="brand__sub">Platform Console</span>
+      </div>
+    }
+  </div>
+
+  <nav class="nav">
+    @for (section of sections; track section.label) {
+      <div class="section">
+        @if (!collapsed()) {
+          <button
+            type="button"
+            class="section__head"
+            (click)="toggle(section)"
+            [attr.aria-expanded]="isOpen(section)"
+          >
+            <span>{{ section.label }}</span>
+            <span class="chev" [class.open]="isOpen(section)"
+              ><app-icon name="chevron-down" [size]="12"
+            /></span>
+          </button>
+        }
+
+        @if (isOpen(section) || collapsed()) {
+          <ul class="items">
+            @for (item of section.items; track item.route) {
+              <li>
+                <a
+                  class="item"
+                  [routerLink]="item.route"
+                  routerLinkActive="active"
+                  [title]="item.label"
+                >
+                  <app-icon [name]="item.icon" [size]="15" />
+                  @if (!collapsed()) {
+                    <span class="item__label">{{ item.label }}</span>
+                    @if (item.badge) {
+                      <span class="item__badge">{{ item.badge }}</span>
+                    }
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </nav>
+
+  <div class="foot">
+    <span class="foot__avatar">AM</span>
+    @if (!collapsed()) {
+      <div class="foot__text">
+        <span class="foot__name">Abena Mensah</span>
+        <span class="foot__role">Administrator</span>
+      </div>
+    }
+  </div>
+</aside>

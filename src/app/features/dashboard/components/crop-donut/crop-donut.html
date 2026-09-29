@@ -1,1 +1,29 @@
-<p>crop-donut works!</p>
+<app-panel title="Crop Category Mix" subtitle="By order volume %">
+  <div class="wrap">
+    <svg class="donut" viewBox="0 0 140 140" role="img" aria-label="Crop category mix">
+      <g transform="rotate(-90 70 70)">
+        @for (s of segments(); track s.category) {
+          <circle
+            cx="70"
+            cy="70"
+            fill="none"
+            stroke-width="20"
+            [attr.r]="radius"
+            [attr.stroke]="s.color"
+            [attr.stroke-dasharray]="s.dash"
+            [attr.stroke-dashoffset]="s.offset"
+          />
+        }
+      </g>
+    </svg>
+
+    <ul class="legend">
+      @for (s of segments(); track s.category) {
+        <li>
+          <span class="legend__label"><i [style.background]="s.color"></i>{{ s.category }}</span>
+          <span class="legend__value">{{ s.percent }}%</span>
+        </li>
+      }
+    </ul>
+  </div>
+</app-panel>

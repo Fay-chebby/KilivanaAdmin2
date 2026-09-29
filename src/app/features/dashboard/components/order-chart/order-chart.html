@@ -1,1 +1,64 @@
-<p>order-chart works!</p>
+<app-panel title="Order Volume & Revenue" subtitle="Last 7 months">
+  <div panel-actions class="legend">
+    <span><i class="legend__line"></i>Orders</span>
+    <span><i class="legend__line legend__line--light"></i>Revenue</span>
+  </div>
+
+  <div class="chart">
+    <svg
+      class="chart__svg"
+      [attr.viewBox]="'0 0 ' + W + ' ' + H"
+      role="img"
+      aria-label="Orders per month"
+    >
+      <defs>
+        <linearGradient id="orderFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#16a34a" stop-opacity="0.16" />
+          <stop offset="1" stop-color="#16a34a" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+
+      @for (t of ticks(); track t) {
+        <line class="grid" [attr.x1]="L" [attr.x2]="W - R" [attr.y1]="y(t)" [attr.y2]="y(t)" />
+        <text class="axis" text-anchor="end" [attr.x]="L - 8" [attr.y]="y(t) + 3">{{ t }}</text>
+      }
+
+      <path [attr.d]="areaPath()" fill="url(#orderFill)" />
+      <path class="line" [attr.d]="linePath()" />
+
+      @for (p of points(); track p.month) {
+        <text class="axis" text-anchor="middle" [attr.x]="p.x" [attr.y]="H - 6">{{ p.month }}</text>
+      }
+
+      @if (hoverPoint(); as p) {
+        <line class="guide" [attr.x1]="p.x" [attr.x2]="p.x" [attr.y1]="T" [attr.y2]="H - B" />
+        <circle class="dot" [attr.cx]="p.x" [attr.cy]="p.y" r="3.5" />
+      }
+
+      @for (p of points(); track p.month; let i = $index) {
+        <rect
+          fill="transparent"
+          [attr.x]="p.x - step() / 2"
+          [attr.y]="T"
+          [attr.width]="step()"
+          [attr.height]="H - T - B"
+          (mouseenter)="hovered.set(i)"
+          (mouseleave)="hovered.set(null)"
+        />
+      }
+    </svg>
+
+    @if (hoverPoint(); as p) {
+      <div
+        class="tip"
+        [class.tip--left]="tipOnLeft()"
+        [style.left.%]="(p.x / W) * 100"
+        [style.top.%]="(p.y / H) * 100"
+      >
+        <strong>{{ p.month }}</strong>
+        <span>orders : {{ p.orders }}</span>
+        <span>revenue : {{ ghs.transform(p.revenue, true) }}</span>
+      </div>
+    }
+  </div>
+</app-panel>

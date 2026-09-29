@@ -1,1 +1,19 @@
-<p>activity-list works!</p>
+<app-panel title="Recent Activity">
+  <ul class="list">
+    @for (item of items(); track item.id) {
+      <li>
+        <a class="row" [routerLink]="item.link" [class.row--link]="!!item.link">
+          <span class="row__icon" [class]="'tone-' + meta[item.type].tone">
+            <app-icon [name]="meta[item.type].icon" [size]="14" />
+          </span>
+          <span class="row__text">
+            <span class="row__title">{{ item.text }}</span>
+            <span class="row__time">{{ item.createdAt | timeAgo }}</span>
+          </span>
+        </a>
+      </li>
+    } @empty {
+      <li class="empty">No recent activity.</li>
+    }
+  </ul>
+</app-panel>

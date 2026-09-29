@@ -1,1 +1,14 @@
-<p>alerts-panel works!</p>
+<app-panel title="Alerts">
+  <ul class="list">
+    @for (alert of alerts(); track alert.id) {
+      <li>
+        <a class="alert" [class]="'alert--' + alert.severity" [routerLink]="alert.link">
+          <span class="alert__title">{{ alert.title }}</span>
+          <span class="alert__detail">{{ alert.detail }}</span>
+        </a>
+      </li>
+    } @empty {
+      <li class="empty">Nothing needs your attention.</li>
+    }
+  </ul>
+</app-panel>

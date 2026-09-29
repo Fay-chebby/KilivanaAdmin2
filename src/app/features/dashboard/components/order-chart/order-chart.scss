@@ -1,0 +1,90 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--text-muted);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.legend__line {
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+  &--light {
+    background: #86efac;
+  }
+}
+
+.chart {
+  position: relative;
+}
+.chart__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid {
+  stroke: #eef0f2;
+  stroke-width: 1;
+}
+.axis {
+  font-size: 10px;
+  fill: var(--text-faint);
+  font-family: var(--font-mono);
+}
+.line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.guide {
+  stroke: #d1d5db;
+  stroke-width: 1;
+}
+.dot {
+  fill: #fff;
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+.tip {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  font-size: 11px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(16, 24, 40, 0.12);
+  transform: translate(12px, -50%);
+  white-space: nowrap;
+
+  strong {
+    font-size: 11px;
+  }
+  span {
+    color: var(--primary-dark);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+  }
+  &--left {
+    transform: translate(calc(-100% - 12px), -50%);
+  }
+}

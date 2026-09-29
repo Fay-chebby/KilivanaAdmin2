@@ -1,8 +1,8 @@
-import { CurrencyGhsPipe } from './currency-ghs-pipe';
+import { CurrencyKshPipe } from './currency-ghs-pipe';
 
 describe('CurrencyGhsPipe', () => {
   it('create an instance', () => {
-    const pipe = new CurrencyGhsPipe();
+    const pipe = new CurrencyKshPipe();
     expect(pipe).toBeTruthy();
   });
 });

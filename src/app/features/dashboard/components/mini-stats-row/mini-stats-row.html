@@ -1,1 +1,23 @@
-<p>mini-stats-row works!</p>
+<div class="row">
+  <app-stat-card
+    variant="mini"
+    tone="amber"
+    icon="clock"
+    label="Pending Verifications"
+    [value]="'' + stats().pendingVerifications"
+  />
+  <app-stat-card
+    variant="mini"
+    tone="red"
+    icon="alert"
+    label="Open Disputes"
+    [value]="'' + stats().openDisputes"
+  />
+  <app-stat-card
+    variant="mini"
+    tone="blue"
+    icon="trend"
+    label="Avg Order Value"
+    [value]="stats().avgOrderValue | currencyKsh"
+  />
+</div>
