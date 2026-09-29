@@ -3,7 +3,7 @@ import { DecimalPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FarmerService } from '../../services/farmer.service';
 import { FarmerFilters } from '../../components/farmer-filters/farmer-filters';
-import { FarmerBadge } from '../../components/farmer-badge/farmer-badge';
+import { FarmerBadge } from '../../components/farmer-badge/Farmer badge ';
 import { FarmerActionDialog } from '../../components/farmer-action-dialog/farmer-action-dialog';
 import {
   Farmer,
