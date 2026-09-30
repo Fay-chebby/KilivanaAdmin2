@@ -1,1 +1,108 @@
-<p>supplier-form works!</p>
+<form class="card form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <section>
+    <h3>Company details</h3>
+    <div class="grid">
+      <div class="field">
+        <label for="name">Company name <span class="req">*</span></label>
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          placeholder="e.g. AgroInput Ghana"
+          [class.error]="invalid('name')"
+        />
+        @if (invalid('name')) {
+          <small class="err">Company name is required.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="category">Category <span class="req">*</span></label>
+        <select id="category" formControlName="category">
+          @for (c of categories; track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="contractEnd">Contract end date</label>
+        <input id="contractEnd" type="date" formControlName="contractEnd" />
+      </div>
+
+      @if (showStatus()) {
+        <div class="field">
+          <label for="status">Initial status</label>
+          <select id="status" formControlName="status">
+            <option value="pending">Pending</option>
+            <option value="active">Active</option>
+          </select>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section>
+    <h3>Contact &amp; location</h3>
+    <div class="grid">
+      <div class="field">
+        <label for="contactPerson">Contact person <span class="req">*</span></label>
+        <input
+          id="contactPerson"
+          type="text"
+          formControlName="contactPerson"
+          [class.error]="invalid('contactPerson')"
+        />
+        @if (invalid('contactPerson')) {
+          <small class="err">Contact person is required.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="phone">Phone <span class="req">*</span></label>
+        <input
+          id="phone"
+          type="tel"
+          formControlName="phone"
+          placeholder="0244123456"
+          [class.error]="invalid('phone')"
+        />
+        @if (invalid('phone')) {
+          <small class="err">Enter a valid phone number.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="email">Email <span class="req">*</span></label>
+        <input id="email" type="email" formControlName="email" [class.error]="invalid('email')" />
+        @if (invalid('email')) {
+          <small class="err">Enter a valid email address.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="region">Region <span class="req">*</span></label>
+        <input
+          id="region"
+          type="text"
+          formControlName="region"
+          placeholder="e.g. Ashanti"
+          [class.error]="invalid('region')"
+        />
+        @if (invalid('region')) {
+          <small class="err">Region is required.</small>
+        }
+      </div>
+
+      <div class="field full">
+        <label for="address">Address</label>
+        <textarea id="address" rows="2" formControlName="address"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <button type="button" class="btn" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="btn btn-primary">{{ submitLabel() }}</button>
+  </div>
+</form>

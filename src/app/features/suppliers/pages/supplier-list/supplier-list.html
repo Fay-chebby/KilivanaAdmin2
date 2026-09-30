@@ -1,1 +1,205 @@
-<p>supplier-list works!</p>
+<div class="page">
+  <div class="breadcrumb"><a routerLink="/dashboard">AgriAdmin</a><span>/</span>Suppliers</div>
+
+  <div class="page-head">
+    <div>
+      <h1>Supplier Management</h1>
+      <p>{{ filtered().length }} supplier{{ filtered().length === 1 ? '' : 's' }}</p>
+    </div>
+    <a class="btn btn-primary" routerLink="add">+ Add Supplier</a>
+  </div>
+
+  @if (notice(); as msg) {
+    <div class="notice" role="status">{{ msg }}</div>
+  }
+
+  <div class="stats">
+    @for (c of statCards(); track c.key) {
+      <button
+        type="button"
+        class="stat-btn"
+        [class.active]="status() === c.key && c.key !== 'all'"
+        (click)="filterBy(c.key)"
+      >
+        <app-stat-card
+          variant="mini"
+          [label]="c.label"
+          [value]="c.value"
+          [icon]="c.icon"
+          [tone]="c.tone"
+        />
+      </button>
+    }
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <input
+        class="search"
+        type="search"
+        placeholder="Search by name, ID or contact…"
+        [value]="search()"
+        (input)="onSearch($event)"
+      />
+      <select [value]="status()" (change)="onStatus($event)">
+        <option value="all">All statuses</option>
+        <option value="active">Active</option>
+        <option value="pending">Pending</option>
+        <option value="suspended">Suspended</option>
+      </select>
+      <select [value]="category()" (change)="onCategory($event)">
+        <option value="all">All categories</option>
+        @for (c of categories; track c) {
+          <option [value]="c">{{ c }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Supplier</th>
+            <th>ID</th>
+            <th>Category</th>
+            <th>Products</th>
+            <th>Rating</th>
+            <th>Contract end</th>
+            <th>Status</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of paged(); track s.id) {
+            <tr>
+              <td>
+                <div class="who">
+                  <span class="avatar" [class.alt]="$index % 2 === 1">{{ initials(s.name) }}</span>
+                  <a class="name" [routerLink]="[s.id]">{{ s.name }}</a>
+                </div>
+              </td>
+              <td class="mono muted">{{ s.code }}</td>
+              <td>
+                <span class="cat">{{ s.category }}</span>
+              </td>
+              <td>{{ s.productsCount }}</td>
+              <td>
+                @if (s.rating !== null) {
+                  <span class="star">★</span> {{ s.rating.toFixed(1) }}
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td class="mono muted">{{ s.contractEnd ?? 'Pending' }}</td>
+              <td>
+                <span class="badge" [class]="'badge badge--' + s.status">{{ s.status }}</span>
+              </td>
+              <td class="right">
+                <div class="row-actions">
+                  <a class="btn btn-sm" [routerLink]="[s.id]">View</a>
+                  <a class="btn btn-sm" [routerLink]="[s.id, 'edit']">Edit</a>
+                  @switch (s.status) {
+                    @case ('active') {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-warn"
+                        (click)="open('suspend', s)"
+                      >
+                        Suspend
+                      </button>
+                    }
+                    @case ('suspended') {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-success"
+                        (click)="open('activate', s)"
+                      >
+                        Reinstate
+                      </button>
+                    }
+                    @case ('pending') {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-success"
+                        (click)="open('activate', s)"
+                      >
+                        Activate
+                      </button>
+                    }
+                  }
+                  <button type="button" class="btn btn-sm btn-danger" (click)="open('delete', s)">
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty">No suppliers match your search.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (totalPages() > 1) {
+      <div class="pager">
+        <span class="muted">Page {{ currentPage() }} of {{ totalPages() }}</span>
+        <div>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [disabled]="currentPage() === 1"
+            (click)="go(currentPage() - 1)"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [disabled]="currentPage() === totalPages()"
+            (click)="go(currentPage() + 1)"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+@if (dialog(); as d) {
+  @switch (d.type) {
+    @case ('delete') {
+      <app-supplier-action-dialog
+        title="Delete supplier?"
+        tone="danger"
+        confirmLabel="Delete"
+        [message]="'This will permanently remove ' + d.supplier.name + '. This cannot be undone.'"
+        (confirmed)="confirm($event)"
+        (cancelled)="dialog.set(null)"
+      />
+    }
+    @case ('suspend') {
+      <app-supplier-action-dialog
+        title="Suspend supplier?"
+        tone="warning"
+        confirmLabel="Suspend"
+        [requireReason]="true"
+        [message]="d.supplier.name + ' will be marked as suspended. Please give a reason.'"
+        (confirmed)="confirm($event)"
+        (cancelled)="dialog.set(null)"
+      />
+    }
+    @case ('activate') {
+      <app-supplier-action-dialog
+        title="Activate supplier?"
+        tone="success"
+        [confirmLabel]="d.supplier.status === 'suspended' ? 'Reinstate' : 'Activate'"
+        [message]="d.supplier.name + ' will be set to active.'"
+        (confirmed)="confirm($event)"
+        (cancelled)="dialog.set(null)"
+      />
+    }
+  }
+}

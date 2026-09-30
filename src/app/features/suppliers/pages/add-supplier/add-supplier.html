@@ -1,1 +1,18 @@
-<p>add-supplier works!</p>
+<div class="page">
+  <div class="breadcrumb">
+    <a routerLink="/dashboard">AgriAdmin</a><span>/</span><a routerLink="/suppliers">Suppliers</a
+    ><span>/</span>Add
+  </div>
+  <div class="page-head">
+    <div>
+      <h1>Register Supplier</h1>
+      <p>Enter the supplier's details as provided at the office.</p>
+    </div>
+  </div>
+  <app-supplier-form
+    submitLabel="Register Supplier"
+    [showStatus]="true"
+    (saved)="save($event)"
+    (cancelled)="cancel()"
+  />
+</div>

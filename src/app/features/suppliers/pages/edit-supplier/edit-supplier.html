@@ -1,1 +1,26 @@
-<p>edit-supplier works!</p>
+<div class="page">
+  <div class="breadcrumb">
+    <a routerLink="/dashboard">AgriAdmin</a><span>/</span><a routerLink="/suppliers">Suppliers</a
+    ><span>/</span>Edit
+  </div>
+
+  @if (supplier) {
+    <div class="page-head">
+      <div>
+        <h1>Edit {{ supplier.name }}</h1>
+        <p>{{ supplier.code }}</p>
+      </div>
+    </div>
+    <app-supplier-form
+      [supplier]="supplier"
+      submitLabel="Save Changes"
+      (saved)="save($event)"
+      (cancelled)="cancel()"
+    />
+  } @else {
+    <div class="card missing">
+      <p>Supplier not found.</p>
+      <a class="btn" routerLink="/suppliers">Back to suppliers</a>
+    </div>
+  }
+</div>

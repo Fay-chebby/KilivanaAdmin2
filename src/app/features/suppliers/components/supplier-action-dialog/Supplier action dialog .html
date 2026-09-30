@@ -1,0 +1,32 @@
+<div class="backdrop" (click)="cancelled.emit()">
+  <div class="dialog" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <h2>{{ title() }}</h2>
+    <p>{{ message() }}</p>
+
+    @if (requireReason()) {
+      <label for="reason">Reason <span class="req">*</span></label>
+      <textarea
+        id="reason"
+        rows="3"
+        placeholder="e.g. Expired licence documents"
+        [value]="reason()"
+        (input)="onReason($event)"
+      ></textarea>
+    }
+
+    <div class="actions">
+      <button type="button" class="btn" (click)="cancelled.emit()">Cancel</button>
+      <button
+        type="button"
+        class="btn"
+        [class.btn-danger-solid]="tone() === 'danger'"
+        [class.btn-warn-solid]="tone() === 'warning'"
+        [class.btn-success-solid]="tone() === 'success'"
+        [disabled]="!canConfirm()"
+        (click)="submit()"
+      >
+        {{ confirmLabel() }}
+      </button>
+    </div>
+  </div>
+</div>

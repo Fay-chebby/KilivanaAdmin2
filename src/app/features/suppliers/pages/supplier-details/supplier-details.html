@@ -1,1 +1,135 @@
-<p>supplier-details works!</p>
+<div class="page">
+  <div class="breadcrumb">
+    <a routerLink="/dashboard">AgriAdmin</a><span>/</span><a routerLink="/suppliers">Suppliers</a
+    ><span>/</span>Details
+  </div>
+
+  @if (notice(); as msg) {
+    <div class="notice" role="status">{{ msg }}</div>
+  }
+
+  @if (supplier(); as s) {
+    <div class="page-head">
+      <div class="title">
+        <span class="avatar">{{ initials(s.name) }}</span>
+        <div>
+          <h1>{{ s.name }}</h1>
+          <p>
+            <span class="mono">{{ s.code }}</span> ·
+            <span class="badge" [class]="'badge badge--' + s.status">{{ s.status }}</span>
+          </p>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn" routerLink="edit">Edit</a>
+        @switch (s.status) {
+          @case ('active') {
+            <button type="button" class="btn btn-warn" (click)="dialog.set('suspend')">
+              Suspend
+            </button>
+          }
+          @case ('suspended') {
+            <button type="button" class="btn btn-success" (click)="dialog.set('activate')">
+              Reinstate
+            </button>
+          }
+          @case ('pending') {
+            <button type="button" class="btn btn-success" (click)="dialog.set('activate')">
+              Activate
+            </button>
+          }
+        }
+        <button type="button" class="btn btn-danger" (click)="dialog.set('delete')">Delete</button>
+      </div>
+    </div>
+
+    @if (s.status === 'suspended' && s.suspensionReason) {
+      <div class="alert"><strong>Suspended:</strong> {{ s.suspensionReason }}</div>
+    }
+
+    <div class="stats">
+      <div class="card stat">
+        <span>Products</span><strong>{{ s.productsCount }}</strong>
+      </div>
+      <div class="card stat">
+        <span>Rating</span
+        ><strong>{{ s.rating !== null ? '★ ' + s.rating.toFixed(1) : '—' }}</strong>
+      </div>
+      <div class="card stat">
+        <span>Contract end</span><strong class="mono">{{ s.contractEnd ?? 'Pending' }}</strong>
+      </div>
+      <div class="card stat">
+        <span>Registered</span><strong class="mono">{{ s.createdAt }}</strong>
+      </div>
+    </div>
+
+    <div class="card info">
+      <h3>Supplier information</h3>
+      <dl>
+        <div>
+          <dt>Category</dt>
+          <dd>{{ s.category }}</dd>
+        </div>
+        <div>
+          <dt>Contact person</dt>
+          <dd>{{ s.contactPerson }}</dd>
+        </div>
+        <div>
+          <dt>Phone</dt>
+          <dd>{{ s.phone }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{ s.email }}</dd>
+        </div>
+        <div>
+          <dt>Region</dt>
+          <dd>{{ s.region }}</dd>
+        </div>
+        <div>
+          <dt>Address</dt>
+          <dd>{{ s.address || '—' }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    @switch (dialog()) {
+      @case ('delete') {
+        <app-supplier-action-dialog
+          title="Delete supplier?"
+          tone="danger"
+          confirmLabel="Delete"
+          [message]="'This will permanently remove ' + s.name + '. This cannot be undone.'"
+          (confirmed)="confirm($event)"
+          (cancelled)="dialog.set(null)"
+        />
+      }
+      @case ('suspend') {
+        <app-supplier-action-dialog
+          title="Suspend supplier?"
+          tone="warning"
+          confirmLabel="Suspend"
+          [requireReason]="true"
+          [message]="s.name + ' will be marked as suspended. Please give a reason.'"
+          (confirmed)="confirm($event)"
+          (cancelled)="dialog.set(null)"
+        />
+      }
+      @case ('activate') {
+        <app-supplier-action-dialog
+          title="Activate supplier?"
+          tone="success"
+          [confirmLabel]="s.status === 'suspended' ? 'Reinstate' : 'Activate'"
+          [message]="s.name + ' will be set to active.'"
+          (confirmed)="confirm($event)"
+          (cancelled)="dialog.set(null)"
+        />
+      }
+    }
+  } @else {
+    <div class="card missing">
+      <p>Supplier not found.</p>
+      <a class="btn" routerLink="/suppliers">Back to suppliers</a>
+    </div>
+  }
+</div>
