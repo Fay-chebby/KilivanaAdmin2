@@ -1,0 +1,148 @@
+@let f = form.controls;
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <fieldset>
+    <legend>Farm and owner</legend>
+    <div class="grid">
+      <div class="field full">
+        <label for="name">Farm name</label>
+        <input id="name" formControlName="name" [class.err]="bad(f.name)" />
+        @if (bad(f.name)) {
+          <small>Enter the farm name.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="owner">Owner name</label>
+        <input id="owner" formControlName="ownerName" [class.err]="bad(f.ownerName)" />
+        @if (bad(f.ownerName)) {
+          <small>Enter the owner's full name.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="phone">Owner phone</label>
+        <input
+          id="phone"
+          formControlName="ownerPhone"
+          placeholder="0712345678"
+          [class.err]="bad(f.ownerPhone)"
+        />
+        @if (bad(f.ownerPhone)) {
+          <small>Use 07XXXXXXXX, 01XXXXXXXX or +254XXXXXXXXX.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="county">County</label>
+        <select id="county" formControlName="county" [class.err]="bad(f.county)">
+          <option value="" disabled>Select county</option>
+          @for (c of counties; track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+        @if (bad(f.county)) {
+          <small>Choose a county.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="loc">Sub-county or village</label>
+        <input
+          id="loc"
+          formControlName="location"
+          placeholder="e.g. Limuru"
+          [class.err]="bad(f.location)"
+        />
+        @if (bad(f.location)) {
+          <small>Enter where the farm is.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="size">Size (hectares)</label>
+        <input
+          id="size"
+          type="number"
+          step="0.1"
+          min="0"
+          formControlName="sizeHa"
+          [class.err]="bad(f.sizeHa)"
+        />
+        @if (bad(f.sizeHa)) {
+          <small>Enter a size above 0.</small>
+        } @else {
+          <small class="help">1 hectare is about 2.5 acres.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="status">Farm status</label>
+        <select id="status" formControlName="status">
+          <option value="pending">Pending</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Crops grown</legend>
+    <div class="chips" role="group" aria-label="Crops">
+      @for (c of cropOptions; track c) {
+        <button
+          type="button"
+          [class.on]="crops().includes(c)"
+          [attr.aria-pressed]="crops().includes(c)"
+          (click)="toggleCrop(c)"
+        >
+          {{ c }}
+        </button>
+      }
+    </div>
+    @if (cropError()) {
+      <small class="crop-err">Pick at least one crop.</small>
+    }
+  </fieldset>
+
+  <fieldset>
+    <legend>
+      Farm photos <span>{{ images().length }}/{{ maxPhotos }}</span>
+    </legend>
+    <p class="help">
+      Photos the farmer uploaded of the land and crops. The inspector compares these with what they
+      see on site.
+    </p>
+    @if (images().length < maxPhotos) {
+      <label
+        class="drop"
+        [class.over]="dragging()"
+        (dragover)="onDrag($event, true)"
+        (dragleave)="onDrag($event, false)"
+        (drop)="onDrop($event)"
+      >
+        <input type="file" accept="image/*" multiple (change)="onPick($event)" />
+        <strong>Drop farm photos here</strong>
+        <span>or click to choose files. JPG or PNG, up to 5 MB each.</span>
+      </label>
+    }
+    @if (error()) {
+      <small class="upload-err" role="alert">{{ error() }}</small>
+    }
+    @if (images().length) {
+      <ul class="thumbs">
+        @for (i of images(); track i.id) {
+          <li>
+            <img [src]="i.url" [alt]="i.caption" />
+            <button
+              type="button"
+              (click)="removeImage(i.id)"
+              [attr.aria-label]="'Remove ' + i.caption"
+            >
+              ×
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </fieldset>
+
+  <div class="actions">
+    <button type="button" class="btn ghost" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="btn">{{ submitLabel() }}</button>
+  </div>
+</form>

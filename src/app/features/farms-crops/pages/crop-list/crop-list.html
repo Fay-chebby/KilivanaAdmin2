@@ -1,1 +1,44 @@
-<p>crop-list works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a routerLink="/">AgriAdmin</a> / <a routerLink="/farms-crops">Farms &amp; Crops</a> /
+  <span>Crops</span>
+</nav>
+<a class="back" routerLink="/farms-crops">← Back to farms</a>
+<div class="head">
+  <div>
+    <h1>Crop overview</h1>
+    <p>
+      What is grown across all registered farms. Hectares are shared equally between a farm's crops.
+    </p>
+  </div>
+  <input
+    type="search"
+    placeholder="Search crops…"
+    aria-label="Search crops"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+</div>
+
+@if (crops().length) {
+  <div class="grid">
+    @for (c of crops(); track c.name) {
+      <article class="card crop">
+        <span class="ph badge-i">{{ c.name.charAt(0) }}</span>
+        <div class="info">
+          <h3>{{ c.name }}</h3>
+          <p>
+            {{ c.farms }} farm{{ c.farms === 1 ? '' : 's' }} · {{ c.counties.size }} count{{
+              c.counties.size === 1 ? 'y' : 'ies'
+            }}
+          </p>
+          <div class="bar" role="img" [attr.aria-label]="c.hectares.toFixed(1) + ' hectares'">
+            <span [style.width.%]="(c.hectares / max()) * 100"></span>
+          </div>
+          <strong>{{ c.hectares.toFixed(1) }} ha</strong>
+        </div>
+      </article>
+    }
+  </div>
+} @else {
+  <div class="card empty">No crops match your search.</div>
+}

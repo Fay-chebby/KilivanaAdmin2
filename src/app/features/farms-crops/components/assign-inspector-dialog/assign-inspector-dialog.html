@@ -1,0 +1,55 @@
+<div class="backdrop" (click)="cancelled.emit()">
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="ai-title"
+    (click)="$event.stopPropagation()"
+  >
+    <h3 id="ai-title">Assign an inspector</h3>
+    <p>Choose who will visit the farm in {{ county() }} and confirm it matches the registration.</p>
+
+    <div class="list" role="radiogroup" aria-label="Inspectors">
+      @for (o of options(); track o.i.id) {
+        <label class="opt" [class.on]="selected() === o.i.id">
+          <input
+            type="radio"
+            name="inspector"
+            [checked]="selected() === o.i.id"
+            (change)="selected.set(o.i.id)"
+          />
+          <span class="who">
+            <strong>{{ o.i.name }}</strong>
+            <small>{{ o.i.region }} · {{ o.i.specialization }}</small>
+          </span>
+          <span class="meta">
+            @if (o.near) {
+              <span class="near">Same county</span>
+            }
+            <small>{{ o.pending }} pending</small>
+          </span>
+        </label>
+      } @empty {
+        <p class="none">No active inspectors available. Register or reactivate one first.</p>
+      }
+    </div>
+
+    <div class="field">
+      <label for="due">Visit due by</label>
+      <input
+        id="due"
+        type="date"
+        [min]="minDate"
+        [value]="due()"
+        (input)="due.set($any($event.target).value)"
+      />
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn ghost" (click)="cancelled.emit()">Cancel</button>
+      <button type="button" class="btn" [disabled]="!selected() || !due()" (click)="confirm()">
+        Assign inspector
+      </button>
+    </div>
+  </div>
+</div>

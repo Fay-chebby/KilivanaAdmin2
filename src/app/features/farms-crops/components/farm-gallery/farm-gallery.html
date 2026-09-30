@@ -1,0 +1,82 @@
+<section class="card">
+  <header>
+    <h2>Photos</h2>
+    <div class="tabs" role="tablist">
+      <button
+        type="button"
+        role="tab"
+        [class.on]="filter() === 'all'"
+        [attr.aria-selected]="filter() === 'all'"
+        (click)="setFilter('all')"
+      >
+        All {{ images().length }}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [class.on]="filter() === 'farmer'"
+        [attr.aria-selected]="filter() === 'farmer'"
+        (click)="setFilter('farmer')"
+      >
+        Farmer {{ farmerCount() }}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [class.on]="filter() === 'inspector'"
+        [attr.aria-selected]="filter() === 'inspector'"
+        (click)="setFilter('inspector')"
+      >
+        Inspector {{ inspectorCount() }}
+      </button>
+    </div>
+  </header>
+
+  @if (visible().length) {
+    <ul class="grid">
+      @for (p of visible(); track p.id; let i = $index) {
+        <li [class.wide]="i === 0 && visible().length > 2">
+          <button type="button" (click)="index.set(i)" [attr.aria-label]="'Open ' + p.caption">
+            <img [src]="p.url" [alt]="p.caption" loading="lazy" />
+            <span class="tag" [attr.data-by]="p.uploadedBy">{{
+              p.uploadedBy === 'farmer' ? 'Farmer' : 'Inspector'
+            }}</span>
+            <span class="cap">{{ p.caption }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="empty">No photos here yet.</p>
+  }
+</section>
+
+@if (current(); as p) {
+  <div class="lightbox" role="dialog" aria-modal="true" (click)="close()">
+    <button
+      type="button"
+      class="nav prev"
+      aria-label="Previous photo"
+      (click)="step(-1); $event.stopPropagation()"
+    >
+      ‹
+    </button>
+    <figure (click)="$event.stopPropagation()">
+      <img [src]="p.url" [alt]="p.caption" />
+      <figcaption>
+        {{ p.caption }} ·
+        {{ p.uploadedBy === 'farmer' ? 'Uploaded by farmer' : 'Taken by inspector' }} ·
+        {{ p.uploadedAt }}
+      </figcaption>
+    </figure>
+    <button
+      type="button"
+      class="nav next"
+      aria-label="Next photo"
+      (click)="step(1); $event.stopPropagation()"
+    >
+      ›
+    </button>
+    <button type="button" class="x" aria-label="Close" (click)="close()">×</button>
+  </div>
+}

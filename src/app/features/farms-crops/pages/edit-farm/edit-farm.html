@@ -1,0 +1,18 @@
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a routerLink="/">AgriAdmin</a> / <a routerLink="/farms-crops">Farms &amp; Crops</a> /
+  <span>Edit</span>
+</nav>
+<a class="back" [routerLink]="['/farms-crops', id]">← Back to farm</a>
+<h1>Edit Farm</h1>
+<div class="card form-card">
+  @if (farm(); as f) {
+    <app-farm-form
+      [farm]="f"
+      submitLabel="Save changes"
+      (saved)="save($event)"
+      (cancelled)="cancel()"
+    />
+  } @else {
+    <p class="empty">Farm not found. <a routerLink="/farms">Back to farms</a></p>
+  }
+</div>

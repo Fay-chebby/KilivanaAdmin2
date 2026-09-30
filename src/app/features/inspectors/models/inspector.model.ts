@@ -1,7 +1,9 @@
+import { KENYA_COUNTIES } from '../../../shared/utils/kenya-counties';
+
 export type InspectorStatus = 'active' | 'suspended' | 'on_leave';
 export type VerificationStatus = 'pending' | 'verified' | 'rejected';
 
-export type IdType = 'ghana_card' | 'passport' | 'drivers_license' | 'voters_id';
+export type IdType = 'national_id' | 'passport' | 'drivers_license' | 'voters_id';
 
 export interface InspectorKyc {
   idType: IdType;
@@ -18,18 +20,18 @@ export interface InspectorKyc {
 }
 
 export const ID_TYPES: { value: IdType; label: string }[] = [
-  { value: 'ghana_card', label: 'Ghana Card' },
+  { value: 'national_id', label: 'National ID' },
   { value: 'passport', label: 'Passport' },
   { value: 'drivers_license', label: "Driver's licence" },
   { value: 'voters_id', label: "Voter's ID" },
 ];
 
 export const SEED_KYC: InspectorKyc = {
-  idType: 'ghana_card',
-  idNumber: 'GHA-000000000-0',
+  idType: 'national_id',
+  idNumber: '12345678',
   dateOfBirth: '1990-01-01',
   gender: 'male',
-  address: 'Accra, Ghana',
+  address: 'Nairobi, Kenya',
   emergencyName: 'Next of kin',
   emergencyPhone: '0200000000',
   photoUrl: '',
@@ -91,59 +93,11 @@ export interface FarmAssignment {
 }
 
 export const SPECIALIZATIONS = [
-  'Cocoa & Tree Crops',
+  'Tea & Coffee',
   'Grains & Cereals',
   'Vegetables & Horticulture',
   'Root Crops',
   'Livestock',
 ];
 
-export const REGIONS = [
-  'Baringo',
-  'Bomet',
-  'Bungoma',
-  'Busia',
-  'Elgeyo-Marakwet',
-  'Embu',
-  'Garissa',
-  'Homa Bay',
-  'Isiolo',
-  'Kajiado',
-  'Kakamega',
-  'Kericho',
-  'Kiambu',
-  'Kilifi',
-  'Kirinyaga',
-  'Kisii',
-  'Kisumu',
-  'Kitui',
-  'Kwale',
-  'Laikipia',
-  'Lamu',
-  'Machakos',
-  'Makueni',
-  'Mandera',
-  'Marsabit',
-  'Meru',
-  'Migori',
-  'Mombasa',
-  'Murang’a',
-  'Nairobi',
-  'Nakuru',
-  'Nandi',
-  'Narok',
-  'Nyamira',
-  'Nyandarua',
-  'Nyeri',
-  'Samburu',
-  'Siaya',
-  'Taita-Taveta',
-  'Tana River',
-  'Tharaka-Nithi',
-  'Trans Nzoia',
-  'Turkana',
-  'Uasin Gishu',
-  'Vihiga',
-  'Wajir',
-  'West Pokot',
-];
+export const REGIONS = KENYA_COUNTIES;

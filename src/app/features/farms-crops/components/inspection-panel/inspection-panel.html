@@ -1,0 +1,99 @@
+<section class="card panel">
+  <header>
+    <h2>Inspection</h2>
+    <span class="badge" [attr.data-tone]="meta().tone">{{ meta().label }}</span>
+  </header>
+
+  <ol class="steps" [attr.data-result]="insp().status">
+    @for (s of steps; track s; let i = $index) {
+      <li [class.done]="i < meta().step" [class.current]="i === meta().step">
+        <span class="dot">{{ i < meta().step ? '✓' : i + 1 }}</span>
+        <span class="txt">{{ s }}</span>
+      </li>
+    }
+  </ol>
+
+  @switch (insp().status) {
+    @case ('unassigned') {
+      <div class="state">
+        <p>No inspector yet. Assign one to visit the farm and check the farmer's photos and registration details on site.</p>
+        <button type="button" class="btn" (click)="showAssign.set(true)">Assign inspector</button>
+      </div>
+    }
+
+    @case ('assigned') {
+      <div class="who">
+        <span class="avatar">{{ insp().inspectorName?.charAt(0) }}</span>
+        <div>
+          <strong>{{ insp().inspectorName }}</strong>
+          <small>Assigned {{ insp().assignedAt }} · due <span [class.late]="overdue()">{{ insp().dueDate }}{{ overdue() ? ' (overdue)' : '' }}</span></small>
+        </div>
+      </div>
+      <div class="row">
+        <button type="button" class="btn" (click)="start()">Start on-site review</button>
+        <button type="button" class="btn ghost" (click)="showAssign.set(true)">Reassign</button>
+      </div>
+    }
+
+    @case ('in_review') {
+      <div class="who">
+        <span class="avatar">{{ insp().inspectorName?.charAt(0) }}</span>
+        <div>
+          <strong>{{ insp().inspectorName }}</strong>
+          <small>Due <span [class.late]="overdue()">{{ insp().dueDate }}{{ overdue() ? ' (overdue)' : '' }}</span></small>
+        </div>
+        <button type="button" class="btn ghost sm" (click)="showAssign.set(true)">Reassign</button>
+      </div>
+
+      <h3>Checklist <span>{{ checked() }}/{{ insp().checklist.length }}</span></h3>
+      <ul class="check">
+        @for (c of insp().checklist; track c.key) {
+          <li><label><input type="checkbox" [checked]="c.checked" (change)="toggle(c.key)" /> {{ c.label }}</label></li>
+        }
+      </ul>
+
+      <h3>On-site photos <span>{{ photos().length }}/10</span></h3>
+      <label class="drop" [class.over]="dragging()" (dragover)="onDrag($event, true)" (dragleave)="onDrag($event, false)" (drop)="onDrop($event)">
+        <input type="file" accept="image/*" capture="environment" multiple (change)="onPick($event)" />
+        <strong>Add photos taken at the farm</strong>
+        <span>Use the camera or choose files. Up to 5 MB each.</span>
+      </label>
+      @if (photos().length) {
+        <ul class="thumbs">
+          @for (p of photos(); track p.id) {
+            <li><img [src]="p.url" [alt]="p.caption" /><button type="button" (click)="removePhoto(p.id)" [attr.aria-label]="'Remove ' + p.caption">×</button></li>
+          }
+        </ul>
+      }
+
+      <label class="lbl" for="notes">Inspector notes</label>
+      <textarea id="notes" rows="3" placeholder="What did you find on the ground?" [value]="notes()" (input)="draft.set($any($event.target).value)"></textarea>
+
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      <div class="row end">
+        <button type="button" class="btn danger" (click)="decide('rejected')">Reject farm</button>
+        <button type="button" class="btn" (click)="decide('approved')">Approve and certify</button>
+      </div>
+    }
+
+    @default {
+      <div class="who">
+        <span class="avatar">{{ insp().inspectorName?.charAt(0) }}</span>
+        <div>
+          <strong>{{ insp().inspectorName }}</strong>
+          <small>{{ meta().label }} on {{ insp().decidedAt }}</small>
+        </div>
+      </div>
+      @if (insp().notes) { <blockquote [attr.data-tone]="meta().tone">{{ insp().notes }}</blockquote> }
+      <p class="sum">{{ checked() }} of {{ insp().checklist.length }} checks passed · {{ photos().length }} on-site photo{{ photos().length === 1 ? '' : 's' }}</p>
+      <div class="row">
+        <button type="button" class="btn ghost" (click)="reopen()">Reopen review</button>
+        <button type="button" class="btn ghost" (click)="showAssign.set(true)">Assign a new inspector</button>
+      </div>
+    }
+  }
+</section>
+
+@if (showAssign()) {
+  <app-assign-inspector-dialog [county]="farm().county" [currentId]="insp().inspectorId" (assigned)="assign($event)" (cancelled)="showAssign.set(false)" />
+}

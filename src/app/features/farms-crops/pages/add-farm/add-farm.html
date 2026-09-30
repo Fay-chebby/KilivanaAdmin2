@@ -1,0 +1,9 @@
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a routerLink="/">AgriAdmin</a> / <a routerLink="/farms-crops">Farms &amp; Crops</a> /
+  <span>Register</span>
+</nav>
+<a class="back" routerLink="/farms-crops">← Back to farms</a>
+<h1>Register Farm</h1>
+<div class="card form-card">
+  <app-farm-form submitLabel="Register farm" (saved)="save($event)" (cancelled)="cancel()" />
+</div>

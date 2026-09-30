@@ -1,1 +1,88 @@
-<p>farm-details works!</p>
+@if (farm(); as f) {
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a routerLink="/">AgriAdmin</a> / <a routerLink="/farms-crops">Farms &amp; Crops</a> /
+    <span>{{ f.code }}</span>
+  </nav>
+  <a class="back" routerLink="/farms-crops">← Back to farms</a>
+
+  <div class="head">
+    <div>
+      <h1>{{ f.name }}</h1>
+      <p class="sub">{{ f.location }}, {{ f.county }} County</p>
+      <div class="badges">
+        <span class="badge" [attr.data-tone]="farmMeta[f.status].tone">{{
+          farmMeta[f.status].label
+        }}</span>
+        <span class="badge" [attr.data-tone]="inspMeta[f.inspection.status].tone">{{
+          inspMeta[f.inspection.status].label
+        }}</span>
+        @if (f.certified) {
+          <span class="badge" data-tone="green">Certified</span>
+        }
+      </div>
+    </div>
+    <div class="actions">
+      <a class="btn ghost" [routerLink]="['/farms', f.id, 'edit']">Edit</a>
+      <button type="button" class="btn danger" (click)="confirmDelete.set(true)">Delete</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="main">
+      <app-inspection-panel [farm]="f" />
+      <app-farm-gallery [images]="f.images" />
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <h2>Farm details</h2>
+        <dl>
+          <dt>Farm ID</dt>
+          <dd>{{ f.code }}</dd>
+          <dt>Size</dt>
+          <dd>
+            {{ f.sizeHa }} ha <span class="soft">({{ acres(f.sizeHa) }} acres)</span>
+          </dd>
+          <dt>County</dt>
+          <dd>{{ f.county }}</dd>
+          <dt>Location</dt>
+          <dd>{{ f.location }}</dd>
+          <dt>Registered</dt>
+          <dd>{{ f.registeredAt }}</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h2>Owner</h2>
+        <dl>
+          <dt>Name</dt>
+          <dd>{{ f.ownerName }}</dd>
+          <dt>Phone</dt>
+          <dd>
+            <a [href]="'tel:' + f.ownerPhone">{{ f.ownerPhone }}</a>
+          </dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h2>Crops</h2>
+        <div class="chips">
+          @for (c of f.crops; track c) {
+            <span class="chip">{{ c }}</span>
+          }
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  @if (confirmDelete()) {
+    <app-confirm-modal
+      title="Delete farm?"
+      [message]="'This removes ' + f.name + ', its photos and its inspection record.'"
+      confirmLabel="Delete farm"
+      [danger]="true"
+      (confirmed)="delete()"
+      (cancelled)="confirmDelete.set(false)"
+    />
+  }
+} @else {
+  <p class="empty">Farm not found. <a routerLink="/farms">Back to farms</a></p>
+}

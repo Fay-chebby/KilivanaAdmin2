@@ -16,11 +16,11 @@
         <input
           id="phone"
           formControlName="phone"
-          placeholder="0244000000"
+          placeholder="0712345678"
           [class.err]="bad(f.phone)"
         />
         @if (bad(f.phone)) {
-          <small>Use 0XXXXXXXXX or +233XXXXXXXXX.</small>
+          <small>Use 07XXXXXXXX or +254XXXXXXXXX.</small>
         }
       </div>
       <div class="field">
@@ -155,11 +155,11 @@
         <input
           id="ep"
           formControlName="emergencyPhone"
-          placeholder="0200000000"
+          placeholder="0722345678"
           [class.err]="bad(k.emergencyPhone)"
         />
         @if (bad(k.emergencyPhone)) {
-          <small>Use 0XXXXXXXXX or +233XXXXXXXXX.</small>
+          <small>Use 07XXXXXXXX or +254XXXXXXXXX.</small>
         }
       </div>
     </div>

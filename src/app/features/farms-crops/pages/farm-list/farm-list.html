@@ -1,1 +1,212 @@
-<p>farm-list works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a routerLink="/dashboard">AgriAdmin</a>
+  <span>/</span>
+  <a routerLink="/farms-crops">Farms &amp; Crops</a>
+</nav>
+<div class="head">
+  <h1>Farms &amp; Crops</h1>
+  <div class="tools">
+    <a class="btn ghost" routerLink="/farms-crops/crops">Crop overview</a>
+    <div class="seg" role="group" aria-label="View">
+      <button type="button" [class.on]="view() === 'table'" (click)="view.set('table')">
+        Table
+      </button>
+      <button type="button" [class.on]="view() === 'grid'" (click)="view.set('grid')">Grid</button>
+    </div>
+    <a class="btn" routerLink="/farms-crops/new">+ Register Farm</a>
+  </div>
+</div>
+
+<div class="stats">
+  <app-stat-card
+    label="Registered farms"
+    [value]="'' + stats().total"
+    icon="farm"
+    tone="green"
+    [delta]="stats().certified + ' certified'"
+  />
+  <app-stat-card
+    label="Total land"
+    [value]="stats().hectares + ' ha'"
+    icon="map"
+    tone="blue"
+    [delta]="(stats().hectares * 2.471).toFixed(0) + ' acres'"
+  />
+  <app-stat-card
+    label="Certified farms"
+    [value]="'' + stats().certified"
+    icon="check"
+    tone="green"
+    [delta]="
+      (stats().total ? ((stats().certified / stats().total) * 100).toFixed(0) : 0) +
+      '% of all farms'
+    "
+  />
+  <app-stat-card
+    label="Awaiting inspection"
+    [value]="'' + stats().awaiting"
+    icon="clock"
+    tone="amber"
+    delta="Needs attention"
+    [positive]="false"
+  />
+</div>
+
+<div class="filters">
+  <input
+    type="search"
+    placeholder="Search farm, owner, crop or county…"
+    aria-label="Search farms"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <select aria-label="Filter by county" (change)="county.set($any($event.target).value)">
+    <option value="">All counties</option>
+    @for (c of counties(); track c) {
+      <option [value]="c">{{ c }}</option>
+    }
+  </select>
+  <select aria-label="Filter by inspection" (change)="inspection.set($any($event.target).value)">
+    <option value="">All inspections</option>
+    @for (m of inspectionStatuses; track m) {
+      <option [value]="m">
+        {{ inspMeta[m].label }}
+      </option>
+    }
+  </select>
+</div>
+
+@if (rows().length === 0) {
+  <div class="card empty">No farms match your filters. Clear them or register a new farm.</div>
+} @else if (view() === 'table') {
+  <div class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Farm</th>
+          <th>Owner</th>
+          <th>County</th>
+          <th>Size</th>
+          <th>Crops</th>
+          <th>Inspection</th>
+          <th>Certified</th>
+          <th>Status</th>
+          <th class="r">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (f of rows(); track f.id) {
+          <tr>
+            <td>
+              <a class="farm" [routerLink]="['/farms', f.id]">
+                @if (cover(f)) {
+                  <img [src]="cover(f)" alt="" />
+                } @else {
+                  <span class="ph thumb">{{ initials(f.name) }}</span>
+                }
+                <span
+                  ><strong>{{ f.name }}</strong
+                  ><small>{{ f.code }} · {{ f.images.length }} photos</small></span
+                >
+              </a>
+            </td>
+            <td>{{ f.ownerName }}</td>
+            <td>{{ f.county }}</td>
+            <td class="num">{{ f.sizeHa }} ha</td>
+            <td>
+              <span class="chips">
+                @for (c of f.crops.slice(0, 2); track c) {
+                  <span class="chip">{{ c }}</span>
+                }
+                @if (f.crops.length > 2) {
+                  <span class="chip more">+{{ f.crops.length - 2 }}</span>
+                }
+              </span>
+            </td>
+            <td>
+              <span class="badge" [attr.data-tone]="inspMeta[f.inspection.status].tone">{{
+                inspMeta[f.inspection.status].label
+              }}</span>
+              @if (f.inspection.inspectorName) {
+                <small class="sub">{{ f.inspection.inspectorName }}</small>
+              }
+            </td>
+            <td>
+              @if (f.certified) {
+                <span class="cert">✓ Certified</span>
+              } @else {
+                <span class="uncert">Uncertified</span>
+              }
+            </td>
+            <td>
+              <span class="badge" [attr.data-tone]="farmMeta[f.status].tone">{{
+                farmMeta[f.status].label
+              }}</span>
+            </td>
+            <td class="r">
+              <div class="acts">
+                <button type="button" (click)="router.navigate(['/farms-crops', f.id])">
+                  View
+                </button>
+                <button type="button" (click)="router.navigate(['/farms-crops', f.id, 'edit'])">
+                  Edit
+                </button>
+                <button type="button" class="del" (click)="toDelete.set(f)">Delete</button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  <div class="cards">
+    @for (f of rows(); track f.id) {
+      <article class="farm-card">
+        <a class="cover" [routerLink]="['/farms-crops', f.id]" [attr.aria-label]="'Open ' + f.name">
+          @if (cover(f)) {
+            <img [src]="cover(f)" [alt]="f.name" />
+          } @else {
+            <span class="ph fill">{{ initials(f.name) }}</span>
+          }
+          <span class="badge over" [attr.data-tone]="inspMeta[f.inspection.status].tone">{{
+            inspMeta[f.inspection.status].label
+          }}</span>
+          @if (f.certified) {
+            <span class="seal" title="Certified">✓</span>
+          }
+        </a>
+        <div class="body">
+          <h3>
+            <a [routerLink]="['/farms-crops', f.id]">{{ f.name }}</a>
+          </h3>
+          <p>{{ f.ownerName }} · {{ f.location }}, {{ f.county }}</p>
+          <div class="chips">
+            @for (c of f.crops; track c) {
+              <span class="chip">{{ c }}</span>
+            }
+          </div>
+          <div class="foot">
+            <span>{{ f.sizeHa }} ha · {{ f.images.length }} photos</span>
+            <span class="acts"
+              ><button type="button" (click)="router.navigate(['/farms-crops', f.id, 'edit'])">
+                Edit</button
+              ><button type="button" class="del" (click)="toDelete.set(f)">Delete</button></span
+            >
+          </div>
+        </div>
+      </article>
+    }
+  </div>
+}
+
+@if (toDelete(); as f) {
+  <app-confirm-modal
+    title="Delete farm?"
+    [message]="'This removes ' + f.name + ', its photos and its inspection record.'"
+    confirmLabel="Delete farm"
+    [danger]="true"
+    (confirmed)="delete()"
+    (cancelled)="toDelete.set(null)"
+  />
+}

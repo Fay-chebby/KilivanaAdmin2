@@ -27,6 +27,7 @@ import { SUPPLIER_ROUTES } from './features/suppliers/Supplier.routes';
 import { BUYER_ROUTES } from './features/buyers/buyer.routes';
 import { DRIVER_ROUTES } from './features/drivers/Drivers.routes';
 import { INSPECTOR_ROUTES } from './features/inspectors/Inspectors.routes';
+import { FARM_ROUTES } from './features/farms-crops/farm-crops.routes';
 
 export const routes: Routes = [
   {
@@ -85,7 +86,7 @@ export const routes: Routes = [
 
       {
         path: 'farms-crops',
-        component: FarmList,
+        children: FARM_ROUTES,
       },
 
       {

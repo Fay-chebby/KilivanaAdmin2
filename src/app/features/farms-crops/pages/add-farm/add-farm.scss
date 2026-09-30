@@ -1,0 +1,53 @@
+$green: #007a33;
+$ink: #16211b;
+
+:host {
+  display: block;
+  color: $ink;
+}
+h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.crumbs {
+  font-size: 11.5px;
+  color: #8a948f;
+  margin-bottom: 6px;
+  a {
+    color: $green;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  span {
+    color: $ink;
+  }
+}
+.back {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: $green;
+  text-decoration: none;
+  margin-bottom: 10px;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 20, 0.05),
+    0 4px 14px rgba(16, 24, 20, 0.04);
+}
+h1 {
+  margin-bottom: 18px;
+}
+.form-card {
+  max-width: 840px;
+  padding: 26px;
+}
