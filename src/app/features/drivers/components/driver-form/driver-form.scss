@@ -1,0 +1,161 @@
+$green: #15803d;
+$green-dark: #166534;
+$border: #e5e7eb;
+$text: #111827;
+$red: #dc2626;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+  border: 1px solid $border;
+  background: #fff;
+  color: $text;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &.btn-sm {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  &.btn-primary {
+    background: $green;
+    border-color: $green;
+    color: #fff;
+    &:hover:not(:disabled) {
+      background: $green-dark;
+    }
+  }
+}
+
+.card {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.form {
+  padding: 22px;
+  max-width: 860px;
+}
+section + section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid $border;
+}
+h3 {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: $text;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 18px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  &.full {
+    grid-column: 1 / -1;
+  }
+}
+
+label {
+  font-size: 12px;
+  font-weight: 500;
+  color: $text;
+}
+.req {
+  color: $red;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid $border;
+  border-radius: 6px;
+  background: #fff;
+  color: $text;
+  &:focus {
+    outline: none;
+    border-color: $green;
+    box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.12);
+  }
+  &.error {
+    border-color: $red;
+  }
+}
+input,
+select {
+  height: 36px;
+}
+textarea {
+  resize: vertical;
+}
+.err {
+  font-size: 11px;
+  color: $red;
+}
+
+.pw {
+  position: relative;
+  input {
+    padding-right: 56px;
+  }
+  .link {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: $green;
+  }
+}
+.gen {
+  width: fit-content;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 26px;
+}
+
+@media (max-width: 700px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

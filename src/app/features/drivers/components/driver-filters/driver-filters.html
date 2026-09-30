@@ -1,1 +1,22 @@
-<p>driver-filters works!</p>
+<div class="filters">
+  <input
+    class="search"
+    type="search"
+    placeholder="Search by name, ID, plate or username…"
+    [value]="search()"
+    (input)="onSearch($event)"
+  />
+  <select [value]="status()" (change)="onStatus($event)">
+    <option value="all">All statuses</option>
+    <option value="on-delivery">On Delivery</option>
+    <option value="available">Available</option>
+    <option value="offline">Offline</option>
+    <option value="suspended">Suspended</option>
+  </select>
+  <select [value]="region()" (change)="onRegion($event)">
+    <option value="all">All regions</option>
+    @for (r of regions(); track r) {
+      <option [value]="r">{{ r }}</option>
+    }
+  </select>
+</div>

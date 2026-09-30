@@ -1,1 +1,201 @@
-<p>driver-list works!</p>
+<div class="page">
+  <div class="breadcrumb">
+    <a routerLink="/dashboard">AgriAdmin</a><span>/</span>Delivery Agents
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1>Delivery Agents</h1>
+      <p>{{ filtered().length }} agent{{ filtered().length === 1 ? '' : 's' }}</p>
+    </div>
+    <a class="btn btn-primary" routerLink="add">+ Add Agent</a>
+  </div>
+
+  @if (notice(); as n) {
+    <div class="notice" [class.error]="n.type === 'error'" role="status">{{ n.text }}</div>
+  }
+
+  <div class="stats">
+    @for (c of statCards(); track c.label) {
+      <button
+        type="button"
+        class="stat-btn"
+        [class.active]="status() === c.key && c.key !== 'all'"
+        (click)="filterBy(c.key)"
+      >
+        <app-stat-card
+          variant="mini"
+          [label]="c.label"
+          [value]="c.value"
+          [icon]="c.icon"
+          [tone]="c.tone"
+        />
+      </button>
+    }
+  </div>
+
+  <div class="card">
+    <app-driver-filters
+      [regions]="regions"
+      [(search)]="search"
+      [(status)]="status"
+      [(region)]="region"
+    />
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Vehicle</th>
+            <th>Region</th>
+            <th>Status</th>
+            <th>Active delivery</th>
+            <th>Total deliveries</th>
+            <th>Rating</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of paged(); track d.id) {
+            <tr>
+              <td>
+                <div class="who">
+                  <span class="avatar" [class]="'avatar c' + ($index % 4)">{{
+                    initials(d.fullName)
+                  }}</span>
+                  <div>
+                    <a class="name" [routerLink]="[d.id]">{{ d.fullName }}</a>
+                    <div class="code">{{ d.code }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="vehicle">{{ vehicleLabel(d.vehicle) }}</td>
+              <td>{{ d.region }}</td>
+              <td><app-driver-status-badge [status]="d.status" /></td>
+              <td>
+                @if (d.activeDelivery) {
+                  <span class="order">{{ d.activeDelivery }}</span>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td>{{ d.totalDeliveries }}</td>
+              <td>
+                @if (d.rating !== null) {
+                  <span class="star">★</span> {{ d.rating.toFixed(1) }}
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td class="right">
+                <div class="row-actions">
+                  <a class="btn btn-sm" [routerLink]="[d.id]">View</a>
+                  <a class="btn btn-sm" [routerLink]="[d.id, 'edit']">Edit</a>
+                  @if (d.status === 'suspended') {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-success"
+                      (click)="open('activate', d)"
+                    >
+                      Reinstate
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-warn"
+                      [disabled]="svc.isLocked(d)"
+                      [attr.title]="svc.isLocked(d) ? 'On an active delivery' : null"
+                      (click)="open('suspend', d)"
+                    >
+                      Suspend
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-danger"
+                    [disabled]="svc.isLocked(d)"
+                    [attr.title]="svc.isLocked(d) ? 'On an active delivery' : null"
+                    (click)="open('delete', d)"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty">No delivery agents match your search.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (totalPages() > 1) {
+      <div class="pager">
+        <span class="muted">Page {{ currentPage() }} of {{ totalPages() }}</span>
+        <div>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [disabled]="currentPage() === 1"
+            (click)="go(currentPage() - 1)"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [disabled]="currentPage() === totalPages()"
+            (click)="go(currentPage() + 1)"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+@if (dialog(); as dlg) {
+  @switch (dlg.type) {
+    @case ('delete') {
+      <app-driver-action-dialog
+        title="Delete driver?"
+        tone="danger"
+        confirmLabel="Delete"
+        [message]="
+          'This will permanently remove ' + dlg.driver.fullName + '. This cannot be undone.'
+        "
+        (confirmed)="confirm($event)"
+        (cancelled)="dialog.set(null)"
+      />
+    }
+    @case ('suspend') {
+      <app-driver-action-dialog
+        title="Suspend driver?"
+        tone="warning"
+        confirmLabel="Suspend"
+        [requireReason]="true"
+        [message]="
+          dlg.driver.fullName + ' will not be able to take deliveries. Please give a reason.'
+        "
+        (confirmed)="confirm($event)"
+        (cancelled)="dialog.set(null)"
+      />
+    }
+    @case ('activate') {
+      <app-driver-action-dialog
+        title="Reinstate driver?"
+        tone="success"
+        confirmLabel="Reinstate"
+        [message]="
+          dlg.driver.fullName + ' will be reinstated and set to offline until they go online.'
+        "
+        (confirmed)="confirm($event)"
+        (cancelled)="dialog.set(null)"
+      />
+    }
+  }
+}

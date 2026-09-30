@@ -1,0 +1,28 @@
+$green: #15803d;
+$border: #e5e7eb;
+
+.filters {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid $border;
+  flex-wrap: wrap;
+  .search {
+    flex: 1 1 240px;
+  }
+  input,
+  select {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 13px;
+    font-family: inherit;
+    border: 1px solid $border;
+    border-radius: 6px;
+    background: #fff;
+    &:focus {
+      outline: none;
+      border-color: $green;
+      box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.12);
+    }
+  }
+}

@@ -1,1 +1,183 @@
-<p>driver-details works!</p>
+<div class="page">
+  <div class="breadcrumb">
+    <a routerLink="/dashboard">AgriAdmin</a><span>/</span
+    ><a routerLink="/drivers">Delivery Agents</a><span>/</span>Details
+  </div>
+
+  @if (notice(); as n) {
+    <div class="notice" [class.error]="n.type === 'error'" role="status">{{ n.text }}</div>
+  }
+
+  @if (driver(); as d) {
+    <div class="page-head">
+      <div class="title">
+        <span class="avatar">{{ initials(d.fullName) }}</span>
+        <div>
+          <h1>{{ d.fullName }}</h1>
+          <p>
+            <span class="mono">{{ d.code }}</span> · <app-driver-status-badge [status]="d.status" />
+          </p>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn" routerLink="edit">Edit</a>
+        @if (d.status === 'suspended') {
+          <button type="button" class="btn btn-success" (click)="dialog.set('activate')">
+            Reinstate
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="btn btn-warn"
+            [disabled]="svc.isLocked(d)"
+            [attr.title]="svc.isLocked(d) ? 'On an active delivery' : null"
+            (click)="dialog.set('suspend')"
+          >
+            Suspend
+          </button>
+        }
+        <button
+          type="button"
+          class="btn btn-danger"
+          [disabled]="svc.isLocked(d)"
+          [attr.title]="svc.isLocked(d) ? 'On an active delivery' : null"
+          (click)="dialog.set('delete')"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+
+    @if (d.status === 'suspended' && d.suspensionReason) {
+      <div class="alert"><strong>Suspended:</strong> {{ d.suspensionReason }}</div>
+    }
+
+    <div class="stats">
+      <div class="card stat">
+        <span>Total deliveries</span><strong>{{ d.totalDeliveries }}</strong>
+      </div>
+      <div class="card stat">
+        <span>Rating</span
+        ><strong>{{ d.rating !== null ? '★ ' + d.rating.toFixed(1) : '—' }}</strong>
+      </div>
+      <div class="card stat">
+        <span>Active delivery</span><strong class="mono">{{ d.activeDelivery ?? '—' }}</strong>
+      </div>
+      <div class="card stat">
+        <span>Registered</span><strong class="mono">{{ d.createdAt }}</strong>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div class="card info">
+        <h3>Personal &amp; login</h3>
+        <dl>
+          <div>
+            <dt>Username</dt>
+            <dd class="mono">{{ d.username || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>{{ d.phone }}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd>{{ d.email }}</dd>
+          </div>
+          <div>
+            <dt>Region</dt>
+            <dd>{{ d.region }}</dd>
+          </div>
+          <div class="full">
+            <dt>Address</dt>
+            <dd>{{ d.address || '—' }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="card info">
+        <div class="kyc-head">
+          <h3>KYC &amp; licence</h3>
+          <span class="kyc" [class.ok]="d.kycStatus === 'verified'">{{
+            d.kycStatus === 'verified' ? 'Verified' : 'Pending'
+          }}</span>
+        </div>
+        <dl>
+          <div>
+            <dt>ID type</dt>
+            <dd>{{ d.idType }}</dd>
+          </div>
+          <div>
+            <dt>ID number</dt>
+            <dd class="mono">{{ d.idNumber }}</dd>
+          </div>
+          <div>
+            <dt>Licence number</dt>
+            <dd class="mono">{{ d.licenceNumber }}</dd>
+          </div>
+          <div>
+            <dt>Licence expiry</dt>
+            <dd class="mono">
+              {{ d.licenceExpiry }}
+              @if (licenceExpired()) {
+                <span class="expired">Expired</span>
+              }
+            </dd>
+          </div>
+        </dl>
+        <div class="kyc-actions">
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-success]="d.kycStatus !== 'verified'"
+            (click)="toggleKyc()"
+          >
+            {{ d.kycStatus === 'verified' ? 'Mark as pending' : 'Mark as verified' }}
+          </button>
+          <a class="btn btn-sm" routerLink="edit">Edit KYC details</a>
+        </div>
+      </div>
+    </div>
+
+    <app-vehicle-info-card [vehicle]="d.vehicle" />
+
+    @switch (dialog()) {
+      @case ('delete') {
+        <app-driver-action-dialog
+          title="Delete driver?"
+          tone="danger"
+          confirmLabel="Delete"
+          [message]="'This will permanently remove ' + d.fullName + '. This cannot be undone.'"
+          (confirmed)="confirm($event)"
+          (cancelled)="dialog.set(null)"
+        />
+      }
+      @case ('suspend') {
+        <app-driver-action-dialog
+          title="Suspend driver?"
+          tone="warning"
+          confirmLabel="Suspend"
+          [requireReason]="true"
+          [message]="d.fullName + ' will not be able to take deliveries. Please give a reason.'"
+          (confirmed)="confirm($event)"
+          (cancelled)="dialog.set(null)"
+        />
+      }
+      @case ('activate') {
+        <app-driver-action-dialog
+          title="Reinstate driver?"
+          tone="success"
+          confirmLabel="Reinstate"
+          [message]="d.fullName + ' will be reinstated and set to offline until they go online.'"
+          (confirmed)="confirm($event)"
+          (cancelled)="dialog.set(null)"
+        />
+      }
+    }
+  } @else {
+    <div class="card missing">
+      <p>Driver not found.</p>
+      <a class="btn" routerLink="/drivers">Back to delivery agents</a>
+    </div>
+  }
+</div>

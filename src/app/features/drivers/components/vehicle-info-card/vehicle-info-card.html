@@ -1,1 +1,21 @@
-<p>vehicle-info-card works!</p>
+<div class="card">
+  <h3>Vehicle</h3>
+  <dl>
+    <div>
+      <dt>Type</dt>
+      <dd>{{ vehicle().type }}</dd>
+    </div>
+    <div>
+      <dt>Capacity</dt>
+      <dd>{{ vehicle().capacity }}</dd>
+    </div>
+    <div>
+      <dt>Plate number</dt>
+      <dd class="mono">{{ vehicle().plateNumber }}</dd>
+    </div>
+    <div>
+      <dt>Make / model</dt>
+      <dd>{{ vehicle().make || '—' }}</dd>
+    </div>
+  </dl>
+</div>

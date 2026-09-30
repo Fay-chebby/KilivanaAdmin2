@@ -1,1 +1,27 @@
-<p>edit-driver works!</p>
+<div class="page">
+  <div class="breadcrumb">
+    <a routerLink="/dashboard">AgriAdmin</a><span>/</span
+    ><a routerLink="/drivers">Delivery Agents</a><span>/</span>Edit
+  </div>
+
+  @if (driver) {
+    <div class="page-head">
+      <div>
+        <h1>Edit {{ driver.fullName }}</h1>
+        <p>{{ driver.code }}</p>
+      </div>
+    </div>
+    <app-driver-form
+      [driver]="driver"
+      [requirePassword]="false"
+      submitLabel="Save Changes"
+      (saved)="save($event)"
+      (cancelled)="cancel()"
+    />
+  } @else {
+    <div class="card missing">
+      <p>Driver not found.</p>
+      <a class="btn" routerLink="/drivers">Back to delivery agents</a>
+    </div>
+  }
+</div>
