@@ -1,1 +1,92 @@
-<p>buyer-details works!</p>
+<div class="page">
+  <a routerLink="/buyers" class="back">← Back to buyers</a>
+
+  @if (loading()) {
+    <div class="state">Loading...</div>
+  } @else if (buyer(); as b) {
+    @if (error()) {
+      <div class="alert">{{ error() }}</div>
+    }
+
+    <div class="header card">
+      <div class="header__left">
+        <span class="avatar">{{ initials(b.name) }}</span>
+        <div>
+          <h1>{{ b.name }}</h1>
+          <p>{{ b.email }}</p>
+        </div>
+        <span class="badge" [class]="'badge--' + b.status">{{ b.status }}</span>
+      </div>
+
+      <div class="header__actions">
+        @switch (b.status) {
+          @case ('pending') {
+            <button class="btn btn--primary" (click)="action.set('verify')">Verify</button>
+          }
+          @case ('verified') {
+            <button class="btn btn--outline" (click)="action.set('suspend')">Suspend</button>
+          }
+          @case ('suspended') {
+            <button class="btn btn--outline" (click)="action.set('reactivate')">Reactivate</button>
+          }
+        }
+        <button class="btn btn--danger-outline" (click)="action.set('delete')">Delete</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <span>Orders</span><strong>{{ b.ordersCount }}</strong>
+      </div>
+      <div class="stat">
+        <span>Total Spend</span><strong>GHS {{ b.totalSpend | number: '1.0-0' }}</strong>
+      </div>
+      <div class="stat" [class.stat--red]="b.disputesCount > 0">
+        <span>Disputes</span><strong>{{ b.disputesCount }}</strong>
+      </div>
+    </div>
+
+    <div class="card info">
+      <h2>Buyer Information</h2>
+      <dl>
+        <div>
+          <dt>Buyer ID</dt>
+          <dd class="mono">{{ b.code }}</dd>
+        </div>
+        <div>
+          <dt>Type</dt>
+          <dd class="cap">{{ b.type }}</dd>
+        </div>
+        <div>
+          <dt>Region</dt>
+          <dd>{{ b.region }}</dd>
+        </div>
+        <div>
+          <dt>Phone</dt>
+          <dd>{{ b.phone || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Address</dt>
+          <dd>{{ b.address || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Joined</dt>
+          <dd>{{ b.createdAt | date: 'mediumDate' }}</dd>
+        </div>
+      </dl>
+    </div>
+  } @else {
+    <div class="state">{{ error() }}</div>
+  }
+</div>
+
+<app-buyer-action-dialog
+  [open]="!!action()"
+  [title]="action() === 'delete' ? 'Delete buyer' : 'Confirm action'"
+  [message]="dialogMessage()"
+  [confirmLabel]="action() === 'delete' ? 'Delete' : 'Confirm'"
+  [danger]="action() === 'delete' || action() === 'suspend'"
+  [loading]="processing()"
+  (confirmed)="confirm()"
+  (cancelled)="action.set(null)"
+/>

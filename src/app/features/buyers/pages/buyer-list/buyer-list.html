@@ -1,1 +1,159 @@
-<p>buyer-list works!</p>
+<div class="page">
+  <div class="page-head">
+    <h1>Buyer Management</h1>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <span class="stat__label">Total Buyers</span>
+      <span class="stat__value">{{ stats().total }}</span>
+    </div>
+    <div class="stat stat--green">
+      <span class="stat__label">Verified</span>
+      <span class="stat__value">{{ stats().verified }}</span>
+    </div>
+    <div class="stat stat--amber">
+      <span class="stat__label">Pending</span>
+      <span class="stat__value">{{ stats().pending }}</span>
+    </div>
+    <div class="stat stat--red">
+      <span class="stat__label">Suspended</span>
+      <span class="stat__value">{{ stats().suspended }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Total Spend</span>
+      <span class="stat__value mono">KSH{{ stats().totalSpend | number: '1.0-0' }}</span>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search">
+      <input
+        type="text"
+        placeholder="Search buyers..."
+        [value]="search()"
+        (input)="onSearch($event)"
+      />
+    </div>
+    <select class="filter" (change)="onFilter($event)">
+      <option value="all">All statuses</option>
+      <option value="verified">Verified</option>
+      <option value="pending">Pending</option>
+      <option value="suspended">Suspended</option>
+    </select>
+  </div>
+
+  @if (error()) {
+    <div class="alert">
+      {{ error() }}
+      <button (click)="load()">Retry</button>
+    </div>
+  }
+
+  <!-- Table -->
+  <div class="card">
+    @if (loading()) {
+      <div class="state">Loading buyers...</div>
+    } @else if (filtered().length === 0) {
+      <div class="state">No buyers found.</div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Buyer</th>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Region</th>
+              <th>Orders</th>
+              <th>Total Spend</th>
+              <th>Disputes</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of filtered(); track b.id) {
+              <tr (click)="view(b)">
+                <td>
+                  <div class="buyer">
+                    <span class="avatar" [style.background]="avatarColor(b.name)">{{
+                      initials(b.name)
+                    }}</span>
+                    <div>
+                      <div class="buyer__name">{{ b.name }}</div>
+                      <div class="buyer__email">{{ b.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="mono muted">{{ b.code }}</td>
+                <td>
+                  <span class="tag" [class]="'tag--' + b.type">{{ b.type }}</span>
+                </td>
+                <td>{{ b.region }}</td>
+                <td class="mono">{{ b.ordersCount }}</td>
+                <td class="mono">KSH {{ b.totalSpend | number: '1.0-0' }}</td>
+                <td
+                  class="mono"
+                  [class.danger]="b.disputesCount > 0"
+                  [class.muted]="b.disputesCount === 0"
+                >
+                  {{ b.disputesCount }}
+                </td>
+                <td>
+                  <span class="badge" [class]="'badge--' + b.status">{{ b.status }}</span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn--ghost" (click)="view(b)">View</button>
+
+                    @switch (b.status) {
+                      @case ('pending') {
+                        <button class="btn btn--primary" (click)="openDialog(b, 'verify', $event)">
+                          Verify
+                        </button>
+                      }
+                      @case ('verified') {
+                        <button class="btn btn--outline" (click)="openDialog(b, 'suspend', $event)">
+                          Suspend
+                        </button>
+                      }
+                      @case ('suspended') {
+                        <button
+                          class="btn btn--outline"
+                          (click)="openDialog(b, 'reactivate', $event)"
+                        >
+                          Reactivate
+                        </button>
+                      }
+                    }
+
+                    <button
+                      class="btn btn--danger-outline"
+                      (click)="openDialog(b, 'delete', $event)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<app-buyer-action-dialog
+  [open]="!!action()"
+  [title]="dialogTitle()"
+  [message]="dialogMessage()"
+  [confirmLabel]="action() === 'delete' ? 'Delete' : 'Confirm'"
+  [danger]="action() === 'delete' || action() === 'suspend'"
+  [loading]="processing()"
+  (confirmed)="confirm()"
+  (cancelled)="closeDialog()"
+/>

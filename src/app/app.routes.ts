@@ -24,6 +24,7 @@ import { Login } from './features/auth/pages/login/login';
 import { authGuard } from './core/guards/auth-guard';
 import { FARMER_ROUTES } from './features/farmers/Farmers.routes ';
 import { SUPPLIER_ROUTES } from './features/suppliers/Supplier.routes';
+import { BUYER_ROUTES } from './features/buyers/buyer.routes';
 
 export const routes: Routes = [
   {
@@ -62,7 +63,7 @@ export const routes: Routes = [
 
       {
         path: 'buyers',
-        component: BuyerList,
+        children: BUYER_ROUTES,
       },
 
       {

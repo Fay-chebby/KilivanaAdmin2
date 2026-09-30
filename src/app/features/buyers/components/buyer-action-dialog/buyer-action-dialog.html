@@ -1,1 +1,22 @@
-<p>buyer-action-dialog works!</p>
+@if (open()) {
+  <div class="backdrop" (click)="cancelled.emit()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h3>{{ title() }}</h3>
+      <p>{{ message() }}</p>
+      <div class="actions">
+        <button class="btn btn--ghost" (click)="cancelled.emit()" [disabled]="loading()">
+          Cancel
+        </button>
+        <button
+          class="btn"
+          [class.btn--danger]="danger()"
+          [class.btn--primary]="!danger()"
+          (click)="confirmed.emit()"
+          [disabled]="loading()"
+        >
+          {{ loading() ? 'Please wait...' : confirmLabel() }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
