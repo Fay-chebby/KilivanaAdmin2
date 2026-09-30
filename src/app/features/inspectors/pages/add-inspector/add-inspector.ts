@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CredentialsModal } from '../../components/credentials-modal/credentials-modal';
 import { InspectorForm } from '../../components/inspector-form/inspector-form';
 import { InspectorCreatePayload } from '../../models/inspector.model';
@@ -7,7 +7,7 @@ import { InspectorService } from '../../services/inspector.service';
 
 @Component({
   selector: 'app-add-inspector',
-  imports: [InspectorForm, CredentialsModal],
+  imports: [InspectorForm, CredentialsModal, RouterLink],
   templateUrl: './add-inspector.html',
   styleUrl: './add-inspector.scss',
 })

@@ -4,7 +4,32 @@
 .crumbs {
   font-size: 11px;
   color: #8a948f;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  a {
+    color: #007a33;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  span {
+    color: #22302a;
+  }
+}
+.back {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #007a33;
+  text-decoration: none;
+  margin-bottom: 10px;
+  &:hover {
+    text-decoration: underline;
+  }
+  &:focus-visible {
+    outline: 2px solid #007a33;
+    outline-offset: 2px;
+  }
 }
 h1 {
   margin: 0 0 18px;

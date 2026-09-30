@@ -1,12 +1,12 @@
 import { Component, computed, inject } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { InspectorForm } from '../../components/inspector-form/inspector-form';
 import { InspectorPayload } from '../../models/inspector.model';
 import { InspectorService } from '../../services/inspector.service';
 
 @Component({
   selector: 'app-edit-inspector',
-  imports: [InspectorForm],
+  imports: [InspectorForm, RouterLink],
   templateUrl: './edit-inspector.html',
   styleUrl: './edit-inspector.scss',
 })
