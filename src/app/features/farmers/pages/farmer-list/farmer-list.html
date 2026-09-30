@@ -134,7 +134,7 @@
                 <span class="star">★</span>
                 {{ f.rating !== null ? (f.rating | number: '1.1-1') : '–' }}
               </td>
-              <td class="mono">{{ f.revenue ? 'GHS ' + (f.revenue | number: '1.0-0') : '—' }}</td>
+              <td class="mono">{{ f.revenue ? 'KSH ' + (f.revenue | number: '1.0-0') : '—' }}</td>
               <td (click)="$event.stopPropagation()">
                 <div class="actions">
                   <a
