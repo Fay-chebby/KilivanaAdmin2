@@ -1,1 +1,24 @@
-<p>add-inspector works!</p>
+<div class="crumbs">AgriAdmin / Inspectors / Add</div>
+<h1>Register Inspector</h1>
+<div class="card">
+  <p class="note">
+    Register the inspector at the office. Check their original ID, capture the KYC photos, then hand
+    over the login details.
+  </p>
+  <app-inspector-form
+    mode="create"
+    submitLabel="Register inspector"
+    (saved)="save($event)"
+    (cancelled)="cancel()"
+  />
+</div>
+
+@if (created(); as c) {
+  <app-credentials-modal
+    title="Inspector registered"
+    [name]="c.name"
+    [email]="c.email"
+    [password]="c.password"
+    (done)="finish()"
+  />
+}

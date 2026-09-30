@@ -1,0 +1,106 @@
+@let a = assignment();
+<section class="verify">
+  <header>
+    <div>
+      <h3>{{ a.farmName }}</h3>
+      <p>{{ a.farmerName }} · {{ a.location }}</p>
+      <p>{{ a.crop }} · {{ a.sizeAcres }} acres · Due {{ a.dueDate }}</p>
+    </div>
+    <span class="badge" [attr.data-status]="a.status">
+      {{
+        a.status === 'pending'
+          ? 'Awaiting visit'
+          : a.status === 'verified'
+            ? 'Verified'
+            : 'Rejected'
+      }}
+    </span>
+  </header>
+
+  <h4>
+    Photo evidence <span>({{ a.photos.length }}/{{ maxPhotos }})</span>
+  </h4>
+
+  @if (a.status === 'pending' && a.photos.length < maxPhotos) {
+    <label
+      class="drop"
+      [class.over]="dragging()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="dragging.set(false)"
+      (drop)="onDrop($event)"
+    >
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        multiple
+        (change)="onPick($event)"
+      />
+      <strong>Drop farm photos here</strong>
+      <span>or tap to take a photo or choose files. JPG or PNG, up to 5 MB each.</span>
+    </label>
+  }
+
+  @if (a.photos.length) {
+    <ul class="gallery">
+      @for (p of a.photos; track p.id) {
+        <li>
+          <button
+            type="button"
+            class="thumb"
+            (click)="preview.set(p)"
+            [attr.aria-label]="'Preview ' + p.caption"
+          >
+            <img [src]="p.url" [alt]="p.caption" />
+          </button>
+          @if (a.status === 'pending') {
+            <button
+              type="button"
+              class="x"
+              (click)="remove(p)"
+              [attr.aria-label]="'Remove ' + p.caption"
+            >
+              ×
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="hint">No photos yet. Ask the inspector to upload pictures of the plot and crops.</p>
+  }
+
+  @if (a.status === 'pending') {
+    <label class="notes-label" [for]="'notes-' + a.id">Inspector notes</label>
+    <textarea
+      [id]="'notes-' + a.id"
+      rows="3"
+      placeholder="What did the inspector find on the ground?"
+      [value]="notes()"
+      (input)="notes.set($any($event.target).value)"
+    ></textarea>
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="decision">
+      <button type="button" class="reject" (click)="decide('rejected')">Reject farm</button>
+      <button type="button" class="approve" (click)="decide('verified')">
+        Confirm farm exists
+      </button>
+    </div>
+  } @else {
+    @if (a.notes) {
+      <p class="result-note">{{ a.notes }}</p>
+    }
+    <button type="button" class="link" (click)="reopen()">Reopen verification</button>
+  }
+</section>
+
+@if (preview(); as p) {
+  <div class="lightbox" (click)="preview.set(null)">
+    <img [src]="p.url" [alt]="p.caption" />
+    <button type="button" aria-label="Close preview" (click)="preview.set(null)">×</button>
+  </div>
+}

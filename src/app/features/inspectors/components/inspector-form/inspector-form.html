@@ -1,1 +1,202 @@
-<p>inspector-form works!</p>
+@let f = form.controls;
+@let k = form.controls.kyc.controls;
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <fieldset>
+    <legend>Personal and work details</legend>
+    <div class="grid">
+      <div class="field full">
+        <label for="name">Full name</label>
+        <input id="name" formControlName="name" autocomplete="off" [class.err]="bad(f.name)" />
+        @if (bad(f.name)) {
+          <small>Enter the inspector's full name.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="phone">Phone</label>
+        <input
+          id="phone"
+          formControlName="phone"
+          placeholder="0244000000"
+          [class.err]="bad(f.phone)"
+        />
+        @if (bad(f.phone)) {
+          <small>Use 0XXXXXXXXX or +233XXXXXXXXX.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <select id="status" formControlName="status">
+          <option value="active">Active</option>
+          <option value="on_leave">On leave</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="spec">Specialization</label>
+        <select id="spec" formControlName="specialization" [class.err]="bad(f.specialization)">
+          <option value="" disabled>Select specialization</option>
+          @for (s of specializations; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+        @if (bad(f.specialization)) {
+          <small>Choose a specialization.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="region">Region</label>
+        <select id="region" formControlName="region" [class.err]="bad(f.region)">
+          <option value="" disabled>Select region</option>
+          @for (r of regions; track r) {
+            <option [value]="r">{{ r }}</option>
+          }
+        </select>
+        @if (bad(f.region)) {
+          <small>Choose a region.</small>
+        }
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Login details</legend>
+    <div class="grid">
+      <div class="field" [class.full]="mode() === 'edit'">
+        <label for="email">Login email</label>
+        <input id="email" type="email" formControlName="email" [class.err]="bad(f.email)" />
+        @if (bad(f.email)) {
+          <small>Enter a valid email address.</small>
+        }
+      </div>
+      @if (mode() === 'create') {
+        <div class="field">
+          <label for="pw">Temporary password</label>
+          <div class="pw-row">
+            <input
+              id="pw"
+              formControlName="temporaryPassword"
+              autocomplete="off"
+              [class.err]="bad(f.temporaryPassword)"
+            />
+            <button type="button" class="btn ghost" (click)="generate()">Generate</button>
+          </div>
+          @if (bad(f.temporaryPassword)) {
+            <small>Use at least 8 characters.</small>
+          } @else {
+            <small class="help">The inspector must change it on first sign-in.</small>
+          }
+        </div>
+      } @else {
+        <p class="help full">
+          To change the password, use "Reset password" on the inspector's page.
+        </p>
+      }
+    </div>
+  </fieldset>
+
+  <fieldset formGroupName="kyc">
+    <legend>KYC verification</legend>
+    <div class="grid">
+      <div class="field">
+        <label for="idType">ID type</label>
+        <select id="idType" formControlName="idType">
+          @for (t of idTypes; track t.value) {
+            <option [value]="t.value">{{ t.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="idNumber">ID number</label>
+        <input
+          id="idNumber"
+          formControlName="idNumber"
+          autocomplete="off"
+          [class.err]="bad(k.idNumber)"
+        />
+        @if (bad(k.idNumber)) {
+          <small>Enter the ID number exactly as printed.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="dob">Date of birth</label>
+        <input
+          id="dob"
+          type="date"
+          formControlName="dateOfBirth"
+          [class.err]="bad(k.dateOfBirth)"
+        />
+        @if (bad(k.dateOfBirth)) {
+          <small>Enter the date of birth.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="gender">Gender</label>
+        <select id="gender" formControlName="gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label for="address">Residential address</label>
+        <input id="address" formControlName="address" [class.err]="bad(k.address)" />
+        @if (bad(k.address)) {
+          <small>Enter the home address.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="en">Emergency contact name</label>
+        <input id="en" formControlName="emergencyName" [class.err]="bad(k.emergencyName)" />
+        @if (bad(k.emergencyName)) {
+          <small>Enter a contact name.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="ep">Emergency contact phone</label>
+        <input
+          id="ep"
+          formControlName="emergencyPhone"
+          placeholder="0200000000"
+          [class.err]="bad(k.emergencyPhone)"
+        />
+        @if (bad(k.emergencyPhone)) {
+          <small>Use 0XXXXXXXXX or +233XXXXXXXXX.</small>
+        }
+      </div>
+    </div>
+
+    <div class="images">
+      <app-image-upload
+        label="Passport photo"
+        hint="Face clearly visible"
+        [value]="k.photoUrl.value"
+        [invalid]="bad(k.photoUrl)"
+        (changed)="setImage('photoUrl', $event)"
+      />
+      <app-image-upload
+        label="ID card, front"
+        [value]="k.idFrontUrl.value"
+        [invalid]="bad(k.idFrontUrl)"
+        (changed)="setImage('idFrontUrl', $event)"
+      />
+      <app-image-upload
+        label="ID card, back"
+        [value]="k.idBackUrl.value"
+        [invalid]="bad(k.idBackUrl)"
+        (changed)="setImage('idBackUrl', $event)"
+      />
+    </div>
+  </fieldset>
+
+  <label class="check" [class.err]="bad(f.idSighted)">
+    <input type="checkbox" formControlName="idSighted" />
+    I have seen the original ID and it matches the details above.
+  </label>
+  @if (bad(f.idSighted)) {
+    <small class="check-err">Confirm you have checked the original ID.</small>
+  }
+
+  <div class="actions">
+    <button type="button" class="btn ghost" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="btn">{{ submitLabel() }}</button>
+  </div>
+</form>

@@ -1,1 +1,152 @@
-<p>inspector-list works!</p>
+<div class="head">
+  <div>
+    <div class="crumbs">AgriAdmin / Inspectors</div>
+    <h1>Inspector Management</h1>
+  </div>
+  <a class="btn" routerLink="/inspectors/new">+ Add Inspector</a>
+</div>
+
+<div class="stats">
+  <app-stat-card
+    variant="mini"
+    label="Total inspectors"
+    [value]="'' + stats().total"
+    icon="users"
+    tone="blue"
+  />
+  <app-stat-card
+    variant="mini"
+    label="Active"
+    [value]="'' + stats().active"
+    icon="check"
+    tone="green"
+  />
+  <app-stat-card
+    variant="mini"
+    label="Suspended"
+    [value]="'' + stats().suspended"
+    icon="alert"
+    tone="red"
+  />
+  <app-stat-card
+    variant="mini"
+    label="Farms awaiting visit"
+    [value]="'' + stats().pending"
+    icon="clock"
+    tone="amber"
+  />
+</div>
+
+<div class="toolbar">
+  <input
+    type="search"
+    placeholder="Search name, ID, region…"
+    aria-label="Search inspectors"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <select aria-label="Filter by status" (change)="statusFilter.set($any($event.target).value)">
+    <option value="all">All statuses</option>
+    <option value="active">Active</option>
+    <option value="on_leave">On leave</option>
+    <option value="suspended">Suspended</option>
+  </select>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Inspector</th>
+        <th>Specialization</th>
+        <th>Region</th>
+        <th>Pending</th>
+        <th>Completed</th>
+        <th>Pass rate</th>
+        <th>Rating</th>
+        <th>Status</th>
+        <th class="right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (i of rows(); track i.id) {
+        <tr>
+          <td>
+            <a class="person" [routerLink]="['/inspectors', i.id]">
+              <span class="avatar" [style.background]="color(i.id)">{{ initials(i.name) }}</span>
+              <span
+                ><strong>{{ i.name }}</strong
+                ><small>{{ i.code }}</small></span
+              >
+            </a>
+          </td>
+          <td>{{ i.specialization }}</td>
+          <td>{{ i.region }}</td>
+          <td class="num" [class.warn]="service.pendingFor(i.id) > 5">
+            {{ service.pendingFor(i.id) }}
+          </td>
+          <td class="num">{{ service.completedFor(i) }}</td>
+          <td>
+            <div class="bar"><span [style.width.%]="i.passRate"></span></div>
+            <small class="pct">{{ i.passRate }}%</small>
+          </td>
+          <td class="num">★ {{ i.rating || '—' }}</td>
+          <td>
+            <span class="badge" [attr.data-status]="i.status">{{ statusLabel(i.status) }}</span>
+          </td>
+          <td class="right">
+            <div class="row-actions">
+              <button type="button" (click)="router.navigate(['/inspectors', i.id])">View</button>
+              <button type="button" (click)="router.navigate(['/inspectors', i.id, 'edit'])">
+                Edit
+              </button>
+              @if (i.status === 'suspended') {
+                <button type="button" (click)="reactivate(i)">Reactivate</button>
+              } @else {
+                <button type="button" (click)="action.set({ type: 'suspend', inspector: i })">
+                  Suspend
+                </button>
+              }
+              <button
+                type="button"
+                class="danger"
+                (click)="action.set({ type: 'delete', inspector: i })"
+              >
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="9" class="empty">
+            No inspectors match your search. Clear the filters or register a new inspector.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (action(); as a) {
+  @if (a.type === 'delete') {
+    <app-confirm-modal
+      title="Delete inspector?"
+      [message]="'This permanently removes ' + a.inspector.name + ' and their farm assignments.'"
+      confirmLabel="Delete inspector"
+      [danger]="true"
+      (confirmed)="confirm($event)"
+      (cancelled)="action.set(null)"
+    />
+  } @else {
+    <app-confirm-modal
+      title="Suspend inspector?"
+      [message]="a.inspector.name + ' will be unable to sign in or receive new farm assignments.'"
+      confirmLabel="Suspend"
+      [danger]="true"
+      [askReason]="true"
+      (confirmed)="confirm($event)"
+      (cancelled)="action.set(null)"
+    />
+  }
+}

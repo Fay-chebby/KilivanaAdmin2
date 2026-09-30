@@ -1,0 +1,77 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(15, 23, 20, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.modal {
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+  }
+  p {
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: #5b6660;
+    line-height: 1.5;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d7ddd9;
+    border-radius: 8px;
+    padding: 10px;
+    font: inherit;
+    font-size: 13px;
+    resize: vertical;
+    &:focus {
+      outline: 2px solid #007a33;
+      outline-offset: 1px;
+    }
+  }
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #007a33;
+  color: #fff;
+  cursor: pointer;
+  &.danger {
+    background: #d92d20;
+  }
+  &.ghost {
+    background: #eef1ef;
+    color: #22302a;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:focus-visible {
+    outline: 2px solid #007a33;
+    outline-offset: 2px;
+  }
+}

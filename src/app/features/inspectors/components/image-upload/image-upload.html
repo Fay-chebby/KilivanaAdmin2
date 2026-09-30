@@ -1,0 +1,18 @@
+<div class="wrap">
+  <span class="label">{{ label() }}</span>
+  <label class="box" [class.invalid]="invalid()">
+    <input type="file" accept="image/*" capture="environment" (change)="onPick($event)" />
+    @if (value()) {
+      <img [src]="value()" [alt]="label()" />
+      <span class="replace">Replace</span>
+    } @else {
+      <strong>Add image</strong>
+      <span>{{ hint() }}</span>
+    }
+  </label>
+  @if (error()) {
+    <small role="alert">{{ error() }}</small>
+  } @else if (invalid()) {
+    <small role="alert">This image is required.</small>
+  }
+</div>

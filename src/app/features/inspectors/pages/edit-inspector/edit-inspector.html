@@ -1,1 +1,15 @@
-<p>edit-inspector works!</p>
+<div class="crumbs">AgriAdmin / Inspectors / Edit</div>
+<h1>Edit Inspector</h1>
+<div class="card">
+  @if (inspector(); as i) {
+    <app-inspector-form
+      mode="edit"
+      [inspector]="i"
+      submitLabel="Save changes"
+      (saved)="save($event)"
+      (cancelled)="cancel()"
+    />
+  } @else {
+    <p class="note">Inspector not found.</p>
+  }
+</div>
