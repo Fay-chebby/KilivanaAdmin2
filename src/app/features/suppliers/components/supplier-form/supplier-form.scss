@@ -34,6 +34,11 @@ $amber: #d97706;
     opacity: 0.5;
     cursor: not-allowed;
   }
+  &.btn-sm {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
   &.btn-primary {
     background: $green;
     border-color: $green;
@@ -135,4 +140,26 @@ textarea {
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+.pw {
+  position: relative;
+  input {
+    padding-right: 56px;
+  }
+  .link {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: $green;
+  }
+}
+.gen {
+  width: fit-content;
 }

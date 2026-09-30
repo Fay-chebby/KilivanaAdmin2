@@ -7,6 +7,7 @@ const SEED: Supplier[] = [
   {
     id: '1',
     code: 'S-001',
+    username: 'agroinput',
     name: 'AgroInput Ghana',
     category: 'Fertilizers & Seeds',
     contactPerson: 'Kofi Boateng',
@@ -24,6 +25,7 @@ const SEED: Supplier[] = [
   {
     id: '2',
     code: 'S-002',
+    username: 'farmmech',
     name: 'FarmMech Ltd',
     category: 'Equipment & Machinery',
     contactPerson: 'Ama Serwaa',
@@ -41,6 +43,7 @@ const SEED: Supplier[] = [
   {
     id: '3',
     code: 'S-003',
+    username: 'pestcontrol',
     name: 'PestControl Pro',
     category: 'Pesticides',
     contactPerson: 'Yaw Mensah',
@@ -58,6 +61,7 @@ const SEED: Supplier[] = [
   {
     id: '4',
     code: 'S-004',
+    username: 'seedbank',
     name: 'SeedBank Ghana',
     category: 'Seeds',
     contactPerson: 'Efua Owusu',
@@ -75,6 +79,7 @@ const SEED: Supplier[] = [
   {
     id: '5',
     code: 'S-005',
+    username: 'irritech',
     name: 'IrriTech Systems',
     category: 'Irrigation',
     contactPerson: 'Kwame Asante',
@@ -104,7 +109,16 @@ export class SupplierService {
     return this._suppliers().find((s) => s.id === id);
   }
 
+  usernameTaken(username: string, excludeId?: string): boolean {
+    const u = username.trim().toLowerCase();
+    return this._suppliers().some(
+      (s) => s.id !== excludeId && (s.username ?? '').toLowerCase() === u,
+    );
+  }
+
   create(value: SupplierFormValue): Supplier {
+    // NOTE: value.password is intentionally NOT stored. With a real backend, send it
+    // to the API over HTTPS and let the server hash it.
     const list = this._suppliers();
     const next =
       list.reduce((max, s) => Math.max(max, parseInt(s.code.replace('S-', ''), 10) || 0), 0) + 1;
@@ -112,6 +126,7 @@ export class SupplierService {
       id: crypto.randomUUID(),
       code: `S-${String(next).padStart(3, '0')}`,
       name: value.name.trim(),
+      username: value.username.trim(),
       category: value.category,
       contactPerson: value.contactPerson.trim(),
       email: value.email.trim(),
@@ -137,6 +152,7 @@ export class SupplierService {
           ? {
               ...s,
               name: value.name.trim(),
+              username: value.username.trim(),
               category: value.category,
               contactPerson: value.contactPerson.trim(),
               email: value.email.trim(),

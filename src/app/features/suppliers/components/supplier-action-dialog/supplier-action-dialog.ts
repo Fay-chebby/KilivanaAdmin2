@@ -2,6 +2,7 @@ import { Component, HostListener, computed, input, output, signal } from '@angul
 
 @Component({
   selector: 'app-supplier-action-dialog',
+  standalone: true,
   templateUrl: './supplier-action-dialog.html',
   styleUrl: './supplier-action-dialog.scss',
 })

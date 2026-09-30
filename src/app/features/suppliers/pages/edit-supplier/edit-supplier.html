@@ -13,6 +13,7 @@
     </div>
     <app-supplier-form
       [supplier]="supplier"
+      [requirePassword]="false"
       submitLabel="Save Changes"
       (saved)="save($event)"
       (cancelled)="cancel()"

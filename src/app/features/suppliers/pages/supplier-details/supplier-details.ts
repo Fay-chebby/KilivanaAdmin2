@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SupplierService } from '../../services/supplier.service';
-import { SupplierActionDialog } from '../../components/supplier-action-dialog/Supplier action dialog ';
+import { SupplierActionDialog } from '../../components/supplier-action-dialog/supplier-action-dialog';
 
 @Component({
   selector: 'app-supplier-details',

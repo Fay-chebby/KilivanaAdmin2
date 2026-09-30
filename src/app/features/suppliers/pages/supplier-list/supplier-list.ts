@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SUPPLIER_CATEGORIES, Supplier, SupplierStatus } from '../../models/supplier.model';
 import { SupplierService } from '../../services/supplier.service';
 import { StatCard, StatTone } from '../../../../shared/components/stat-card/stat-card';
-import { SupplierActionDialog } from '../../components/supplier-action-dialog/Supplier action dialog ';
+import { SupplierActionDialog } from '../../components/supplier-action-dialog/supplier-action-dialog';
 
 type DialogState = { type: 'delete' | 'suspend' | 'activate'; supplier: Supplier } | null;
 

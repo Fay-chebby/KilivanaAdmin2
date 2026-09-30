@@ -16,6 +16,7 @@ export interface Supplier {
   id: string;
   code: string; // e.g. S-001
   name: string;
+  username: string;
   category: SupplierCategory;
   contactPerson: string;
   email: string;
@@ -33,6 +34,9 @@ export interface Supplier {
 /** What the form sends back */
 export interface SupplierFormValue {
   name: string;
+  username: string;
+  /** Sent to the API only. Never stored on the Supplier object. Empty on edit = keep current password. */
+  password: string;
   category: SupplierCategory;
   contactPerson: string;
   email: string;
