@@ -29,6 +29,21 @@ export const ICONS: Record<string, string[]> = {
   search: [circle(11, 11, 7), 'M21 21l-4.3-4.3'],
   menu: ['M4 6h16', 'M4 12h16', 'M4 18h16'],
   'chevron-down': ['M6 9l6 6 6-6'],
+  check: ['M5 12l4 4L19 6'],
+
+  suppliers: [
+    circle(9, 8, 3),
+    circle(17, 9, 2.5),
+    'M3 21c.5-4 2.8-6 6-6s5.5 2 6 6',
+    'M14 15c2.8.2 4.8 2.2 5.5 6',
+  ],
+
+  ban: [circle(12, 12, 9), 'M6 6l12 12'],
+  users: [circle(12, 8, 3), 'M5 21c.7-4 3.2-6 7-6s6.3 2 7 6', 'M17 14l1.5 1.5L21 13'],
+  truck: ['M3 6h11v11H3z', 'M14 10h4l3 3v4h-7z', circle(7, 19, 1.5), circle(18, 19, 1.5)],
+  farm: ['M3 21V10l9-7 9 7v11', 'M7 21v-6h10v6', 'M9 15v6', 'M15 15v6'],
+
+  map: ['M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z', 'M9 3v15', 'M15 6v15'],
 };
 
 @Component({

@@ -1,6 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
-import { CurrencyKshPipe } from '../../../../shared/pipes/currency-ghs-pipe';
+import { CurrencyKshPipe } from '../../../../shared/pipes/currency-kes-pipe';
 import { DashboardStats, StatCardData } from '../../models/dashboard.model';
 
 @Component({
@@ -12,7 +12,7 @@ import { DashboardStats, StatCardData } from '../../models/dashboard.model';
 export class StatsRow {
   readonly stats = input.required<DashboardStats>();
 
-  private readonly ghs = new CurrencyKshPipe();
+  private readonly ksh = new CurrencyKshPipe();
 
   protected readonly cards = computed(() => {
     const s = this.stats();
@@ -31,7 +31,7 @@ export class StatsRow {
       icon,
       value:
         card.format === 'currency'
-          ? this.ghs.transform(card.value, true)
+          ? this.ksh.transform(card.value, true)
           : card.value.toLocaleString('en-US'),
       delta: card.deltaText
         ? `↑ ${card.deltaText}`

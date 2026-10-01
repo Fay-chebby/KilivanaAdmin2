@@ -1,30 +1,59 @@
 <div class="page">
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/dashboard">Dashboard</a> / <span>Buyers</span>
+    </nav>
+  </div>
+
+  <!-- Page Header -->
   <div class="page-head">
-    <h1>Buyer Management</h1>
+    <div>
+      <h1>Buyer Management</h1>
+    </div>
   </div>
 
   <!-- Stats -->
   <div class="stats">
-    <div class="stat">
-      <span class="stat__label">Total Buyers</span>
-      <span class="stat__value">{{ stats().total }}</span>
-    </div>
-    <div class="stat stat--green">
-      <span class="stat__label">Verified</span>
-      <span class="stat__value">{{ stats().verified }}</span>
-    </div>
-    <div class="stat stat--amber">
-      <span class="stat__label">Pending</span>
-      <span class="stat__value">{{ stats().pending }}</span>
-    </div>
-    <div class="stat stat--red">
-      <span class="stat__label">Suspended</span>
-      <span class="stat__value">{{ stats().suspended }}</span>
-    </div>
-    <div class="stat">
-      <span class="stat__label">Total Spend</span>
-      <span class="stat__value mono">KSH{{ stats().totalSpend | number: '1.0-0' }}</span>
-    </div>
+    <app-stat-card
+      label="Total Buyers"
+      [value]="stats().total.toLocaleString('en-US')"
+      icon="user"
+      variant="default"
+      tone="blue"
+    />
+
+    <app-stat-card
+      label="Verified"
+      [value]="stats().verified.toLocaleString('en-US')"
+      icon="check"
+      variant="default"
+      tone="green"
+    />
+
+    <app-stat-card
+      label="Pending"
+      [value]="stats().pending.toLocaleString('en-US')"
+      icon="clock"
+      variant="default"
+      tone="amber"
+    />
+
+    <app-stat-card
+      label="Suspended"
+      [value]="stats().suspended.toLocaleString('en-US')"
+      icon="ban"
+      variant="default"
+      tone="red"
+    />
+
+    <app-stat-card
+      label="Total Spend"
+      [value]="'KSH ' + stats().totalSpend.toLocaleString('en-US')"
+      icon="card"
+      variant="default"
+      tone="green"
+    />
   </div>
 
   <!-- Toolbar -->
@@ -37,7 +66,8 @@
         (input)="onSearch($event)"
       />
     </div>
-    <select class="filter" (change)="onFilter($event)">
+
+    <select class="filter" [value]="statusFilter()" (change)="onFilter($event)">
       <option value="all">All statuses</option>
       <option value="verified">Verified</option>
       <option value="pending">Pending</option>
@@ -45,10 +75,12 @@
     </select>
   </div>
 
+  <!-- Error -->
   @if (error()) {
     <div class="alert">
-      {{ error() }}
-      <button (click)="load()">Retry</button>
+      <span>{{ error() }}</span>
+
+      <button type="button" class="btn btn--ghost" (click)="load()">Retry</button>
     </div>
   }
 
@@ -74,27 +106,55 @@
               <th>Actions</th>
             </tr>
           </thead>
+
           <tbody>
             @for (b of filtered(); track b.id) {
               <tr (click)="view(b)">
+                <!-- Buyer -->
                 <td>
                   <div class="buyer">
-                    <span class="avatar" [style.background]="avatarColor(b.name)">{{
-                      initials(b.name)
-                    }}</span>
+                    <span class="avatar" [style.background]="avatarColor(b.name)">
+                      {{ initials(b.name) }}
+                    </span>
+
                     <div>
-                      <div class="buyer__name">{{ b.name }}</div>
-                      <div class="buyer__email">{{ b.email }}</div>
+                      <div class="buyer__name">
+                        {{ b.name }}
+                      </div>
+
+                      <div class="buyer__email">
+                        {{ b.email }}
+                      </div>
                     </div>
                   </div>
                 </td>
-                <td class="mono muted">{{ b.code }}</td>
-                <td>
-                  <span class="tag" [class]="'tag--' + b.type">{{ b.type }}</span>
+
+                <!-- ID -->
+                <td class="mono muted">
+                  {{ b.code }}
                 </td>
-                <td>{{ b.region }}</td>
-                <td class="mono">{{ b.ordersCount }}</td>
+
+                <!-- Type -->
+                <td>
+                  <span class="tag" [class]="'tag--' + b.type">
+                    {{ b.type }}
+                  </span>
+                </td>
+
+                <!-- Region -->
+                <td>
+                  {{ b.region }}
+                </td>
+
+                <!-- Orders -->
+                <td class="mono">
+                  {{ b.ordersCount }}
+                </td>
+
+                <!-- Total Spend -->
                 <td class="mono">KSH {{ b.totalSpend | number: '1.0-0' }}</td>
+
+                <!-- Disputes -->
                 <td
                   class="mono"
                   [class.danger]="b.disputesCount > 0"
@@ -102,26 +162,49 @@
                 >
                   {{ b.disputesCount }}
                 </td>
+
+                <!-- Status -->
                 <td>
-                  <span class="badge" [class]="'badge--' + b.status">{{ b.status }}</span>
+                  <span class="badge" [class]="'badge--' + b.status">
+                    {{ b.status }}
+                  </span>
                 </td>
+
+                <!-- Actions -->
                 <td>
                   <div class="row-actions">
-                    <button class="btn btn--ghost" (click)="view(b)">View</button>
+                    <button
+                      type="button"
+                      class="btn btn--ghost"
+                      (click)="view(b); $event.stopPropagation()"
+                    >
+                      View
+                    </button>
 
                     @switch (b.status) {
                       @case ('pending') {
-                        <button class="btn btn--primary" (click)="openDialog(b, 'verify', $event)">
+                        <button
+                          type="button"
+                          class="btn btn--primary"
+                          (click)="openDialog(b, 'verify', $event)"
+                        >
                           Verify
                         </button>
                       }
+
                       @case ('verified') {
-                        <button class="btn btn--outline" (click)="openDialog(b, 'suspend', $event)">
+                        <button
+                          type="button"
+                          class="btn btn--outline"
+                          (click)="openDialog(b, 'suspend', $event)"
+                        >
                           Suspend
                         </button>
                       }
+
                       @case ('suspended') {
                         <button
+                          type="button"
                           class="btn btn--outline"
                           (click)="openDialog(b, 'reactivate', $event)"
                         >
@@ -131,6 +214,7 @@
                     }
 
                     <button
+                      type="button"
                       class="btn btn--danger-outline"
                       (click)="openDialog(b, 'delete', $event)"
                     >
@@ -147,6 +231,7 @@
   </div>
 </div>
 
+<!-- Buyer Action Dialog -->
 <app-buyer-action-dialog
   [open]="!!action()"
   [title]="dialogTitle()"

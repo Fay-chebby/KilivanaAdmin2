@@ -1,1 +1,178 @@
-<p>product-details works!</p>
+@if (product(); as p) {
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a routerLink="/">AgriAdmin</a> / <a routerLink="/products">Products</a> /
+    <span>{{ p.code }}</span>
+  </nav>
+  <a class="back" routerLink="/products">← Back to products</a>
+
+  <div class="head">
+    <div>
+      <h1>{{ p.name }}</h1>
+      <p class="sub">{{ p.category }} · listed {{ p.createdAt }}</p>
+      <div class="badges">
+        <span class="badge" [attr.data-tone]="meta[p.status].tone">{{ meta[p.status].label }}</span>
+        @if (vis(); as v) {
+          <span class="badge" [attr.data-tone]="v.live ? 'green' : 'grey'">{{
+            v.live ? 'Live in shop' : 'Hidden from customers'
+          }}</span>
+        }
+        @if (p.verifiedAt) {
+          <span class="badge" data-tone="green">Verified {{ p.verifiedAt }}</span>
+        }
+      </div>
+    </div>
+    <div class="actions">
+      <a class="btn ghost" [routerLink]="['/products', p.id, 'edit']">Edit</a>
+      @if (p.status === 'active') {
+        <button type="button" class="btn ghost" (click)="modal.set('suspend')">Suspend</button>
+      }
+      @if (p.status === 'suspended') {
+        <button type="button" class="btn ghost" (click)="reactivate()">Reactivate</button>
+      }
+      @if (p.status === 'active' || p.status === 'rejected' || p.status === 'suspended') {
+        <button type="button" class="btn ghost" (click)="modal.set('resubmit')">
+          {{ p.status === 'rejected' ? 'Resubmit for verification' : 'Re-verify' }}
+        </button>
+      }
+      <button type="button" class="btn danger" (click)="modal.set('delete')">Delete</button>
+    </div>
+  </div>
+
+  @if (p.status === 'suspended' && p.suspendReason) {
+    <div class="alert" role="status"><strong>Suspended:</strong> {{ p.suspendReason }}</div>
+  }
+  @if (p.status === 'pending') {
+    <div class="alert info" role="status">
+      This product is hidden from customers until it passes on-site verification.
+    </div>
+  }
+
+  <div class="layout">
+    <div class="main">
+      <app-verification-panel [product]="p" />
+      <app-farm-gallery
+        [images]="p.images"
+        [sellerLabel]="p.sellerType === 'farmer' ? 'Farmer' : 'Supplier'"
+      />
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <h2>Shop preview</h2>
+        <p class="hint">How customers will see this product.</p>
+        <div class="preview" [class.off]="!vis()?.live">
+          <div class="pimg">
+            @if (cover(p)) {
+              <img [src]="cover(p)" [alt]="p.name" />
+            } @else {
+              <span class="ph">{{ p.name.charAt(0) }}</span>
+            }
+            @if (!vis()?.live) {
+              <span class="veil"><strong>Not visible to customers</strong>{{ vis()?.reason }}</span>
+            }
+          </div>
+          <div class="pbody">
+            <small class="cat">{{ p.category }}</small>
+            <h3>{{ p.name }}</h3>
+            <p class="by">{{ p.sellerName }} · {{ p.county }}</p>
+            <div class="price">
+              <strong>{{ p.priceKes | kes }}</strong
+              ><span>/ {{ p.unit }}</span>
+            </div>
+            <div class="meta">
+              <span class="grade">{{ p.quality }}</span
+              ><span>{{ num(p.stock) }} {{ p.unit }} available</span>
+            </div>
+            @if (p.verifiedAt) {
+              <span class="vtag">✓ Verified by AgriAdmin</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Pricing and stock</h2>
+        <dl>
+          <dt>Price</dt>
+          <dd>{{ p.priceKes | kes }} per {{ p.unit }}</dd>
+          <dt>In stock</dt>
+          <dd [attr.data-stock]="stock(p)">
+            {{ num(p.stock) }} {{ p.unit
+            }}{{ stock(p) === 'out' ? ' (out of stock)' : stock(p) === 'low' ? ' (low)' : '' }}
+          </dd>
+          <dt>Stock value</dt>
+          <dd>{{ p.priceKes * p.stock | kes }}</dd>
+          <dt>Minimum order</dt>
+          <dd>{{ p.minOrder }} {{ p.unit }}</dd>
+          <dt>Low stock alert</dt>
+          <dd>{{ p.lowStockAt }} {{ p.unit }}</dd>
+          <dt>Harvested</dt>
+          <dd>{{ p.harvestDate }}</dd>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Seller</h2>
+        <dl>
+          <dt>{{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}</dt>
+          <dd>{{ p.sellerName }}</dd>
+          <dt>Phone</dt>
+          <dd>
+            <a [href]="'tel:' + p.sellerPhone">{{ p.sellerPhone }}</a>
+          </dd>
+          <dt>Stock location</dt>
+          <dd>{{ p.county }} County</dd>
+          @if (farm(); as f) {
+            <dt>Source farm</dt>
+            <dd>
+              <a [routerLink]="['/farms', f.id]">{{ f.name }}</a>
+              <span class="badge" [attr.data-tone]="f.certified ? 'green' : 'amber'">{{
+                f.certified ? 'Certified' : 'Not certified'
+              }}</span>
+            </dd>
+          }
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Description</h2>
+        <p class="desc">{{ p.description }}</p>
+      </div>
+    </aside>
+  </div>
+
+  @switch (modal()) {
+    @case ('suspend') {
+      <app-confirm-modal
+        title="Suspend product?"
+        [message]="p.name + ' will be hidden from customers until you reactivate it.'"
+        confirmLabel="Suspend"
+        [danger]="true"
+        [askReason]="true"
+        (confirmed)="confirm($event)"
+        (cancelled)="modal.set(null)"
+      />
+    }
+    @case ('delete') {
+      <app-confirm-modal
+        title="Delete product?"
+        message="This removes the product and its verification record."
+        confirmLabel="Delete product"
+        [danger]="true"
+        (confirmed)="confirm($event)"
+        (cancelled)="modal.set(null)"
+      />
+    }
+    @case ('resubmit') {
+      <app-confirm-modal
+        title="Send back for verification?"
+        message="The product will be hidden from customers until a verifier checks it again."
+        confirmLabel="Send for verification"
+        (confirmed)="confirm($event)"
+        (cancelled)="modal.set(null)"
+      />
+    }
+  }
+} @else {
+  <p class="empty">Product not found. <a routerLink="/products">Back to products</a></p>
+}

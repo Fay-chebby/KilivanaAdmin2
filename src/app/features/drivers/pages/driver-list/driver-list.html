@@ -1,14 +1,12 @@
 <div class="page">
-  <div class="breadcrumb">
-    <a routerLink="/dashboard">AgriAdmin</a><span>/</span>Delivery Agents
-  </div>
+  <div class="breadcrumb"><a routerLink="/dashboard">AgriAdmin</a><span>/</span>Drivers</div>
 
   <div class="page-head">
     <div>
-      <h1>Delivery Agents</h1>
-      <p>{{ filtered().length }} agent{{ filtered().length === 1 ? '' : 's' }}</p>
+      <h1>Drivers</h1>
+      <!-- <p>{{ filtered().length }} agent{{ filtered().length === 1 ? '' : 's' }}</p> -->
     </div>
-    <a class="btn btn-primary" routerLink="new">+ Add Agent</a>
+    <a class="btn btn-primary" routerLink="new">+ Add Driver</a>
   </div>
 
   @if (notice(); as n) {
@@ -46,7 +44,7 @@
       <table>
         <thead>
           <tr>
-            <th>Agent</th>
+            <th>Driver</th>
             <th>Vehicle</th>
             <th>Region</th>
             <th>Status</th>
@@ -125,7 +123,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="8" class="empty">No delivery agents match your search.</td>
+              <td colspan="8" class="empty">No driver match your search.</td>
             </tr>
           }
         </tbody>

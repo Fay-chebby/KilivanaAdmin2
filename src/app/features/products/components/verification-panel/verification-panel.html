@@ -1,0 +1,202 @@
+@let p = product();
+<section class="card">
+  <header>
+    <h2>Verification</h2>
+    <span class="badge" [attr.data-tone]="meta().tone">{{ meta().label }}</span>
+  </header>
+
+  <ol class="steps" [attr.data-result]="v().status">
+    @for (s of steps; track s; let i = $index) {
+      <li [class.done]="i < meta().step" [class.current]="i === meta().step">
+        <span class="dot">{{ i < meta().step ? '✓' : i + 1 }}</span>
+        <span class="txt">{{ s }}</span>
+      </li>
+    }
+  </ol>
+
+  @switch (v().status) {
+    @case ('unassigned') {
+      <div class="state">
+        <p>
+          Customers can't see this product yet. Assign an inspector to visit the seller and confirm
+          the product really exists and matches the listing.
+        </p>
+        <button type="button" class="btn" (click)="showAssign.set(true)">Assign verifier</button>
+      </div>
+    }
+
+    @case ('assigned') {
+      <div class="who">
+        <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
+        <div>
+          <strong>{{ v().inspectorName }}</strong>
+          <small
+            >Assigned {{ v().assignedAt }} · due
+            <span [class.late]="overdue()"
+              >{{ v().dueDate }}{{ overdue() ? ' (overdue)' : '' }}</span
+            ></small
+          >
+        </div>
+      </div>
+      <div class="row">
+        <button type="button" class="btn" (click)="start()">Start on-site check</button>
+        <button type="button" class="btn ghost" (click)="showAssign.set(true)">Reassign</button>
+      </div>
+    }
+
+    @case ('in_review') {
+      <div class="who">
+        <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
+        <div>
+          <strong>{{ v().inspectorName }}</strong>
+          <small
+            >Due
+            <span [class.late]="overdue()"
+              >{{ v().dueDate }}{{ overdue() ? ' (overdue)' : '' }}</span
+            ></small
+          >
+        </div>
+        <button type="button" class="btn ghost sm" (click)="showAssign.set(true)">Reassign</button>
+      </div>
+
+      <h3>
+        Checklist <span>{{ checked() }}/{{ v().checklist.length }}</span>
+      </h3>
+      <ul class="check">
+        @for (c of v().checklist; track c.key) {
+          <li>
+            <label
+              ><input type="checkbox" [checked]="c.checked" (change)="toggle(c.key)" />
+              {{ c.label }}</label
+            >
+          </li>
+        }
+      </ul>
+
+      <h3>What the inspector found</h3>
+      <div class="found">
+        <div class="field">
+          <label for="vq">Quantity counted ({{ p.unit }})</label>
+          <input
+            id="vq"
+            type="number"
+            min="0"
+            [value]="qty()"
+            (input)="draftQty.set(+$any($event.target).value)"
+          />
+          <small [class.warn]="qty() < p.stock"
+            >Listed: {{ p.stock }} {{ p.unit }}.
+            {{
+              qty() < p.stock
+                ? 'Stock will be reduced to what was counted.'
+                : 'Stock stays as listed.'
+            }}</small
+          >
+        </div>
+        <div class="field">
+          <label for="vg">Quality grade confirmed</label>
+          <select id="vg" (change)="draftGrade.set($any($event.target).value)">
+            @for (g of grades; track g) {
+              <option [value]="g" [selected]="g === grade()">{{ g }}</option>
+            }
+          </select>
+          <small>Listed as {{ p.quality }}.</small>
+        </div>
+      </div>
+
+      <h3>
+        On-site photos <span>{{ photos().length }}/10</span>
+      </h3>
+      <label
+        class="drop"
+        [class.over]="dragging()"
+        (dragover)="onDrag($event, true)"
+        (dragleave)="onDrag($event, false)"
+        (drop)="onDrop($event)"
+      >
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          (change)="onPick($event)"
+        />
+        <strong>Add photos of the product on site</strong>
+        <span>Use the camera or choose files. Up to 5 MB each.</span>
+      </label>
+      @if (photos().length) {
+        <ul class="thumbs">
+          @for (ph of photos(); track ph.id) {
+            <li>
+              <img [src]="ph.url" [alt]="ph.caption" /><button
+                type="button"
+                (click)="removePhoto(ph.id)"
+                [attr.aria-label]="'Remove ' + ph.caption"
+              >
+                ×
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      <label class="lbl" for="vn">Inspector notes</label>
+      <textarea
+        id="vn"
+        rows="3"
+        placeholder="What did you see on site?"
+        [value]="notes()"
+        (input)="draftNotes.set($any($event.target).value)"
+      ></textarea>
+
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      <div class="row end">
+        <button type="button" class="btn danger" (click)="decide('rejected')">
+          Fail verification
+        </button>
+        <button type="button" class="btn" (click)="decide('approved')">Approve and publish</button>
+      </div>
+    }
+
+    @default {
+      <div class="who">
+        <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
+        <div>
+          <strong>{{ v().inspectorName }}</strong
+          ><small>{{ meta().label }} on {{ v().decidedAt }}</small>
+        </div>
+      </div>
+      @if (v().notes) {
+        <blockquote [attr.data-tone]="meta().tone">{{ v().notes }}</blockquote>
+      }
+      <p class="sum">
+        {{ checked() }} of {{ v().checklist.length }} checks passed
+        @if (v().verifiedQty !== null) {
+          · {{ v().verifiedQty }} {{ p.unit }} counted on site
+        }
+      </p>
+      <div class="row">
+        <button type="button" class="btn ghost" (click)="reopen()">Reopen check</button>
+        <button type="button" class="btn ghost" (click)="showAssign.set(true)">
+          Assign a new verifier
+        </button>
+      </div>
+    }
+  }
+</section>
+
+@if (showAssign()) {
+  <app-assign-inspector-dialog
+    [county]="p.county"
+    [currentId]="v().inspectorId"
+    [description]="
+      'Pick who will visit the seller in ' +
+      p.county +
+      ' and confirm the product exists before it goes on sale.'
+    "
+    (assigned)="assign($event)"
+    (cancelled)="showAssign.set(false)"
+  />
+}

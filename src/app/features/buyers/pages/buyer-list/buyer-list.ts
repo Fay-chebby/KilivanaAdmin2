@@ -1,7 +1,8 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { BuyerService } from '../../services/buyer.service';
+import { StatCard } from '../../../../shared/components/stat-card/stat-card';
 import { Buyer, BuyerStats, BuyerStatus } from '../../models/buyer.model';
 import { BuyerActionDialog } from '../../components/buyer-action-dialog/buyer-action-dialog';
 
@@ -10,7 +11,7 @@ type DialogAction = 'suspend' | 'verify' | 'reactivate' | 'delete';
 @Component({
   selector: 'app-buyer-list',
   standalone: true,
-  imports: [DecimalPipe, BuyerActionDialog],
+  imports: [DecimalPipe, BuyerActionDialog, StatCard, RouterLink],
   templateUrl: './buyer-list.html',
   styleUrl: './buyer-list.scss',
 })

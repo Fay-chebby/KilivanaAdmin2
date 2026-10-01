@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
-import { CurrencyKshPipe } from '../../../../shared/pipes/currency-ghs-pipe';
+import { CurrencyKshPipe } from '../../../../shared/pipes/currency-kes-pipe';
 import { DashboardStats } from '../../models/dashboard.model';
 
 @Component({

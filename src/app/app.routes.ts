@@ -25,7 +25,7 @@ import { authGuard } from './core/guards/auth-guard';
 import { FARMER_ROUTES } from './features/farmers/Farmers.routes ';
 import { SUPPLIER_ROUTES } from './features/suppliers/Supplier.routes';
 import { BUYER_ROUTES } from './features/buyers/buyer.routes';
-import { DRIVER_ROUTES } from './features/drivers/Drivers.routes';
+import { DRIVER_ROUTES } from './features/drivers/driver.routes';
 import { INSPECTOR_ROUTES } from './features/inspectors/Inspectors.routes';
 import { FARM_ROUTES } from './features/farms-crops/farm-crops.routes';
 
@@ -87,6 +87,7 @@ export const routes: Routes = [
       {
         path: 'farms-crops',
         children: FARM_ROUTES,
+      
       },
 
       {

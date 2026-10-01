@@ -1,1 +1,12 @@
-<p>add-product works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a routerLink="/">AgriAdmin</a> / <a routerLink="/products">Products</a> / <span>Add</span>
+</nav>
+<a class="back" routerLink="/products">← Back to products</a>
+<h1>Add Product</h1>
+<div class="card">
+  <app-product-form
+    submitLabel="Submit for verification"
+    (saved)="save($event)"
+    (cancelled)="cancel()"
+  />
+</div>

@@ -1,6 +1,6 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { Panel } from '../../../../shared/components/panel/panel';
-import { CurrencyKshPipe } from '../../../../shared/pipes/currency-ghs-pipe';
+import { CurrencyKshPipe } from '../../../../shared/pipes/currency-kes-pipe';
 import { OrderTrendPoint } from '../../models/dashboard.model';
 
 @Component({
@@ -78,5 +78,5 @@ export class OrderChart {
     return this.T + innerH - (value / this.yMax()) * innerH;
   }
 
-  protected readonly ghs = new CurrencyKshPipe();
+  protected readonly ksh = new CurrencyKshPipe();
 }

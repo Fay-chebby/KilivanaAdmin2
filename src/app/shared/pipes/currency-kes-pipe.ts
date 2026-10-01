@@ -1,22 +1,23 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
-/**
- * 2004 -> "KSh 2,004"
- * 284600 with compact=true -> "KSh 284.6k"
- */
 @Pipe({
   name: 'currencyKsh',
+  standalone: true,
 })
 export class CurrencyKshPipe implements PipeTransform {
   transform(value: number | null | undefined, compact = false): string {
     if (value === null || value === undefined) {
-      return '—';
+      return 'KSh 0';
     }
 
-    if (compact && Math.abs(value) >= 1000) {
-      const k = (value / 1000).toFixed(1).replace(/\.0$/, '');
+    if (compact) {
+      if (value >= 1_000_000) {
+        return `KSh ${(value / 1_000_000).toFixed(1)}M`;
+      }
 
-      return `KSh ${k}k`;
+      if (value >= 1_000) {
+        return `KSh ${(value / 1_000).toFixed(1)}k`;
+      }
     }
 
     return `KSh ${value.toLocaleString('en-KE')}`;

@@ -80,7 +80,7 @@ $amber: #d97706;
 .breadcrumb {
   font-size: 11px;
   color: $muted;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   a {
     color: $muted;
     text-decoration: none;
@@ -97,7 +97,7 @@ $amber: #d97706;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
+  // gap: 5px;
   margin-bottom: 18px;
   flex-wrap: wrap;
   h1 {
@@ -107,15 +107,15 @@ $amber: #d97706;
     color: $text;
   }
   p {
-    margin: 2px 0 0;
+    // margin: 2px 0 0;
     font-size: 12px;
     color: $muted;
   }
 }
 
-.page {
-  padding: 20px 24px;
-}
+// .page {
+//   padding: 5px 15px;
+// }
 .muted {
   color: $muted;
 }

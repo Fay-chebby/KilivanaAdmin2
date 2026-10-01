@@ -98,7 +98,7 @@
         @for (f of rows(); track f.id) {
           <tr>
             <td>
-              <a class="farm" [routerLink]="['/farms', f.id]">
+              <a class="farm" [routerLink]="['/farms-crops', f.id]">
                 @if (cover(f)) {
                   <img [src]="cover(f)" alt="" />
                 } @else {

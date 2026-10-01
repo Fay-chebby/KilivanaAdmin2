@@ -1,1 +1,255 @@
-<p>product-form works!</p>
+@let f = form.controls;
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <fieldset>
+    <legend>Product</legend>
+    <div class="grid">
+      <div class="field full">
+        <label for="name">Product name</label>
+        <input
+          id="name"
+          formControlName="name"
+          placeholder="e.g. Hass Avocados"
+          [class.err]="bad(f.name)"
+        />
+        @if (bad(f.name)) {
+          <small>Enter the product name.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="cat">Category</label>
+        <select id="cat" formControlName="category" [class.err]="bad(f.category)">
+          <option value="" disabled>Select category</option>
+          @for (c of categories; track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+        @if (bad(f.category)) {
+          <small>Choose a category.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="q">Quality grade</label>
+        <select id="q" formControlName="quality">
+          @for (g of grades; track g) {
+            <option [value]="g">{{ g }}</option>
+          }
+        </select>
+        <small class="help">The inspector confirms this on site.</small>
+      </div>
+      <div class="field full">
+        <label for="desc">Description</label>
+        <textarea
+          id="desc"
+          rows="3"
+          formControlName="description"
+          placeholder="What customers should know: variety, how it was grown, how it is packed"
+          [class.err]="bad(f.description)"
+        ></textarea>
+        @if (bad(f.description)) {
+          <small>Write at least 10 characters.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="harvest">Harvest date</label>
+        <input
+          id="harvest"
+          type="date"
+          [max]="today"
+          formControlName="harvestDate"
+          [class.err]="bad(f.harvestDate)"
+        />
+        @if (bad(f.harvestDate)) {
+          <small>Enter the harvest date.</small>
+        }
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Price and stock</legend>
+    <div class="grid three">
+      <div class="field">
+        <label for="price">Price per unit (KSh)</label>
+        <input
+          id="price"
+          type="number"
+          min="0"
+          step="0.5"
+          formControlName="priceKes"
+          [class.err]="bad(f.priceKes)"
+        />
+        @if (bad(f.priceKes)) {
+          <small>Enter a price above 0.</small>
+        } @else if (f.priceKes.value > 0) {
+          <small class="help"
+            >Customers see {{ f.priceKes.value | Ksh }} per {{ f.unit.value }}.</small
+          >
+        }
+      </div>
+      <div class="field">
+        <label for="unit">Sold by</label>
+        <select id="unit" formControlName="unit">
+          @for (u of units; track u.value) {
+            <option [value]="u.value">{{ u.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="stock">Stock available</label>
+        <input
+          id="stock"
+          type="number"
+          min="0"
+          formControlName="stock"
+          [class.err]="bad(f.stock)"
+        />
+        @if (bad(f.stock)) {
+          <small>Stock can't be negative.</small>
+        } @else {
+          <small class="help">Capped at what the inspector counts.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="min">Minimum order</label>
+        <input
+          id="min"
+          type="number"
+          min="1"
+          formControlName="minOrder"
+          [class.err]="bad(f.minOrder)"
+        />
+        @if (bad(f.minOrder)) {
+          <small>At least 1.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="low">Low stock alert at</label>
+        <input
+          id="low"
+          type="number"
+          min="0"
+          formControlName="lowStockAt"
+          [class.err]="bad(f.lowStockAt)"
+        />
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Seller</legend>
+    <div class="grid">
+      <div class="field">
+        <label for="sname">Farmer or supplier name</label>
+        <input id="sname" formControlName="sellerName" [class.err]="bad(f.sellerName)" />
+        @if (bad(f.sellerName)) {
+          <small>Enter the seller's name.</small>
+        }
+      </div>
+      <div class="field">
+        <span class="lbl">Seller type</span>
+        <div class="seg" role="radiogroup" aria-label="Seller type">
+          <label [class.on]="f.sellerType.value === 'farmer'"
+            ><input type="radio" formControlName="sellerType" value="farmer" />Farmer</label
+          >
+          <label [class.on]="f.sellerType.value === 'supplier'"
+            ><input type="radio" formControlName="sellerType" value="supplier" />Supplier</label
+          >
+        </div>
+      </div>
+      <div class="field">
+        <label for="sphone">Seller phone</label>
+        <input
+          id="sphone"
+          formControlName="sellerPhone"
+          placeholder="0712345678"
+          [class.err]="bad(f.sellerPhone)"
+        />
+        @if (bad(f.sellerPhone)) {
+          <small>Use 07XXXXXXXX, 01XXXXXXXX or +254XXXXXXXXX.</small>
+        }
+      </div>
+      <div class="field">
+        <label for="county">County where the stock is kept</label>
+        <select id="county" formControlName="county" [class.err]="bad(f.county)">
+          <option value="" disabled>Select county</option>
+          @for (c of counties; track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+        @if (bad(f.county)) {
+          <small>Choose a county.</small>
+        }
+      </div>
+      <div class="field full">
+        <label for="farm">Source farm (optional)</label>
+        <select id="farm" formControlName="farmId">
+          <option value="">Not linked to a registered farm</option>
+          @for (fm of farmOptions(); track fm.id) {
+            <option [value]="fm.id">
+              {{ fm.name }} · {{ fm.county }}{{ fm.certified ? ' (certified)' : '' }}
+            </option>
+          }
+        </select>
+        @if (farmNote()) {
+          <small class="help">{{ farmNote() }}</small>
+        }
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>
+      Product photos <span>{{ images().length }}/{{ maxPhotos }}</span>
+    </legend>
+    <p class="note">
+      Add clear photos of the real product. The inspector compares them with what they see on site.
+    </p>
+    @if (images().length < maxPhotos) {
+      <label
+        class="drop"
+        [class.over]="dragging()"
+        (dragover)="onDrag($event, true)"
+        (dragleave)="onDrag($event, false)"
+        (drop)="onDrop($event)"
+      >
+        <input type="file" accept="image/*" multiple (change)="onPick($event)" />
+        <strong>Drop product photos here</strong>
+        <span>or click to choose files. JPG or PNG, up to 5 MB each.</span>
+      </label>
+    }
+    @if (imageError()) {
+      <small class="photo-err" role="alert">{{ imageError() }}</small>
+    }
+    @if (noPhoto()) {
+      <small class="photo-err" role="alert">Add at least one photo.</small>
+    }
+    @if (images().length) {
+      <ul class="thumbs">
+        @for (i of images(); track i.id) {
+          <li>
+            <img [src]="i.url" [alt]="i.caption" /><button
+              type="button"
+              (click)="remove(i.id)"
+              [attr.aria-label]="'Remove ' + i.caption"
+            >
+              ×
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </fieldset>
+
+  <div class="callout">
+    <strong>Before it goes on sale</strong>
+    <span
+      >New products stay hidden from customers until an inspector visits and confirms the product
+      really exists.</span
+    >
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn ghost" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="btn">{{ submitLabel() }}</button>
+  </div>
+</form>
