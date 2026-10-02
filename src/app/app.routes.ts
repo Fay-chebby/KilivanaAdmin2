@@ -2,17 +2,10 @@ import { Routes } from '@angular/router';
 
 import { AdminLayout } from './layouts/admin-layout/admin-layout';
 import { Dashboard } from './features/dashboard/pages/dashboard/dashboard';
-import { FarmList } from './features/farms-crops/pages/farm-list/farm-list';
-import { BuyerList } from './features/buyers/pages/buyer-list/buyer-list';
-import { SupplierList } from './features/suppliers/pages/supplier-list/supplier-list';
-import { InspectorList } from './features/inspectors/pages/inspector-list/inspector-list';
 import { DeliveryList } from './features/logistics/pages/delivery-list/delivery-list';
-import { FarmerList } from './features/farmers/pages/farmer-list/farmer-list';
-import { ProductList } from './features/products/pages/product-list/product-list';
 import { OrderList } from './features/orders/pages/order-list/order-list';
 import { PaymentList } from './features/payments/pages/payment-list/payment-list';
 import { KycList } from './features/kyc/pages/kyc-list/kyc-list';
-import { DriverList } from './features/drivers/pages/driver-list/driver-list';
 import { DisputeList } from './features/disputes/pages/dispute-list/dispute-list';
 import { ReportsDashboard } from './features/reports/pages/reports-dashboard/reports-dashboard';
 import { UserList } from './features/users/pages/user-list/user-list';
@@ -28,6 +21,7 @@ import { BUYER_ROUTES } from './features/buyers/buyer.routes';
 import { DRIVER_ROUTES } from './features/drivers/driver.routes';
 import { INSPECTOR_ROUTES } from './features/inspectors/Inspectors.routes';
 import { FARM_ROUTES } from './features/farms-crops/farm-crops.routes';
+import { PRODUCT_ROUTES } from './features/products/Products.routes';
 
 export const routes: Routes = [
   {
@@ -87,12 +81,11 @@ export const routes: Routes = [
       {
         path: 'farms-crops',
         children: FARM_ROUTES,
-      
       },
 
       {
         path: 'products',
-        component: ProductList,
+        children: PRODUCT_ROUTES,
       },
 
       {

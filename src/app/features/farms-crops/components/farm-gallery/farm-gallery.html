@@ -18,7 +18,7 @@
         [attr.aria-selected]="filter() === 'farmer'"
         (click)="setFilter('farmer')"
       >
-        Farmer {{ farmerCount() }}
+        {{ sellerLabel() }} {{ farmerCount() }}
       </button>
       <button
         type="button"
@@ -39,7 +39,7 @@
           <button type="button" (click)="index.set(i)" [attr.aria-label]="'Open ' + p.caption">
             <img [src]="p.url" [alt]="p.caption" loading="lazy" />
             <span class="tag" [attr.data-by]="p.uploadedBy">{{
-              p.uploadedBy === 'farmer' ? 'Farmer' : 'Inspector'
+              p.uploadedBy === 'farmer' ? sellerLabel() : 'Inspector'
             }}</span>
             <span class="cap">{{ p.caption }}</span>
           </button>
@@ -65,8 +65,12 @@
       <img [src]="p.url" [alt]="p.caption" />
       <figcaption>
         {{ p.caption }} ·
-        {{ p.uploadedBy === 'farmer' ? 'Uploaded by farmer' : 'Taken by inspector' }} ·
-        {{ p.uploadedAt }}
+        {{
+          p.uploadedBy === 'farmer'
+            ? 'Uploaded by ' + sellerLabel().toLowerCase()
+            : 'Taken by inspector'
+        }}
+        · {{ p.uploadedAt }}
       </figcaption>
     </figure>
     <button

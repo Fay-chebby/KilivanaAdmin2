@@ -1,1 +1,17 @@
-<p>edit-product works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a routerLink="/">AgriAdmin</a> / <a routerLink="/products">Products</a> / <span>Edit</span>
+</nav>
+<a class="back" [routerLink]="['/products', id]">← Back to product</a>
+<h1>Edit Product</h1>
+<div class="card">
+  @if (product(); as p) {
+    <app-product-form
+      [product]="p"
+      submitLabel="Save changes"
+      (saved)="save($event)"
+      (cancelled)="cancel()"
+    />
+  } @else {
+    <p class="empty">Product not found. <a routerLink="/products">Back to products</a></p>
+  }
+</div>

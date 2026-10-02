@@ -1,94 +1,120 @@
-import { Injectable, computed, signal } from '@angular/core';
-import { Observable, delay, of, throwError } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { AdminUser, LoginRequest } from '../models/auth.model';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, tap } from 'rxjs';
+
+import { ApiResponse, AuthData, AuthUser, LoginRequest } from '../models/auth.model';
 
 const STORAGE_KEY = 'kilivana_admin_session';
 
-/**
- * TEMPORARY: no backend yet, so credentials are hardcoded here and the "session" is just
- * the user object saved to localStorage. Replace ADMIN_ACCOUNTS and the body of login()
- * with a real HttpClient call once the API exists — everything that reads currentUser()
- * / isAuthenticated() elsewhere in the app will keep working unchanged.
- */
-const ADMIN_ACCOUNTS: Array<{ email: string; password: string; user: AdminUser }> = [
-  {
-    email: 'admin@kilivana.com',
-    password: 'Admin@123',
-    user: {
-      id: 'ADM-001',
-      fullName: 'Faith Chebet',
-      email: 'admin@kilivana.com',
-      role: 'admin',
-      initials: 'FC',
-    },
-  },
-  {
-    email: 'superadmin@kilivana.com',
-    password: 'SuperAdmin@123',
-    user: {
-      id: 'ADM-000',
-      fullName: 'Kwame Boateng',
-      email: 'superadmin@kilivana.com',
-      role: 'super-admin',
-      initials: 'KB',
-    },
-  },
-];
+const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
-@Injectable({ providedIn: 'root' })
+interface StoredSession {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
 export class AuthService {
-  private readonly _currentUser = signal<AdminUser | null>(this.readSession());
+  private readonly http = inject(HttpClient);
+
+  private readonly _currentUser = signal<AuthUser | null>(this.readUser());
 
   readonly currentUser = this._currentUser.asReadonly();
+
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
-  readonly isSuperAdmin = computed(() => this._currentUser()?.role === 'super-admin');
 
-  login(request: LoginRequest): Observable<AdminUser> {
-    const match = ADMIN_ACCOUNTS.find(
-      (a) =>
-        a.email.toLowerCase() === request.email.trim().toLowerCase() &&
-        a.password === request.password,
-    );
+  readonly isAdmin = computed(() => this._currentUser()?.role === 'ADMIN');
 
-    if (!match) {
-      return throwError(() => new Error('Invalid email or password.')).pipe(delay(500));
-    }
+  login(request: LoginRequest): Observable<ApiResponse<AuthData>> {
+    return this.http.post<ApiResponse<AuthData>>(`${API_BASE_URL}/auth/login`, request).pipe(
+      tap((response) => {
+        const session: StoredSession = {
+          accessToken: response.data.accessToken,
+          refreshToken: response.data.refreshToken,
+          user: response.data.user,
+        };
 
-    return of(match.user).pipe(
-      delay(500),
-      tap((user) => {
-        this._currentUser.set(user);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+
+        this._currentUser.set(response.data.user);
       }),
     );
   }
 
+  requestPasswordReset(email: string): Observable<void> {
+    return this.http.post<void>(
+      `${API_BASE_URL}/auth/forgot-password`,
+      {},
+      {
+        params: {
+          email: email.trim(),
+        },
+      },
+    );
+  }
+
   logout(): void {
+    const accessToken = this.getAccessToken();
+
+    if (accessToken) {
+      this.http
+        .post(
+          `${API_BASE_URL}/auth/logout`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        )
+        .subscribe({
+          complete: () => this.clearSession(),
+          error: () => this.clearSession(),
+        });
+    } else {
+      this.clearSession();
+    }
+  }
+
+  getAccessToken(): string | null {
+    const session = this.readSession();
+
+    return session?.accessToken ?? null;
+  }
+
+  getRefreshToken(): string | null {
+    const session = this.readSession();
+
+    return session?.refreshToken ?? null;
+  }
+
+  getCurrentUser(): AuthUser | null {
+    return this._currentUser();
+  }
+
+  private clearSession(): void {
     this._currentUser.set(null);
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  /**
-   * TEMPORARY mock: no email service yet, so this just checks the address is one of the
-   * known admin accounts and pretends a reset link was sent. Replace with a real
-   * HttpClient call once the backend exposes a "forgot password" endpoint. Keep resolving
-   * even for unknown emails in the real version, so the UI can't be used to find out which
-   * emails are registered — this mock is intentionally stricter, only to help you test both states.
-   */
-  requestPasswordReset(email: string): Observable<void> {
-    const exists = ADMIN_ACCOUNTS.some((a) => a.email.toLowerCase() === email.trim().toLowerCase());
-    return exists
-      ? of(undefined).pipe(delay(600))
-      : throwError(() => new Error('No admin account found with that email.')).pipe(delay(600));
-  }
-
-  private readSession(): AdminUser | null {
+  private readSession(): StoredSession | null {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as AdminUser) : null;
+
+      if (!raw) {
+        return null;
+      }
+
+      return JSON.parse(raw) as StoredSession;
     } catch {
       return null;
     }
+  }
+
+  private readUser(): AuthUser | null {
+    return this.readSession()?.user ?? null;
   }
 }

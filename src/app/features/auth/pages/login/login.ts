@@ -37,12 +37,24 @@ export class Login {
     this.auth.login(this.form.getRawValue()).subscribe({
       next: () => {
         this.loading.set(false);
+
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
+
         this.router.navigateByUrl(returnUrl);
       },
-      error: (err: Error) => {
+
+      error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set(err.message);
+
+        if (err.status === 401) {
+          this.errorMessage.set('Invalid email or password.');
+        } else if (err.status === 0) {
+          this.errorMessage.set(
+            'Unable to connect to the server. Please check that the backend is running.',
+          );
+        } else {
+          this.errorMessage.set(err.error?.message || 'Login failed. Please try again.');
+        }
       },
     });
   }

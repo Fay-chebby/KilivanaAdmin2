@@ -76,7 +76,7 @@
             <h3>{{ p.name }}</h3>
             <p class="by">{{ p.sellerName }} · {{ p.county }}</p>
             <div class="price">
-              <strong>{{ p.priceKes | kes }}</strong
+              <strong>{{ p.priceKes | currencyKsh }}</strong
               ><span>/ {{ p.unit }}</span>
             </div>
             <div class="meta">
@@ -94,14 +94,14 @@
         <h2>Pricing and stock</h2>
         <dl>
           <dt>Price</dt>
-          <dd>{{ p.priceKes | kes }} per {{ p.unit }}</dd>
+          <dd>{{ p.priceKes | currencyKsh }} per {{ p.unit }}</dd>
           <dt>In stock</dt>
           <dd [attr.data-stock]="stock(p)">
             {{ num(p.stock) }} {{ p.unit
             }}{{ stock(p) === 'out' ? ' (out of stock)' : stock(p) === 'low' ? ' (low)' : '' }}
           </dd>
           <dt>Stock value</dt>
-          <dd>{{ p.priceKes * p.stock | kes }}</dd>
+          <dd>{{ p.priceKes * p.stock | currencyKsh }}</dd>
           <dt>Minimum order</dt>
           <dd>{{ p.minOrder }} {{ p.unit }}</dd>
           <dt>Low stock alert</dt>

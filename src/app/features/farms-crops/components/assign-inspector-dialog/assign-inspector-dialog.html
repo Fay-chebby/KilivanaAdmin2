@@ -7,7 +7,14 @@
     (click)="$event.stopPropagation()"
   >
     <h3 id="ai-title">Assign an inspector</h3>
-    <p>Choose who will visit the farm in {{ county() }} and confirm it matches the registration.</p>
+    <p>
+      {{
+        description() ??
+          'Choose who will visit the farm in ' +
+            county() +
+            ' and confirm it matches the registration.'
+      }}
+    </p>
 
     <div class="list" role="radiogroup" aria-label="Inspectors">
       @for (o of options(); track o.i.id) {

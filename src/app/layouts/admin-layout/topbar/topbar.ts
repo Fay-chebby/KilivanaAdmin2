@@ -18,8 +18,8 @@ export class Topbar {
   readonly user = computed(() => {
     const u = this.auth.currentUser();
     return {
-      name: u?.fullName.split(' ')[0] ?? 'Admin',
-      initials: u?.initials ?? 'AD',
+      name: u?.name.split(' ')[0] ?? 'Admin',
+      // initials: u?.initials ?? 'AD',
       role: u?.role === 'super-admin' ? 'Super Admin' : 'Administrator',
     };
   });

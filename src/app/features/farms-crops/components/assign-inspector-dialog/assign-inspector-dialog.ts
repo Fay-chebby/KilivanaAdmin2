@@ -17,6 +17,8 @@ export class AssignInspectorDialog {
 
   readonly county = input.required<string>();
   readonly currentId = input<string | null>(null);
+  /** optional custom sentence under the title (used by the products feature) */
+  readonly description = input<string | null>(null);
   readonly assigned = output<Assignment>();
   readonly cancelled = output<void>();
 

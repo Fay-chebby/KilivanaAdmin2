@@ -72,8 +72,10 @@
     (change)="status.set($any($event.target).value)"
   >
     <option value="">All statuses</option>
-    @for (s of ['active', 'pending', 'rejected', 'suspended']; track s) {
-      <option [value]="s" [selected]="status() === s">{{ meta[$any(s)].label }}</option>
+    @for (s of statuses; track s) {
+      <option [value]="s" [selected]="status() === s">
+        {{ meta[s].label }}
+      </option>
     }
   </select>
 </div>
@@ -117,7 +119,7 @@
               >
             </td>
             <td class="num">
-              <strong>{{ p.priceKes | kes }}</strong
+              <strong>{{ p.priceKes | currencyKsh }}</strong
               ><small class="sub">per {{ p.unit }}</small>
             </td>
             <td class="num" [attr.data-stock]="stock(p)">
@@ -193,7 +195,7 @@
           </h3>
           <p>{{ p.sellerName }} · {{ p.county }}</p>
           <div class="price">
-            <strong>{{ p.priceKes | kes }}</strong
+            <strong>{{ p.priceKes | currencyKsh }}</strong
             ><span>/ {{ p.unit }}</span
             ><span class="grade">{{ p.quality }}</span>
           </div>

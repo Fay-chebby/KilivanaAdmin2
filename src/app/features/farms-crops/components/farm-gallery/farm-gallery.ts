@@ -10,6 +10,8 @@ type Filter = 'all' | 'farmer' | 'inspector';
 })
 export class FarmGallery {
   readonly images = input.required<FarmImage[]>();
+  /** what to call the person who uploaded the non-inspector photos */
+  readonly sellerLabel = input('Farmer');
 
   protected readonly filter = signal<Filter>('all');
   protected readonly index = signal<number | null>(null);

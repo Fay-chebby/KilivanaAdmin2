@@ -29,6 +29,8 @@ export class ProductList {
   protected readonly search = signal('');
   protected readonly category = signal('');
   protected readonly status = signal<'' | ProductStatus>('');
+  protected readonly statuses = Object.keys(PRODUCT_STATUS_META) as ProductStatus[];
+
   protected readonly view = signal<'table' | 'grid'>('table');
   protected readonly action = signal<Action | null>(null);
 

@@ -82,7 +82,7 @@
           <small>Enter a price above 0.</small>
         } @else if (f.priceKes.value > 0) {
           <small class="help"
-            >Customers see {{ f.priceKes.value | Ksh }} per {{ f.unit.value }}.</small
+            >Customers see {{ f.priceKes.value | currencyKsh }} per {{ f.unit.value }}.</small
           >
         }
       </div>

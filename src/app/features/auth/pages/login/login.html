@@ -14,7 +14,12 @@
 
     <label class="field">
       <span>Email</span>
-      <input type="email" formControlName="email" placeholder="admin@kilivana.com" autocomplete="username" />
+      <input
+        type="email"
+        formControlName="email"
+        placeholder="admin@kilivana.com"
+        autocomplete="username"
+      />
       @if (form.controls.email.invalid && form.controls.email.touched) {
         <small>Enter a valid email address.</small>
       }
@@ -23,8 +28,18 @@
     <label class="field">
       <span>Password</span>
       <div class="password">
-        <input [type]="showPassword() ? 'text' : 'password'" formControlName="password" placeholder="••••••••" autocomplete="current-password" />
-        <button type="button" class="password__toggle" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+        <input
+          [type]="showPassword() ? 'text' : 'password'"
+          formControlName="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+        />
+        <button
+          type="button"
+          class="password__toggle"
+          (click)="showPassword.set(!showPassword())"
+          [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+        >
           <app-icon [name]="showPassword() ? 'shield-check' : 'lock'" [size]="15" />
         </button>
       </div>
@@ -43,5 +58,5 @@
     </button>
   </form>
 
-  <p class="hint">Demo admin: admin&#64;kilivana.com / Admin&#64;123</p>
+  <!-- <p class="hint">Demo admin: admin&#64;kilivana.com / Admin&#64;123</p> -->
 </div>
