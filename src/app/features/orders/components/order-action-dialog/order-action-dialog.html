@@ -1,0 +1,108 @@
+<div class="backdrop" (click)="cancelled.emit()">
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="oa-title"
+    (click)="$event.stopPropagation()"
+  >
+    <h3 id="oa-title">{{ cfg().title }}</h3>
+
+    @switch (kind()) {
+      @case ('payment') {
+        <p>
+          Confirm that {{ order().buyer.name }} has paid {{ total() | currencyKsh }} for
+          {{ order().code }}. M-Pesa payments are normally recorded automatically.
+        </p>
+      }
+      @case ('cancel') {
+        <p>
+          {{ order().code }} will be cancelled and the buyer and farmer notified.{{
+            order().payment.status === 'paid'
+              ? ' The buyer will be refunded ' + (total() | currencyKsh) + '.'
+              : ''
+          }}
+        </p>
+      }
+      @case ('dispute') {
+        <p>
+          The payment of {{ total() | currencyKsh }} stays on hold until you resolve the dispute.
+        </p>
+      }
+      @case ('resolve_buyer') {
+        <p>
+          The order is cancelled and {{ total() | currencyKsh }} is refunded to
+          {{ order().buyer.name }}.
+        </p>
+      }
+      @case ('resolve_farmer') {
+        <p>
+          The order is completed and {{ payout() | currencyKsh }} is paid to
+          {{ order().farmer.name }} after the platform fee.
+        </p>
+      }
+      @case ('release') {
+        <p>
+          The goods were delivered. {{ payout() | currencyKsh }} will be paid to
+          {{ order().farmer.name }} after the platform fee and the order will be completed.
+        </p>
+      }
+    }
+
+    @if (cfg().fields === 'payment') {
+      <div class="field">
+        <label for="m">Payment method</label>
+        <select id="m" (change)="method.set($any($event.target).value)">
+          <option value="mpesa">M-Pesa</option>
+          <option value="bank">Bank transfer</option>
+          <option value="card">Card</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ref">{{
+          method() === 'mpesa' ? 'M-Pesa transaction code' : 'Reference'
+        }}</label>
+        <input
+          id="ref"
+          [placeholder]="method() === 'mpesa' ? 'e.g. SIK3L9X2QP' : 'Reference number'"
+          [value]="reference()"
+          (input)="reference.set($any($event.target).value)"
+          [class.err]="touched() && !refOk()"
+        />
+        @if (touched() && !refOk()) {
+          <small>{{
+            method() === 'mpesa'
+              ? 'M-Pesa codes have 10 letters and numbers.'
+              : 'Enter at least 4 characters.'
+          }}</small>
+        }
+      </div>
+    }
+
+    @if (cfg().fields === 'reason') {
+      <div class="field">
+        <label for="r">{{
+          kind() === 'cancel' || kind() === 'dispute' ? 'Reason' : 'Resolution note'
+        }}</label>
+        <textarea
+          id="r"
+          rows="3"
+          [value]="reason()"
+          (input)="reason.set($any($event.target).value)"
+          [class.err]="touched() && !reasonOk()"
+          placeholder="Write at least 5 characters. This is saved in the order timeline."
+        ></textarea>
+        @if (touched() && !reasonOk()) {
+          <small>Add a short explanation.</small>
+        }
+      </div>
+    }
+
+    <div class="actions">
+      <button type="button" class="btn ghost" (click)="cancelled.emit()">Back</button>
+      <button type="button" class="btn" [class.danger]="cfg().danger" (click)="submit()">
+        {{ cfg().label }}
+      </button>
+    </div>
+  </div>
+</div>

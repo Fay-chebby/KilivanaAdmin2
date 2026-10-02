@@ -1,1 +1,199 @@
-<p>order-details works!</p>
+@if (order(); as o) {
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a routerLink="/">AgriAdmin</a> / <a routerLink="/orders">Orders</a> / <span>{{ o.code }}</span>
+  </nav>
+
+  <div class="head">
+    <div>
+      <h1>{{ o.code }}</h1>
+      <div class="badges">
+        <span class="badge" [attr.data-tone]="meta[o.status].tone">{{ meta[o.status].label }}</span>
+        <span class="badge flat" [attr.data-tone]="pay[o.payment.status].tone"
+          >Payment {{ pay[o.payment.status].label.toLowerCase() }}</span
+        >
+        <span class="placed">Placed {{ o.placedAt.replace('T', ' ') }}</span>
+      </div>
+    </div>
+    <div class="right">
+      <a class="back" routerLink="/orders">← Back</a>
+      <div class="actions">
+        @switch (o.status) {
+          @case ('placed') {
+            @if (o.payment.status === 'pending') {
+              <button type="button" class="btn" (click)="modal.set('payment')">
+                Record payment
+              </button>
+            } @else {
+              <button type="button" class="btn" (click)="confirmOrder()">Confirm order</button>
+            }
+            <button type="button" class="btn danger" (click)="modal.set('cancel')">
+              Cancel order
+            </button>
+          }
+          @case ('confirmed') {
+            <button type="button" class="btn" (click)="showAssign.set(true)">
+              {{ o.delivery ? 'Reassign driver' : 'Assign driver' }}
+            </button>
+            <button type="button" class="btn danger" (click)="modal.set('cancel')">
+              Cancel order
+            </button>
+          }
+          @case ('in_transit') {
+            <button type="button" class="btn danger" (click)="modal.set('dispute')">
+              Raise dispute
+            </button>
+          }
+          @case ('delivered') {
+            <button type="button" class="btn" (click)="modal.set('release')">
+              Release payment
+            </button>
+            <button type="button" class="btn danger" (click)="modal.set('dispute')">
+              Raise dispute
+            </button>
+          }
+          @case ('disputed') {
+            <button type="button" class="btn" (click)="modal.set('resolve_farmer')">
+              Pay the farmer
+            </button>
+            <button type="button" class="btn danger" (click)="modal.set('resolve_buyer')">
+              Refund the buyer
+            </button>
+          }
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (o.status === 'disputed') {
+    <div class="alert red" role="status">
+      <strong>Dispute:</strong> {{ o.note }} The payment is on hold until you resolve it.
+    </div>
+  }
+  @if (o.status === 'cancelled') {
+    <div class="alert" role="status"><strong>Cancelled:</strong> {{ o.note }}</div>
+  }
+  @if (o.status === 'placed' && o.payment.status === 'pending') {
+    <div class="alert amber" role="status">
+      Waiting for payment. Record the payment once the buyer has paid, then confirm the order.
+    </div>
+  }
+  @if (o.status === 'confirmed' && !o.delivery) {
+    <div class="alert amber" role="status">
+      This order needs a driver. Assign one so the goods can be collected from the farmer.
+    </div>
+  }
+  @if (o.status === 'delivered') {
+    <div class="alert green" role="status">
+      Delivered. Release the payment to the farmer once you are happy with the delivery.
+    </div>
+  }
+
+  <app-order-pipeline [progress]="o.progress" [status]="o.status" />
+
+  <div class="layout">
+    <div class="main">
+      <app-order-items-table [order]="o" />
+      <app-order-timeline [events]="o.events" />
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <h2>Buyer</h2>
+        <strong class="name">{{ o.buyer.name }}</strong>
+        <p class="sub">{{ o.buyer.type }} · {{ o.buyer.county }}</p>
+        <dl>
+          <dt>Phone</dt>
+          <dd>
+            <a [href]="'tel:' + o.buyer.phone">{{ o.buyer.phone }}</a>
+          </dd>
+          <dt>Deliver to</dt>
+          <dd>{{ o.buyer.address }}, {{ o.buyer.county }}</dd>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Farmer</h2>
+        <strong class="name">{{ o.farmer.name }}</strong>
+        <p class="sub">{{ o.farmer.location }}, {{ o.farmer.county }}</p>
+        <dl>
+          <dt>Phone</dt>
+          <dd>
+            <a [href]="'tel:' + o.farmer.phone">{{ o.farmer.phone }}</a>
+          </dd>
+          <dt>Pickup from</dt>
+          <dd>{{ o.farmer.location }}, {{ o.farmer.county }}</dd>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Payment</h2>
+        <span class="badge flat" [attr.data-tone]="pay[o.payment.status].tone">{{
+          pay[o.payment.status].label
+        }}</span>
+        <p class="amount mono">{{ total(o) | currencyKsh }}</p>
+        @if (o.payment.method) {
+          <dl>
+            <dt>Method</dt>
+            <dd>{{ method[o.payment.method] }}</dd>
+            <dt>Reference</dt>
+            <dd class="mono">{{ o.payment.reference }}</dd>
+            <dt>Paid</dt>
+            <dd>{{ o.payment.paidAt?.replace('T', ' ') }}</dd>
+          </dl>
+        } @else {
+          <p class="sub">No payment received yet.</p>
+        }
+      </div>
+
+      <div class="card">
+        <h2>Delivery agent</h2>
+        @if (o.delivery; as d) {
+          <strong class="name">{{ d.agentName }}</strong>
+          <p>
+            <span class="badge" [attr.data-tone]="deliveryTone[d.status]">{{
+              deliveryLabel[d.status]
+            }}</span>
+          </p>
+          <dl>
+            <dt>Vehicle</dt>
+            <dd>{{ d.vehicle }} · {{ d.plate }}</dd>
+            <dt>Phone</dt>
+            <dd>
+              <a [href]="'tel:' + d.agentPhone">{{ d.agentPhone }}</a>
+            </dd>
+            <dt>Assigned</dt>
+            <dd>{{ d.assignedAt.replace('T', ' ') }}</dd>
+          </dl>
+          @if (d.status !== 'delivered') {
+            <p class="hint">Pickup and delivery are confirmed with one-time codes in Logistics.</p>
+          }
+        } @else {
+          <p class="sub">No driver assigned yet.</p>
+          @if (o.status === 'confirmed') {
+            <button type="button" class="btn sm" (click)="showAssign.set(true)">
+              Assign driver
+            </button>
+          }
+        }
+      </div>
+    </aside>
+  </div>
+
+  @if (showAssign()) {
+    <app-assign-driver-dialog
+      [order]="o"
+      (assigned)="assign($event)"
+      (cancelled)="showAssign.set(false)"
+    />
+  }
+  @if (modal(); as k) {
+    <app-order-action-dialog
+      [kind]="k"
+      [order]="o"
+      (confirmed)="done($event)"
+      (cancelled)="modal.set(null)"
+    />
+  }
+} @else {
+  <p class="empty">Order not found. <a routerLink="/orders">Back to orders</a></p>
+}

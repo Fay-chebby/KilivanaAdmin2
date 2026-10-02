@@ -1,0 +1,17 @@
+<section class="card">
+  <h2>Order pipeline</h2>
+  <ol class="steps">
+    @for (s of steps; track s; let i = $index) {
+      <li
+        [class.done]="i <= progress()"
+        [class.current]="i === progress() && !finished() && !halted()"
+        [class.stop]="halted() && i === progress()"
+      >
+        <span class="dot">{{
+          i <= progress() ? (halted() && i === progress() ? '!' : '✓') : i + 1
+        }}</span>
+        <span class="txt">{{ s }}</span>
+      </li>
+    }
+  </ol>
+</section>

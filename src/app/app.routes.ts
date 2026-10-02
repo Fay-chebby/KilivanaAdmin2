@@ -22,6 +22,7 @@ import { DRIVER_ROUTES } from './features/drivers/driver.routes';
 import { INSPECTOR_ROUTES } from './features/inspectors/Inspectors.routes';
 import { FARM_ROUTES } from './features/farms-crops/farm-crops.routes';
 import { PRODUCT_ROUTES } from './features/products/Products.routes';
+import { ORDER_ROUTES } from './features/orders/Orders.routes';
 
 export const routes: Routes = [
   {
@@ -90,7 +91,7 @@ export const routes: Routes = [
 
       {
         path: 'orders',
-        component: OrderList,
+        children: ORDER_ROUTES,
       },
 
       {

@@ -1,0 +1,88 @@
+$green: #00a844;
+$muted: #6b766f;
+:host {
+  display: block;
+  color: #16211b;
+}
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 24px 22px;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 20, 0.05),
+    0 4px 14px rgba(16, 24, 20, 0.04);
+}
+h2 {
+  margin: 0 0 18px;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $muted;
+}
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  li {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    &:not(:first-child)::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      right: 50%;
+      width: 100%;
+      height: 3px;
+      border-radius: 3px;
+      background: #e6ebe8;
+    }
+    &.done:not(:first-child)::before {
+      background: $green;
+    }
+  }
+  .dot {
+    position: relative;
+    z-index: 1;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: #eef1ef;
+    color: $muted;
+  }
+  .txt {
+    font-size: 11.5px;
+    color: $muted;
+  }
+  .done .dot {
+    background: $green;
+    color: #fff;
+  }
+  .done .txt {
+    color: #16211b;
+    font-weight: 600;
+  }
+  .current .dot {
+    box-shadow: 0 0 0 4px rgba(0, 168, 68, 0.2);
+  }
+  .stop .dot {
+    background: #d92d20;
+    box-shadow: 0 0 0 4px rgba(217, 45, 32, 0.18);
+  }
+  .stop .txt {
+    color: #b42318;
+  }
+}
+@media (max-width: 560px) {
+  .steps .txt {
+    font-size: 10px;
+  }
+}

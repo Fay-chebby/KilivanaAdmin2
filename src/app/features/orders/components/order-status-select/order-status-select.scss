@@ -1,0 +1,13 @@
+select {
+  border: 1px solid #d7ddd9;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  background: #fff;
+  cursor: pointer;
+  &:focus {
+    outline: 2px solid #007a33;
+    outline-offset: 1px;
+  }
+}

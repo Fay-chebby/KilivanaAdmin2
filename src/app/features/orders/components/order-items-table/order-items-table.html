@@ -1,1 +1,36 @@
-<p>order-items-table works!</p>
+<section class="card">
+  <h2>Order items</h2>
+  <ul class="items">
+    @for (i of order().items; track i.name) {
+      <li>
+        <div>
+          @if (i.productId) {
+            <a [routerLink]="['/products', i.productId]">{{ i.name }}</a>
+          } @else {
+            <strong>{{ i.name }}</strong>
+          }
+          <small>Supplied by {{ order().farmer.name }}</small>
+        </div>
+        <div class="r">
+          <small>{{ num(i.qty) }} {{ i.unit }} × {{ i.unitPriceKes | currencyKsh }}</small>
+          <strong class="mono">{{ i.qty * i.unitPriceKes | currencyKsh }}</strong>
+        </div>
+      </li>
+    }
+  </ul>
+  <div class="totals">
+    <dl>
+      <div>
+        <dt>Platform fee ({{ rate }}%)</dt>
+        <dd class="mono">{{ fee() | currencyKsh }}</dd>
+      </div>
+      <div>
+        <dt>Farmer payout</dt>
+        <dd class="mono">{{ payout() | currencyKsh }}</dd>
+      </div>
+    </dl>
+    <div class="grand">
+      <small>Total</small><strong class="mono">{{ total() | currencyKsh }}</strong>
+    </div>
+  </div>
+</section>

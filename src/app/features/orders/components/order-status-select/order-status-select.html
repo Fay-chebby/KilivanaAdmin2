@@ -1,1 +1,6 @@
-<p>order-status-select works!</p>
+<select aria-label="Filter by status" (change)="changed.emit($any($event.target).value)">
+  <option value="" [selected]="!value()">All statuses</option>
+  @for (s of options; track s) {
+    <option [value]="s" [selected]="value() === s">{{ meta[s].label }}</option>
+  }
+</select>
