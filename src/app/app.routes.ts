@@ -24,6 +24,7 @@ import { FARM_ROUTES } from './features/farms-crops/farm-crops.routes';
 import { PRODUCT_ROUTES } from './features/products/Products.routes';
 import { ORDER_ROUTES } from './features/orders/Orders.routes';
 import { LOGISTICS_ROUTES } from './features/logistics/Logistics.routes';
+import { DISPUTE_ROUTES } from './features/disputes/disputes.routes';
 
 export const routes: Routes = [
   {
@@ -112,7 +113,7 @@ export const routes: Routes = [
 
       {
         path: 'disputes',
-        component: DisputeList,
+        children: DISPUTE_ROUTES,
       },
 
       {
