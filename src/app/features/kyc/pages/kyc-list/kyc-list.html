@@ -1,1 +1,95 @@
-<p>kyc-list works!</p>
+<nav class="crumbs" aria-label="Breadcrumb"><span>AgriAdmin</span><span class="sep">/</span><span class="cur">Verification</span></nav>
+<header class="head">
+  <h1>KYC &amp; Verification</h1>
+  <span class="pending-pill">{{ stats().pending }} pending review</span>
+</header>
+
+<section class="stats">
+  <app-stat-card label="Total Pending" [value]="stats().total" icon="clock" tone="amber" />
+  <app-stat-card label="Farmers" [value]="stats().farmers" icon="shield" tone="green" />
+  <app-stat-card label="Buyers" [value]="stats().buyers" icon="shield" tone="blue" />
+  <app-stat-card label="Suppliers / Inspectors" [value]="stats().suppliersInspectors" icon="shield" tone="purple" />
+</section>
+
+<div class="chips" role="tablist" aria-label="Filter by applicant type">
+  @for (f of filters; track f.key) {
+    <button type="button" role="tab" class="chip" [class.on]="filter() === f.key" [attr.aria-selected]="filter() === f.key" (click)="filter.set(f.key)">{{ f.label }}</button>
+  }
+</div>
+
+<div class="layout">
+  <section class="card table-card">
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Applicant</th><th>Type</th><th>Docs</th><th>Priority</th><th>Status</th><th>Submitted</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          @for (a of rows(); track a.id) {
+            <tr [class.sel]="a.id === selectedId()" (click)="select(a.id)">
+              <td>
+                <a class="name" [routerLink]="['/kyc', a.id]" (click)="$event.stopPropagation()">{{ a.name }}</a>
+                <span class="mono id">{{ a.id }}</span>
+              </td>
+              <td><span [class]="'tag ' + a.type">{{ typeLabel[a.type] }}</span></td>
+              <td>{{ a.documents.length }}</td>
+              <td><span [class]="'prio ' + a.priority">{{ a.priority }}</span></td>
+              <td><span [class]="'status ' + a.status">{{ statusLabel[a.status] }}</span></td>
+              <td class="mono muted">{{ a.submittedAt | date: 'yyyy-MM-dd' }}</td>
+              <td class="actions">
+                @if (isOpen(a)) {
+                  <button type="button" class="icon green" aria-label="Review and approve {{ a.name }}" (click)="$event.stopPropagation(); quickApprove(a)">
+                    <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M7 12.5l3.2 3.2L17 8.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <button type="button" class="icon red" aria-label="Reject {{ a.name }}" (click)="$event.stopPropagation(); select(a.id, 'reject')">
+                    <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M8 8l8 8M16 8l-8 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+                  </button>
+                } @else {
+                  <span class="muted">Decided</span>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="empty">No applications in this category.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="card panel" aria-live="polite">
+    @if (selected(); as a) {
+      <div class="p-head">
+        <strong>{{ a.name }}</strong>
+        <span [class]="'tag ' + a.type">{{ typeLabel[a.type] }}</span>
+      </div>
+      <p class="sub">Submitted documents ({{ a.documents.length }})</p>
+
+      <ul class="docs">
+        @for (d of a.documents; track d.id) {
+          <li [class.active]="d.id === activeDocId()">
+            <span>{{ d.name }}@if (d.viewed) { <em class="seen" title="Opened">&#10003;</em> }</span>
+            <button type="button" class="view" (click)="viewDoc(d.id)">View</button>
+          </li>
+        }
+      </ul>
+
+      <app-document-viewer [doc]="activeDoc()" height="150px" />
+
+      @if (isOpen(a)) {
+        <div class="decide">
+          <app-approval-actions [blockedReason]="blockedReason()" [error]="error()" [(mode)]="mode" (approve)="approve()" (reject)="reject($event)" />
+        </div>
+      } @else if (a.decision; as dec) {
+        <p class="decision" [class.bad]="dec.status === 'rejected'">
+          {{ dec.status === 'approved' ? 'Approved' : 'Rejected' }} on {{ dec.at | date: 'd MMM y, h:mm a' }}.
+          @if (dec.reason) { <br />Reason: {{ dec.reason }} }
+        </p>
+      }
+      @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+      <a class="more" [routerLink]="['/kyc', a.id]">Open full review</a>
+    } @else {
+      <p class="empty">Select an applicant to review their documents.</p>
+    }
+  </aside>
+</div>
