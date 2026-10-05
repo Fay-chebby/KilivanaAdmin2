@@ -3,30 +3,61 @@ import { Vehicle, VehicleType } from './vehicle.model';
 export type DriverStatus = 'available' | 'on-delivery' | 'offline' | 'suspended';
 export type KycStatus = 'pending' | 'verified';
 
-export const ID_TYPES = ['Ghana Card', 'Passport', 'Voter ID'] as const;
+export const ID_TYPES = ['National ID', 'Passport', 'Alien ID'] as const;
 export type IdType = (typeof ID_TYPES)[number];
 
-export const GHANA_REGIONS = [
-  'Ahafo',
-  'Ashanti',
-  'Bono',
-  'Bono East',
-  'Central',
-  'Eastern',
-  'Greater Accra',
-  'North East',
-  'Northern',
-  'Oti',
-  'Savannah',
-  'Upper East',
-  'Upper West',
-  'Volta',
-  'Western',
-  'Western North',
+export const KENYA_COUNTIES = [
+  'Baringo',
+  'Bomet',
+  'Bungoma',
+  'Busia',
+  'Elgeyo-Marakwet',
+  'Embu',
+  'Garissa',
+  'Homa Bay',
+  'Isiolo',
+  'Kajiado',
+  'Kakamega',
+  'Kericho',
+  'Kiambu',
+  'Kilifi',
+  'Kirinyaga',
+  'Kisii',
+  'Kisumu',
+  'Kitui',
+  'Kwale',
+  'Laikipia',
+  'Lamu',
+  'Machakos',
+  'Makueni',
+  'Mandera',
+  'Marsabit',
+  'Meru',
+  'Migori',
+  'Mombasa',
+  "Murang'a",
+  'Nairobi',
+  'Nakuru',
+  'Nandi',
+  'Narok',
+  'Nyamira',
+  'Nyandarua',
+  'Nyeri',
+  'Samburu',
+  'Siaya',
+  'Taita-Taveta',
+  'Tana River',
+  'Tharaka-Nithi',
+  'Trans Nzoia',
+  'Turkana',
+  'Uasin Gishu',
+  'Vihiga',
+  'Wajir',
+  'West Pokot',
 ] as const;
 
 export interface Driver {
-  id: string;
+  id: number;
   code: string; // DA-001
   fullName: string;
   username: string;

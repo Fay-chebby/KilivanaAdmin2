@@ -1,1 +1,98 @@
-<p>delivery-details works!</p>
+@if (delivery(); as d) {
+  <header class="head">
+    <div>
+      <h1>{{ d.id }} <span [class]="'badge ' + d.status">{{ statusLabel[d.status] }}</span></h1>
+      <p>Order <a [routerLink]="['/orders', d.orderId]">{{ d.orderId }}</a> · {{ d.farmName }} ({{ d.pickupAddress }}) to {{ d.deliveryAddress }}</p>
+    </div>
+    <div class="links">
+      <a [routerLink]="['/logistics', d.id, 'tracking']">Live tracking</a>
+      <a routerLink="/logistics">Back to deliveries</a>
+    </div>
+  </header>
+
+  <section class="card">
+    <app-tracking-map [deliveries]="[d]" height="320px" />
+  </section>
+
+  <section class="cols">
+    <div class="card">
+      <h2>Progress</h2>
+      <app-delivery-timeline [delivery]="d" />
+      @if (d.proof; as p) {
+        <h2 class="gap">Proof of delivery</h2>
+        <p class="muted">Confirmed with the buyer's code on {{ p.at | date: 'd MMM y, h:mm a' }} at {{ p.position.lat.toFixed(4) }}, {{ p.position.lng.toFixed(4) }}.</p>
+      }
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h2>Driver</h2>
+        <p class="name">{{ d.driver.name }}</p>
+        <p class="muted">{{ d.driver.vehicle }} · {{ d.driver.plate }} · {{ d.driver.phone }}</p>
+        @if (canReassign(d)) {
+          <div class="row">
+            <select [(ngModel)]="driverId" aria-label="Choose a driver">
+              <option value="">{{ d.status === 'failed' ? 'Reassign after failed delivery' : 'Reassign driver' }}</option>
+              @for (dr of drivers; track dr.id) {
+                <option [value]="dr.id" [disabled]="dr.id === d.driver.id">{{ dr.name }}, {{ dr.vehicle }}</option>
+              }
+            </select>
+            <button type="button" class="btn" (click)="reassign(d)">Reassign</button>
+          </div>
+        }
+      </div>
+
+      <div class="card">
+        <h2>Buyer</h2>
+        <p class="name">{{ d.buyerName }}</p>
+        <p class="muted">{{ d.buyerPhone }} · {{ d.deliveryAddress }}</p>
+      </div>
+
+      <div class="card">
+        <h2>Delivery codes</h2>
+        <dl>
+          <dt>Pickup code, held by the farm</dt>
+          <dd>{{ codeState(d.pickupCode) }}
+            <button type="button" class="link" [disabled]="d.pickupCode.used" (click)="reset(d, 'pickup')">Reset</button></dd>
+          <dt>Delivery code, held by the buyer</dt>
+          <dd>{{ codeState(d.deliveryCode) }}
+            <button type="button" class="link" [disabled]="d.deliveryCode.used" (click)="reset(d, 'delivery')">Reset</button></dd>
+        </dl>
+        <p class="muted">Code values are hidden from admins on purpose.</p>
+      </div>
+
+      @if (canFail(d)) {
+        <div class="card">
+          <h2>Report a problem</h2>
+          <div class="row">
+            <input type="text" placeholder="Why did delivery fail?" [(ngModel)]="failReason" />
+            <button type="button" class="btn danger" (click)="fail(d)">Mark failed</button>
+          </div>
+        </div>
+      }
+
+      <div class="card">
+        <label class="demo"><input type="checkbox" [checked]="demo()" (change)="demo.set($any($event.target).checked)" /> Demo: act as the driver app</label>
+        @if (demo()) {
+          <div class="demo-box">
+            <p class="muted">Pickup code <strong>{{ d.pickupCode.value }}</strong> · Delivery code <strong>{{ d.deliveryCode.value }}</strong></p>
+            <input type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" [(ngModel)]="codeInput" />
+            <div class="row">
+              <button type="button" class="btn" [disabled]="d.status !== 'assigned'" (click)="verify(d, 'pickup')">Confirm pickup</button>
+              <button type="button" class="btn" [disabled]="d.status !== 'arrived'" (click)="verify(d, 'delivery')">Confirm delivery</button>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (message(); as m) {
+        <p class="msg" [class.ok]="m.ok" role="status">{{ m.message }}</p>
+      }
+    </div>
+  </section>
+} @else {
+  <section class="card empty">
+    <h1>Delivery not found</h1>
+    <p>No delivery has the id {{ id }}. <a routerLink="/logistics">Back to deliveries</a></p>
+  </section>
+}

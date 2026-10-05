@@ -1,1 +1,64 @@
-<p>order-tracking works!</p>
+@if (delivery(); as d) {
+  <header class="head">
+    <div>
+      <h1>Track order {{ d.orderId }}</h1>
+      <p>{{ statusText() }}</p>
+    </div>
+    <a [routerLink]="['/orders', d.orderId]">Back to order</a>
+  </header>
+
+  @if (d.status === 'in_transit') {
+    <p class="eta">
+      <strong>{{ d.etaMin }} min</strong> until arrival
+    </p>
+  }
+
+  <section class="card">
+    <app-tracking-map [deliveries]="[d]" height="400px" />
+  </section>
+
+  <section class="cols">
+    <div class="card">
+      <h2>Progress</h2>
+      <app-delivery-timeline [delivery]="d" />
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h2>Driver</h2>
+        <p class="name">{{ d.driver.name }}</p>
+        <p class="muted">{{ d.driver.vehicle }} · {{ d.driver.plate }}</p>
+        <a class="btn" [href]="'tel:' + d.driver.phone">Call driver</a>
+      </div>
+
+      <div class="card code">
+        <h2>Your delivery code</h2>
+        @if (!codeNote()) {
+          <p class="digits" aria-label="Delivery code">{{ spacedCode() }}</p>
+          <p class="muted">
+            Give this code to the driver only when you have received your order. Do not share it
+            before.
+          </p>
+        } @else {
+          <p class="muted">{{ codeNote() }}</p>
+        }
+      </div>
+
+      @if (d.proof; as p) {
+        <div class="card">
+          <h2>Proof of delivery</h2>
+          <p class="muted">
+            Confirmed with the delivery code on {{ p.at | date: 'd MMM y, h:mm a' }}.
+          </p>
+        </div>
+      }
+    </div>
+  </section>
+} @else {
+  <section class="card empty">
+    <h1>No delivery yet</h1>
+    <p>
+      Order {{ orderId }} has no driver assigned. Tracking appears here once a driver is assigned.
+    </p>
+  </section>
+}

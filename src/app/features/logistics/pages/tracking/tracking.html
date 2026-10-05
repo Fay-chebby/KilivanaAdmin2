@@ -1,1 +1,36 @@
-<p>tracking works!</p>
+@if (delivery(); as d) {
+  <header class="head">
+    <div>
+      <h1>Live tracking: {{ d.id }}</h1>
+      <p>
+        {{ statusLabel[d.status] }}
+        @if (d.status === 'in_transit') {
+          · {{ d.etaMin }} min until arrival
+        }
+      </p>
+    </div>
+    <a [routerLink]="['/logistics', d.id]">Back to delivery</a>
+  </header>
+
+  <section class="card">
+    <app-tracking-map [deliveries]="[d]" height="460px" />
+  </section>
+
+  <section class="cols">
+    <div class="card">
+      <h2>Progress</h2>
+      <app-delivery-timeline [delivery]="d" />
+    </div>
+    <div class="card">
+      <h2>Driver</h2>
+      <p class="name">{{ d.driver.name }}</p>
+      <p class="muted">{{ d.driver.vehicle }} · {{ d.driver.plate }}</p>
+      <a class="btn" [href]="'tel:' + d.driver.phone">Call driver</a>
+    </div>
+  </section>
+} @else {
+  <section class="card empty">
+    <h1>Delivery not found</h1>
+    <p>No delivery has the id {{ id }}. <a routerLink="/logistics">Back to deliveries</a></p>
+  </section>
+}

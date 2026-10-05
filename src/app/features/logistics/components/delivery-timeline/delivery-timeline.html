@@ -1,0 +1,14 @@
+<ol class="steps">
+  @for (s of steps(); track s.key) {
+    <li [class.done]="s.at">
+      <span class="dot"></span>
+      <div>
+        <strong>{{ s.label }}</strong>
+        <small>{{ s.at ? (s.at | date: 'd MMM, h:mm a') : 'Pending' }}</small>
+      </div>
+    </li>
+  }
+</ol>
+@if (failure(); as f) {
+  <p class="failed"><strong>Delivery failed.</strong> {{ f }}</p>
+}

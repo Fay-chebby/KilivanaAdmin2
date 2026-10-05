@@ -1,0 +1,118 @@
+/* This component uses ViewEncapsulation.None, so these rules are global on purpose. */
+app-tracking-map {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.tracking-map {
+  position: relative;
+  width: 100%;
+  overflow: hidden; /* nothing Leaflet draws can spill onto the page */
+  contain: layout paint;
+  isolation: isolate; /* Leaflet's z-indexes (up to 1000) stay inside the map */
+  border-radius: 12px;
+  background: #e8eef3;
+}
+
+/* Core Leaflet layout. Keeps the map contained even if leaflet.css is missing from angular.json.
+   Adding leaflet.css to angular.json is still recommended for the zoom buttons and attribution styling. */
+.tracking-map .leaflet-pane,
+.tracking-map .leaflet-tile,
+.tracking-map .leaflet-marker-icon,
+.tracking-map .leaflet-marker-shadow,
+.tracking-map .leaflet-tile-container,
+.tracking-map .leaflet-pane > svg,
+.tracking-map .leaflet-pane > canvas,
+.tracking-map .leaflet-zoom-box,
+.tracking-map .leaflet-image-layer,
+.tracking-map .leaflet-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.tracking-map .leaflet-container {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+.tracking-map .leaflet-container img.leaflet-tile,
+.tracking-map .leaflet-container .leaflet-marker-pane img {
+  max-width: none !important;
+  max-height: none !important;
+}
+.tracking-map .leaflet-tile,
+.tracking-map .leaflet-marker-icon {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.tracking-map .leaflet-tile {
+  visibility: hidden;
+}
+.tracking-map .leaflet-tile-loaded {
+  visibility: inherit;
+}
+.tracking-map .leaflet-zoom-animated {
+  transform-origin: 0 0;
+}
+
+.tracking-map .leaflet-tile-pane {
+  z-index: 200;
+}
+.tracking-map .leaflet-overlay-pane {
+  z-index: 400;
+}
+.tracking-map .leaflet-shadow-pane {
+  z-index: 500;
+}
+.tracking-map .leaflet-marker-pane {
+  z-index: 600;
+}
+.tracking-map .leaflet-tooltip-pane {
+  z-index: 650;
+}
+.tracking-map .leaflet-popup-pane {
+  z-index: 700;
+}
+
+.tracking-map .leaflet-control-container .leaflet-top,
+.tracking-map .leaflet-control-container .leaflet-bottom {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;
+}
+.tracking-map .leaflet-top {
+  top: 0;
+}
+.tracking-map .leaflet-bottom {
+  bottom: 0;
+}
+.tracking-map .leaflet-left {
+  left: 0;
+}
+.tracking-map .leaflet-right {
+  right: 0;
+}
+.tracking-map .leaflet-control {
+  position: relative;
+  z-index: 800;
+  pointer-events: auto;
+  float: left;
+  clear: both;
+}
+.tracking-map .leaflet-right .leaflet-control {
+  float: right;
+}
+.tracking-map .leaflet-top .leaflet-control {
+  margin-top: 10px;
+}
+.tracking-map .leaflet-left .leaflet-control {
+  margin-left: 10px;
+}
+.tracking-map .leaflet-right .leaflet-control {
+  margin-right: 10px;
+}
+.tracking-map .leaflet-bottom .leaflet-control {
+  margin-bottom: 10px;
+}

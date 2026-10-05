@@ -1,0 +1,154 @@
+:host {
+  display: block;
+  padding: 20px 28px 32px;
+  color: #0f172a;
+}
+
+.crumbs {
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  gap: 6px;
+}
+.crumbs .cur {
+  color: #475569;
+}
+h1 {
+  margin: 6px 0 20px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.map-card,
+.table-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.map-card {
+  position: relative;
+  isolation: isolate;
+}
+.map-card app-tracking-map {
+  display: block;
+}
+.chip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+  display: grid;
+  gap: 1px;
+}
+.chip strong {
+  font-size: 13px;
+  color: #15803d;
+}
+.chip span {
+  font-size: 12px;
+  color: #16a34a;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead tr {
+  background: #f8fafc;
+}
+th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+  white-space: nowrap;
+}
+td {
+  padding: 13px 16px;
+  border-top: 1px solid #f1f5f9;
+  color: #334155;
+  white-space: nowrap;
+}
+tbody tr {
+  cursor: pointer;
+}
+tbody tr:hover,
+tr.sel {
+  background: #f8fafc;
+}
+.mono {
+  font-family: var(--font-mono, ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace);
+  font-size: 12px;
+}
+.muted {
+  color: #64748b;
+}
+a.id {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+a.id:hover {
+  text-decoration: underline;
+}
+a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.empty {
+  text-align: center;
+  color: #64748b;
+  padding: 32px 16px;
+  white-space: normal;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill.in_transit {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.pill.delivered {
+  background: #ecfdf5;
+  color: #059669;
+}
+.pill.assigned {
+  background: #fffbeb;
+  color: #b45309;
+}
+.pill.arrived {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+.pill.failed {
+  background: #fef2f2;
+  color: #dc2626;
+}

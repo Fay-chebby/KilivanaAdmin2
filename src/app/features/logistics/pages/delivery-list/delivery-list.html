@@ -1,1 +1,63 @@
-<p>delivery-list works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <span>AgriAdmin</span><span class="sep">/</span><span class="cur">Logistics</span>
+</nav>
+<h1>Logistics &amp; Delivery</h1>
+
+<section class="map-card">
+  <app-tracking-map
+    [deliveries]="mapDeliveries()"
+    [selectedId]="selectedId()"
+    height="260px"
+    (picked)="selectedId.set($event)"
+  />
+  <div class="chip">
+    <strong>Live Tracking Map</strong>
+    <span>{{ active() }} active shipments</span>
+  </div>
+</section>
+
+<section class="table-card">
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Shipment</th>
+          <th>Order</th>
+          <th>Agent</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Status</th>
+          <th>ETA</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (d of rows(); track d.id) {
+          <tr [class.sel]="d.id === selectedId()" (click)="selectedId.set(d.id)">
+            <td>
+              <a
+                class="mono id"
+                [routerLink]="['/logistics', d.id]"
+                (click)="$event.stopPropagation()"
+                >{{ d.id }}</a
+              >
+            </td>
+            <td class="mono muted">{{ d.orderId }}</td>
+            <td>{{ d.driver.name }}</td>
+            <td>{{ d.pickupAddress }}</td>
+            <td>{{ d.deliveryAddress }}</td>
+            <td>
+              <span [class]="'pill ' + d.status">{{ statusLabel[d.status] }}</span>
+            </td>
+            <td class="mono muted">{{ etaDate(d) ? (etaDate(d) | date: 'd MMM') : '–' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="empty">
+              No shipments yet. They appear here once a driver is assigned to a confirmed order.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

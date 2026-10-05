@@ -23,6 +23,7 @@ import { INSPECTOR_ROUTES } from './features/inspectors/Inspectors.routes';
 import { FARM_ROUTES } from './features/farms-crops/farm-crops.routes';
 import { PRODUCT_ROUTES } from './features/products/Products.routes';
 import { ORDER_ROUTES } from './features/orders/Orders.routes';
+import { LOGISTICS_ROUTES } from './features/logistics/Logistics.routes';
 
 export const routes: Routes = [
   {
@@ -106,7 +107,7 @@ export const routes: Routes = [
 
       {
         path: 'logistics',
-        component: DeliveryList,
+        children: LOGISTICS_ROUTES,
       },
 
       {

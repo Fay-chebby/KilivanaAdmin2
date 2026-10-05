@@ -4,26 +4,48 @@
     <div class="grid">
       <div class="field">
         <label for="fullName">Full name <span class="req">*</span></label>
-        <input id="fullName" type="text" formControlName="fullName" placeholder="e.g. Samuel Boadu" [class.error]="invalid('fullName')" />
-        @if (invalid('fullName')) { <small class="err">Full name is required.</small> }
+        <input
+          id="fullName"
+          type="text"
+          formControlName="fullName"
+          placeholder="e.g. Samuel Boadu"
+          [class.error]="invalid('fullName')"
+        />
+        @if (invalid('fullName')) {
+          <small class="err">Full name is required.</small>
+        }
       </div>
       <div class="field">
         <label for="phone">Phone <span class="req">*</span></label>
-        <input id="phone" type="tel" formControlName="phone" placeholder="0244123456" [class.error]="invalid('phone')" />
-        @if (invalid('phone')) { <small class="err">Enter a valid phone number.</small> }
+        <input
+          id="phone"
+          type="tel"
+          formControlName="phone"
+          placeholder="0244123456"
+          [class.error]="invalid('phone')"
+        />
+        @if (invalid('phone')) {
+          <small class="err">Enter a valid phone number.</small>
+        }
       </div>
       <div class="field">
         <label for="email">Email <span class="req">*</span></label>
         <input id="email" type="email" formControlName="email" [class.error]="invalid('email')" />
-        @if (invalid('email')) { <small class="err">Enter a valid email address.</small> }
+        @if (invalid('email')) {
+          <small class="err">Enter a valid email address.</small>
+        }
       </div>
       <div class="field">
         <label for="region">Region <span class="req">*</span></label>
         <select id="region" formControlName="region" [class.error]="invalid('region')">
           <option value="" disabled>Select region</option>
-          @for (r of regions; track r) { <option [value]="r">{{ r }}</option> }
+          @for (r of regions; track r) {
+            <option [value]="r">{{ r }}</option>
+          }
         </select>
-        @if (invalid('region')) { <small class="err">Region is required.</small> }
+        @if (invalid('region')) {
+          <small class="err">Region is required.</small>
+        }
       </div>
       <div class="field full">
         <label for="address">Address</label>
@@ -34,69 +56,63 @@
 
   <section>
     <h3>Login credentials</h3>
+
     <div class="grid">
       <div class="field">
-        <label for="username">Username <span class="req">*</span></label>
-        <input id="username" type="text" formControlName="username" autocomplete="off" placeholder="e.g. samuel.boadu" [class.error]="invalid('username')" />
-        @if (invalid('username')) {
-          @if (form.controls.username.hasError('required')) { <small class="err">Username is required.</small> }
-          @else if (form.controls.username.hasError('minlength')) { <small class="err">At least 4 characters.</small> }
-          @else if (form.controls.username.hasError('pattern')) { <small class="err">Use letters, numbers, dot, dash or underscore only.</small> }
-          @else if (form.controls.username.hasError('taken')) { <small class="err">This username is already taken.</small> }
+        <label for="password">
+          {{ requirePassword() ? 'Password' : 'New password' }}
+          @if (requirePassword()) {
+            <span class="req">*</span>
+          }
+        </label>
+
+        <div class="pw">
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="new-password"
+            [placeholder]="
+              requirePassword() ? 'At least 8 characters' : 'Leave blank to keep current'
+            "
+            [class.error]="invalid('password')"
+          />
+
+          <button type="button" class="link" (click)="showPassword.set(!showPassword())">
+            {{ showPassword() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+
+        @if (invalid('password')) {
+          <small class="err"> Password must be at least 8 characters. </small>
         }
       </div>
-      <div class="field"></div>
 
       <div class="field">
-        <label for="password">{{ requirePassword() ? 'Password' : 'New password' }} @if (requirePassword()) { <span class="req">*</span> }</label>
-        <div class="pw">
-          <input id="password" [type]="showPassword() ? 'text' : 'password'" formControlName="password" autocomplete="new-password"
-            [placeholder]="requirePassword() ? 'At least 8 characters' : 'Leave blank to keep current'" [class.error]="invalid('password')" />
-          <button type="button" class="link" (click)="showPassword.set(!showPassword())">{{ showPassword() ? 'Hide' : 'Show' }}</button>
-        </div>
-        @if (invalid('password')) { <small class="err">Password must be at least 8 characters.</small> }
+        <label for="confirmPassword">
+          Confirm password
+          @if (requirePassword()) {
+            <span class="req">*</span>
+          }
+        </label>
+
+        <input
+          id="confirmPassword"
+          [type]="showPassword() ? 'text' : 'password'"
+          formControlName="confirmPassword"
+          autocomplete="new-password"
+          [class.error]="mismatch()"
+        />
+
+        @if (mismatch()) {
+          <small class="err"> Passwords do not match. </small>
+        }
       </div>
-      <div class="field">
-        <label for="confirmPassword">Confirm password @if (requirePassword()) { <span class="req">*</span> }</label>
-        <input id="confirmPassword" [type]="showPassword() ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" [class.error]="mismatch()" />
-        @if (mismatch()) { <small class="err">Passwords do not match.</small> }
-      </div>
+
       <div class="field full">
-        <button type="button" class="btn btn-sm gen" (click)="generatePassword()">Generate strong password</button>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <h3>KYC &amp; licence</h3>
-    <div class="grid">
-      <div class="field">
-        <label for="idType">ID type <span class="req">*</span></label>
-        <select id="idType" formControlName="idType">
-          @for (t of idTypes; track t) { <option [value]="t">{{ t }}</option> }
-        </select>
-      </div>
-      <div class="field">
-        <label for="idNumber">ID number <span class="req">*</span></label>
-        <input id="idNumber" type="text" formControlName="idNumber" [class.error]="invalid('idNumber')" />
-        @if (invalid('idNumber')) { <small class="err">ID number is required.</small> }
-      </div>
-      <div class="field">
-        <label for="licenceNumber">Driver's licence number <span class="req">*</span></label>
-        <input id="licenceNumber" type="text" formControlName="licenceNumber" [class.error]="invalid('licenceNumber')" />
-        @if (invalid('licenceNumber')) { <small class="err">Licence number is required.</small> }
-      </div>
-      <div class="field">
-        <label for="licenceExpiry">Licence expiry date <span class="req">*</span></label>
-        <input id="licenceExpiry" type="date" formControlName="licenceExpiry" [class.error]="invalid('licenceExpiry')" />
-        @if (invalid('licenceExpiry')) { <small class="err">Licence expiry date is required.</small> }
-      </div>
-      <div class="field">
-        <label for="kycStatus">KYC status</label>
-        <select id="kycStatus" formControlName="kycStatus">
-          <option value="pending">Pending verification</option>
-          <option value="verified">Verified (documents checked at office)</option>
-        </select>
+        <button type="button" class="btn btn-sm gen" (click)="generatePassword()">
+          Generate strong password
+        </button>
       </div>
     </div>
   </section>
@@ -107,25 +123,49 @@
       <div class="field">
         <label for="vehicleType">Vehicle type <span class="req">*</span></label>
         <select id="vehicleType" formControlName="vehicleType">
-          @for (t of vehicleTypes; track t) { <option [value]="t">{{ t }}</option> }
+          @for (t of vehicleTypes; track t) {
+            <option [value]="t">{{ t }}</option>
+          }
         </select>
       </div>
       <div class="field">
         <label for="vehicleCapacity">Capacity <span class="req">*</span></label>
-        <input id="vehicleCapacity" type="text" formControlName="vehicleCapacity" placeholder="e.g. 5T or 200kg" [class.error]="invalid('vehicleCapacity')" />
-        @if (invalid('vehicleCapacity')) { <small class="err">Capacity is required.</small> }
+        <input
+          id="vehicleCapacity"
+          type="text"
+          formControlName="vehicleCapacity"
+          placeholder="e.g. 5T or 200kg"
+          [class.error]="invalid('vehicleCapacity')"
+        />
+        @if (invalid('vehicleCapacity')) {
+          <small class="err">Capacity is required.</small>
+        }
       </div>
       <div class="field">
         <label for="plateNumber">Plate number <span class="req">*</span></label>
-        <input id="plateNumber" type="text" formControlName="plateNumber" placeholder="GR-1234-22" [class.error]="invalid('plateNumber')" />
+        <input
+          id="plateNumber"
+          type="text"
+          formControlName="plateNumber"
+          placeholder="GR-1234-22"
+          [class.error]="invalid('plateNumber')"
+        />
         @if (invalid('plateNumber')) {
-          @if (form.controls.plateNumber.hasError('required')) { <small class="err">Plate number is required.</small> }
-          @else if (form.controls.plateNumber.hasError('taken')) { <small class="err">This plate is already registered to another driver.</small> }
+          @if (form.controls.plateNumber.hasError('required')) {
+            <small class="err">Plate number is required.</small>
+          } @else if (form.controls.plateNumber.hasError('taken')) {
+            <small class="err">This plate is already registered to another driver.</small>
+          }
         }
       </div>
       <div class="field">
         <label for="vehicleMake">Make / model</label>
-        <input id="vehicleMake" type="text" formControlName="vehicleMake" placeholder="e.g. Toyota Hiace" />
+        <input
+          id="vehicleMake"
+          type="text"
+          formControlName="vehicleMake"
+          placeholder="e.g. Toyota Hiace"
+        />
       </div>
     </div>
   </section>
