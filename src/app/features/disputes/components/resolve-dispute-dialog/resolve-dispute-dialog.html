@@ -1,0 +1,84 @@
+<div class="backdrop" (click)="cancelled.emit()">
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="rd-title"
+    (click)="$event.stopPropagation()"
+  >
+    <h3 id="rd-title">Resolve {{ dispute().code }}</h3>
+    <p>
+      {{ dispute().orderCode }} · {{ dispute().amountKes | kes }} is on hold. Choose how to settle
+      it.
+    </p>
+
+    <div class="opts" role="radiogroup" aria-label="Outcome">
+      @for (o of options(); track o.id) {
+        <label class="opt" [class.on]="outcome() === o.id">
+          <input
+            type="radio"
+            name="outcome"
+            [checked]="outcome() === o.id"
+            (change)="outcome.set(o.id)"
+          />
+          <span
+            ><strong>{{ o.title }}</strong
+            ><small>{{ o.sub }}</small></span
+          >
+        </label>
+      }
+    </div>
+
+    @if (outcome() === 'partial_refund') {
+      <div class="field">
+        <label for="pr">Amount to refund the buyer (KSh)</label>
+        <input
+          id="pr"
+          type="number"
+          min="1"
+          [max]="dispute().amountKes - 1"
+          [value]="partial() || ''"
+          (input)="partial.set(+$any($event.target).value)"
+          [class.err]="touched() && !partialOk()"
+        />
+        @if (touched() && !partialOk()) {
+          <small>Enter more than 0 and less than {{ dispute().amountKes | kes }}.</small>
+        }
+      </div>
+    }
+
+    <div class="split" aria-live="polite">
+      <div>
+        <small>Buyer gets back</small><strong>{{ refund() | kes }}</strong>
+      </div>
+      <div>
+        <small>Farmer is paid</small><strong>{{ farmerGets() | kes }}</strong
+        ><em>after the 3% platform fee</em>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="rn">Resolution note</label>
+      <textarea
+        id="rn"
+        rows="3"
+        placeholder="Explain the decision. Both parties can see the outcome."
+        [value]="note()"
+        (input)="note.set($any($event.target).value)"
+        [class.err]="touched() && !noteOk()"
+      ></textarea>
+      @if (touched() && !noteOk()) {
+        <small>Write at least 10 characters.</small>
+      }
+    </div>
+
+    <p class="warn">
+      This updates {{ dispute().orderCode }} and moves the money. It can't be undone from here.
+    </p>
+
+    <div class="actions">
+      <button type="button" class="btn ghost" (click)="cancelled.emit()">Back</button>
+      <button type="button" class="btn" (click)="submit()">Resolve dispute</button>
+    </div>
+  </div>
+</div>

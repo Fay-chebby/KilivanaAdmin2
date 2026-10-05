@@ -528,7 +528,7 @@ export class OrderService {
     );
   }
 
-  resolveDispute(id: string, favour: 'buyer' | 'farmer', note: string) {
+  resolveDispute(id: string, favour: 'buyer' | 'farmer', note: string, refundAmount: number = 0) {
     const o = this.getById(id)!;
     if (favour === 'buyer') {
       this.apply(

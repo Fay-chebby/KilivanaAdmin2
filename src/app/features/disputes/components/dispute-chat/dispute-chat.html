@@ -1,0 +1,55 @@
+<div class="list" #list tabindex="0" aria-label="Dispute notes and messages">
+  @for (n of notes(); track n.id) {
+    @if (n.from === 'system') {
+      <p class="sys">
+        {{ n.text }} <time>{{ ago(n.at) }}</time>
+      </p>
+    } @else {
+      <div class="msg" [attr.data-from]="n.from" [class.internal]="n.internal">
+        <span class="who">
+          {{
+            n.from === 'admin'
+              ? n.internal
+                ? 'Internal note'
+                : 'You to ' + n.to
+              : n.from === 'buyer'
+                ? 'Buyer'
+                : 'Farmer'
+          }}
+          <time>{{ ago(n.at) }}</time>
+        </span>
+        <span class="bubble">{{ n.text }}</span>
+      </div>
+    }
+  } @empty {
+    <p class="none">No admin notes yet</p>
+  }
+</div>
+
+@if (!locked()) {
+  <div class="modes" role="radiogroup" aria-label="Who is this for?">
+    @for (m of modes; track m.id) {
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="mode() === m.id"
+        [class.on]="mode() === m.id"
+        (click)="mode.set(m.id)"
+      >
+        {{ m.label }}
+      </button>
+    }
+  </div>
+  <form class="composer" (submit)="$event.preventDefault(); send()">
+    <input
+      type="text"
+      [placeholder]="
+        mode() === 'internal' ? 'Add a note…' : 'Write a message to the ' + mode() + '…'
+      "
+      aria-label="Message"
+      [value]="text()"
+      (input)="text.set($any($event.target).value)"
+    />
+    <button type="submit" class="post" [disabled]="!text().trim()">Post</button>
+  </form>
+}

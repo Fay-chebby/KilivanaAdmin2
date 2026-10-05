@@ -1,0 +1,142 @@
+$green: #007a33;
+$muted: #6b766f;
+:host {
+  display: block;
+}
+.list {
+  max-height: 230px;
+  overflow-y: auto;
+  background: #f6f8f7;
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  &:focus-visible {
+    outline: 2px solid $green;
+  }
+}
+.none {
+  margin: 6px 0;
+  text-align: center;
+  font-size: 12px;
+  font-style: italic;
+  color: $muted;
+}
+.sys {
+  margin: 0;
+  text-align: center;
+  font-size: 11.5px;
+  color: $muted;
+  time {
+    margin-left: 6px;
+    color: #98a29c;
+  }
+}
+.msg {
+  display: grid;
+  gap: 3px;
+  max-width: 88%;
+  .who {
+    font-size: 11px;
+    color: $muted;
+    time {
+      margin-left: 6px;
+      color: #98a29c;
+    }
+  }
+  .bubble {
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    background: #fff;
+    border: 1px solid #e6ebe8;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  &[data-from='buyer'] .bubble {
+    border-top-left-radius: 4px;
+  }
+  &[data-from='farmer'] .bubble {
+    border-top-left-radius: 4px;
+    background: #f1f6ff;
+    border-color: #dbe6fb;
+  }
+  &[data-from='admin'] {
+    justify-self: end;
+    .who {
+      text-align: right;
+    }
+    .bubble {
+      background: #e6f7ed;
+      border-color: #c9ead5;
+      border-top-right-radius: 4px;
+    }
+    &.internal .bubble {
+      background: #fff8e1;
+      border-color: #f3e2a6;
+      border-style: dashed;
+    }
+  }
+}
+.modes {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 8px;
+  flex-wrap: wrap;
+  button {
+    border: 1px solid #d7ddd9;
+    background: #fff;
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: $muted;
+    cursor: pointer;
+    &.on {
+      background: $green;
+      border-color: $green;
+      color: #fff;
+    }
+    &:focus-visible {
+      outline: 2px solid $green;
+      outline-offset: 2px;
+    }
+  }
+}
+.composer {
+  display: flex;
+  gap: 8px;
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #d7ddd9;
+    border-radius: 9px;
+    padding: 9px 12px;
+    font: inherit;
+    font-size: 12.5px;
+    &:focus {
+      outline: 2px solid $green;
+      outline-offset: 1px;
+      border-color: transparent;
+    }
+  }
+  .post {
+    border: 0;
+    border-radius: 9px;
+    padding: 9px 16px;
+    background: $green;
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover {
+      background: #00692b;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
