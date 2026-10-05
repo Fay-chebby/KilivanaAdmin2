@@ -1,1 +1,55 @@
-<p>approval-actions works!</p>
+@if (mode() === 'reject') {
+  <div class="reject">
+    <label for="reject-reason">Reason for rejection</label>
+    <textarea
+      id="reject-reason"
+      rows="3"
+      maxlength="300"
+      [ngModel]="reason()"
+      (ngModelChange)="reason.set($event)"
+      placeholder="Tell the applicant what to fix, e.g. the National ID photo is unreadable."
+    ></textarea>
+    <div class="row">
+      <button type="button" class="btn ghost" (click)="cancel()">Cancel</button>
+      <button type="button" class="btn red" [disabled]="tooShort()" (click)="confirmReject()">
+        Confirm rejection
+      </button>
+    </div>
+  </div>
+} @else {
+  <div class="row">
+    <button type="button" class="btn green" [disabled]="!!blockedReason()" (click)="approve.emit()">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+        <path
+          d="M8 12.5l3 3 5-6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      Approve
+    </button>
+    <button type="button" class="btn red" (click)="startReject()">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+        <path
+          d="M9 9l6 6M15 9l-6 6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+      Reject
+    </button>
+  </div>
+  @if (blockedReason()) {
+    <p class="note">{{ blockedReason() }}</p>
+  }
+}
+@if (error()) {
+  <p class="err" role="alert">{{ error() }}</p>
+}
