@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
 import { Icon } from '../../../../shared/components/icon/icon';
 import { AuthService } from '../../services/auth.service';
 
@@ -46,12 +47,22 @@ export class Login {
       error: (err) => {
         this.loading.set(false);
 
-        if (err.status === 401) {
-          this.errorMessage.set('Invalid email or password.');
-        } else if (err.status === 0) {
+        console.error('Login error:', err);
+
+        if (err.status === 0) {
           this.errorMessage.set(
-            'Unable to connect to the server. Please check that the backend is running.',
+            'Unable to reach the login server. This may be a network or CORS issue.',
           );
+        } else if (err.status === 400) {
+          this.errorMessage.set(err.error?.message || 'Invalid login request.');
+        } else if (err.status === 401) {
+          this.errorMessage.set('Invalid email or password.');
+        } else if (err.status === 403) {
+          this.errorMessage.set('Login is not allowed. Please contact the administrator.');
+        } else if (err.status === 404) {
+          this.errorMessage.set('Login endpoint was not found on the server.');
+        } else if (err.status >= 500) {
+          this.errorMessage.set('The server encountered an error. Please try again later.');
         } else {
           this.errorMessage.set(err.error?.message || 'Login failed. Please try again.');
         }

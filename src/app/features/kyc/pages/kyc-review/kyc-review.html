@@ -1,1 +1,80 @@
-<p>kyc-review works!</p>
+@if (app(); as a) {
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <span>AgriAdmin</span><span class="sep">/</span><a routerLink="/kyc">Verification</a
+    ><span class="sep">/</span><span class="cur">{{ a.id }}</span>
+  </nav>
+  <header class="head">
+    <div>
+      <h1>
+        {{ a.name }} <span [class]="'tag ' + a.type">{{ typeLabel[a.type] }}</span>
+      </h1>
+      <p class="muted">
+        {{ a.id }} · <span [class]="'status ' + a.status">{{ statusLabel[a.status] }}</span>
+      </p>
+    </div>
+    <a routerLink="/kyc" class="back">Back to verification</a>
+  </header>
+
+  <div class="cols">
+    <section class="card">
+      <h2>Applicant</h2>
+      <dl>
+        <dt>Email</dt>
+        <dd>{{ a.email }}</dd>
+        <dt>Phone</dt>
+        <dd>{{ a.phone }}</dd>
+        <dt>County</dt>
+        <dd>{{ a.county }}</dd>
+        <dt>Priority</dt>
+        <dd class="cap">{{ a.priority }}</dd>
+        <dt>Submitted</dt>
+        <dd>{{ a.submittedAt | date: 'd MMM y' }}</dd>
+      </dl>
+
+      <h2 class="gap">Submitted documents ({{ a.documents.length }})</h2>
+      <ul class="docs">
+        @for (d of a.documents; track d.id) {
+          <li [class.active]="d.id === activeDocId()">
+            <span
+              >{{ d.name }}
+              @if (d.viewed) {
+                <em class="seen" title="Opened">&#10003;</em>
+              }
+            </span>
+            <button type="button" class="view" (click)="viewDoc(d.id)">View</button>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Document preview</h2>
+      <app-document-viewer [doc]="activeDoc()" height="300px" />
+
+      <div class="decide">
+        @if (open()) {
+          <app-approval-actions
+            [blockedReason]="blockedReason()"
+            [error]="error()"
+            [(mode)]="mode"
+            (approve)="approve()"
+            (reject)="reject($event)"
+          />
+        } @else if (a.decision; as dec) {
+          <p class="decision" [class.bad]="dec.status === 'rejected'">
+            {{ dec.status === 'approved' ? 'Approved' : 'Rejected' }} on
+            {{ dec.at | date: 'd MMM y, h:mm a' }}.
+            @if (dec.reason) {
+              <br />Reason: {{ dec.reason }}
+            }
+          </p>
+        }
+      </div>
+    </section>
+  </div>
+} @else {
+  <section class="card missing">
+    <h1>Application not found</h1>
+    <p>No application has the id {{ id }}. <a routerLink="/kyc">Back to verification</a></p>
+  </section>
+}

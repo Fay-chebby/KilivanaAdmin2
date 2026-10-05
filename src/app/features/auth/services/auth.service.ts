@@ -1,13 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { environment } from '../../../../environments/environment.development';
 
 import { ApiResponse, AuthData, AuthUser, LoginRequest } from '../models/auth.model';
 
 const STORAGE_KEY = 'kilivana_admin_session';
 
-const API_BASE_URL = environment.apiUrl;
+const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/swagger-ui/api';
 
 interface StoredSession {
   accessToken: string;
