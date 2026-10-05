@@ -1,13 +1,24 @@
 <div class="page">
   <div class="breadcrumb">
-    <a routerLink="/dashboard">AgriAdmin</a><span>/</span
-    ><a routerLink="/drivers">Delivery Agents</a><span>/</span>Add
+    <a routerLink="/dashboard">AgriAdmin</a>
+    <span>/</span>
+    <a routerLink="/drivers">Delivery Agents</a>
+    <span>/</span>
+    Add
   </div>
+
   <div class="page-head">
     <div>
       <h1>Register Delivery Agent</h1>
       <p>Enter the driver's details, KYC documents and vehicle as provided at the office.</p>
     </div>
   </div>
+
+  @if (errorMessage()) {
+    <div class="error-message">
+      {{ errorMessage() }}
+    </div>
+  }
+
   <app-driver-form submitLabel="Register Driver" (saved)="save($event)" (cancelled)="cancel()" />
 </div>

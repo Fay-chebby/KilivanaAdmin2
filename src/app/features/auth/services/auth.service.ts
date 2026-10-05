@@ -6,7 +6,7 @@ import { ApiResponse, AuthData, AuthUser, LoginRequest } from '../models/auth.mo
 
 const STORAGE_KEY = 'kilivana_admin_session';
 
-const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/swagger-ui/api';
+const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
 interface StoredSession {
   accessToken: string;

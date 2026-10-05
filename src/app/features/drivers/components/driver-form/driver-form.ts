@@ -1,5 +1,4 @@
 import { Component, effect, inject, input, output, signal } from '@angular/core';
-
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import {
@@ -61,11 +60,6 @@ export class DriverForm {
       // Login credentials
       // -----------------------------------------
 
-      username: [
-        '',
-        [Validators.required, Validators.minLength(4), Validators.pattern(/^[a-zA-Z0-9._-]+$/)],
-      ],
-
       password: [''],
 
       confirmPassword: [''],
@@ -101,7 +95,6 @@ export class DriverForm {
       validators: [
         (group) => {
           const password = group.get('password')?.value;
-
           const confirmPassword = group.get('confirmPassword')?.value;
 
           return password !== confirmPassword ? { mismatch: true } : null;
@@ -127,8 +120,6 @@ export class DriverForm {
         email: d.email,
         region: d.region,
         address: d.address,
-
-        username: d.username ?? '',
 
         idType: d.idType,
         idNumber: d.idNumber,
@@ -205,13 +196,48 @@ export class DriverForm {
    * Submit the form.
    */
   submit(): void {
+    console.log('REGISTER BUTTON CLICKED');
+
     if (this.form.invalid) {
+      console.log('FORM IS INVALID');
+      console.log('Form errors:', this.form.errors);
+      console.log('Form values:', this.form.getRawValue());
+
       this.form.markAllAsTouched();
       return;
     }
 
-    const { confirmPassword: _confirmPassword, ...value } = this.form.getRawValue();
+    console.log('FORM IS VALID');
+
+    const formValue = this.form.getRawValue();
+
+    const value: DriverFormValue = {
+      fullName: formValue.fullName,
+      phone: formValue.phone,
+      email: formValue.email,
+      region: formValue.region,
+      address: formValue.address,
+      password: formValue.password,
+      idType: formValue.idType,
+      idNumber: formValue.idNumber,
+      licenceNumber: formValue.licenceNumber,
+      licenceExpiry: formValue.licenceExpiry,
+      kycStatus: formValue.kycStatus,
+      vehicleType: formValue.vehicleType,
+      vehicleCapacity: formValue.vehicleCapacity,
+      plateNumber: formValue.plateNumber,
+      vehicleMake: formValue.vehicleMake,
+    };
+
+    console.log('DRIVER DATA:', value);
 
     this.saved.emit(value);
+  }
+
+  /**
+   * Cancel the form.
+   */
+  cancel(): void {
+    this.cancelled.emit();
   }
 }

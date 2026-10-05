@@ -116,6 +116,81 @@
       </div>
     </div>
   </section>
+  <section>
+    <h3>KYC & Licence details</h3>
+
+    <div class="grid">
+      <div class="field">
+        <label for="idType"> ID type <span class="req">*</span> </label>
+
+        <select id="idType" formControlName="idType" [class.error]="invalid('idType')">
+          @for (type of idTypes; track type) {
+            <option [value]="type">{{ type }}</option>
+          }
+        </select>
+
+        @if (invalid('idType')) {
+          <small class="err">ID type is required.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="idNumber"> ID number <span class="req">*</span> </label>
+
+        <input
+          id="idNumber"
+          type="text"
+          formControlName="idNumber"
+          placeholder="Enter ID number"
+          [class.error]="invalid('idNumber')"
+        />
+
+        @if (invalid('idNumber')) {
+          <small class="err">ID number is required.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="licenceNumber"> Licence number <span class="req">*</span> </label>
+
+        <input
+          id="licenceNumber"
+          type="text"
+          formControlName="licenceNumber"
+          placeholder="Enter licence number"
+          [class.error]="invalid('licenceNumber')"
+        />
+
+        @if (invalid('licenceNumber')) {
+          <small class="err">Licence number is required.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="licenceExpiry"> Licence expiry <span class="req">*</span> </label>
+
+        <input
+          id="licenceExpiry"
+          type="date"
+          formControlName="licenceExpiry"
+          [class.error]="invalid('licenceExpiry')"
+        />
+
+        @if (invalid('licenceExpiry')) {
+          <small class="err">Licence expiry date is required.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="kycStatus"> KYC status </label>
+
+        <select id="kycStatus" formControlName="kycStatus">
+          <option value="pending">Pending</option>
+          <option value="verified">Verified</option>
+        </select>
+      </div>
+    </div>
+  </section>
 
   <section>
     <h3>Vehicle</h3>
@@ -147,7 +222,7 @@
           id="plateNumber"
           type="text"
           formControlName="plateNumber"
-          placeholder="GR-1234-22"
+          placeholder="kca234"
           [class.error]="invalid('plateNumber')"
         />
         @if (invalid('plateNumber')) {

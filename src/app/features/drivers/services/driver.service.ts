@@ -4,7 +4,7 @@ import { Observable, tap } from 'rxjs';
 
 import { Driver, DriverFormValue } from '../models/driver.model';
 
-const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/swagger-ui/api/v1';
+const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -98,31 +98,30 @@ export class DriverService {
   /**
    * Register a new driver.
    */
+
   create(value: DriverFormValue): Observable<ApiResponse<DriverApiResponse>> {
     const request: RegisterDriverRequest = {
       fullName: value.fullName.trim(),
-      username: value.username.trim(),
+
+      // Backend still requires username.
+      // We use the driver's email as the username.
+      username: value.email.trim().toLowerCase().split('@')[0],
+
       password: value.password,
 
       phone: value.phone.trim(),
       email: value.email.trim(),
-
       region: value.region,
       address: value.address.trim(),
-
       idType: value.idType,
       idNumber: value.idNumber.trim(),
-
       licenceNumber: value.licenceNumber.trim(),
       licenceExpiry: value.licenceExpiry,
-
       kycStatus: value.kycStatus.toUpperCase(),
-
       vehicleType: value.vehicleType.toUpperCase(),
       vehicleCapacity: value.vehicleCapacity.trim(),
       plateNumber: value.plateNumber.trim().toUpperCase(),
       vehicleMake: value.vehicleMake.trim(),
-
       availabilityStatus: 'AVAILABLE',
     };
 
@@ -130,8 +129,10 @@ export class DriverService {
       .post<ApiResponse<DriverApiResponse>>(`${API_BASE_URL}/admin/drivers`, request)
       .pipe(
         tap((response) => {
+          // Convert backend driver to frontend Driver model
           const driver = this.fromApi(response.data);
 
+          // Immediately add the new driver to the existing list
           this._drivers.update((drivers) => [driver, ...drivers]);
 
           this.flash(`${driver.fullName} registered successfully.`);
