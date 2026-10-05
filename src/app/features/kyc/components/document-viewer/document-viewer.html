@@ -1,1 +1,34 @@
-<p>document-viewer works!</p>
+<div class="viewer" [style.min-height]="height()" [class.empty]="!doc()">
+  @if (doc(); as d) {
+    @if (d.url && d.fileType === 'image') {
+      <img [src]="d.url" [alt]="d.name" />
+    } @else if (d.url) {
+      <p class="name">{{ d.name }}</p>
+      <a [href]="d.url" target="_blank" rel="noopener noreferrer">Open PDF in a new tab</a>
+    } @else {
+      <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+        <path
+          d="M7 3h7l5 5v13H7z M14 3v5h5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <p class="name">{{ d.name }}</p>
+      <p class="hint">Mock document. Set <code>url</code> on the document to show the real file.</p>
+    }
+  } @else {
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        d="M7 3h7l5 5v13H7z M14 3v5h5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <p class="name">Document viewer</p>
+    <p class="hint">Click "View" to load a document</p>
+  }
+</div>
