@@ -1,12 +1,13 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 import { ApiResponse, AuthData, AuthUser, LoginRequest } from '../models/auth.model';
 
 const STORAGE_KEY = 'kilivana_admin_session';
 
-const API_BASE_URL = 'https://kilivana-backend-a44w.onrender.com/api/v1';
+const API_BASE_URL = environment.apiUrl;
 
 interface StoredSession {
   accessToken: string;
