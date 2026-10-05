@@ -8,6 +8,7 @@ import {
   PaymentMethod,
   farmerPayout,
   subtotal,
+  PLATFORM_FEE_RATE,
 } from '../models/order.model';
 
 const now = () => new Date().toISOString().slice(0, 16);
@@ -528,8 +529,19 @@ export class OrderService {
     );
   }
 
-  resolveDispute(id: string, favour: 'buyer' | 'farmer', note: string, refundAmount: number = 0) {
+  resolveDispute(id: string, favour: 'buyer' | 'farmer', note: string, partialRefundKes = 0) {
     const o = this.getById(id)!;
+    const total = subtotal(o);
+    if (partialRefundKes > 0 && partialRefundKes < total) {
+      const keep = total - partialRefundKes;
+      const payout = keep - Math.round(keep * PLATFORM_FEE_RATE);
+      this.apply(
+        id,
+        () => ({ status: 'completed', progress: 4, payment: { ...o.payment, status: 'settled' } }),
+        `Dispute settled with a partial refund. ${kes(partialRefundKes)} refunded to the buyer and ${kes(payout)} paid to the farmer after the platform fee. ${note}`,
+      );
+      return;
+    }
     if (favour === 'buyer') {
       this.apply(
         id,

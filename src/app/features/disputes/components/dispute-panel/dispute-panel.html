@@ -2,7 +2,12 @@
 <section class="card">
   <header>
     <h2 class="code">{{ d.code }}</h2>
-    <span class="badge" [attr.data-tone]="meta[d.status].tone" [class.strong]="d.status === 'escalated'">{{ meta[d.status].label }}</span>
+    <span
+      class="badge"
+      [attr.data-tone]="meta[d.status].tone"
+      [class.strong]="d.status === 'escalated'"
+      >{{ meta[d.status].label }}</span
+    >
   </header>
 
   <div class="block">
@@ -12,53 +17,129 @@
   </div>
 
   <dl class="grid">
-    <div><dt>Buyer</dt><dd><strong>{{ d.buyer.name }}</strong><a [href]="'tel:' + d.buyer.phone">{{ d.buyer.phone }}</a></dd></div>
-    <div><dt>Farmer</dt><dd><strong>{{ d.farmer.name }}</strong><a [href]="'tel:' + d.farmer.phone">{{ d.farmer.phone }}</a></dd></div>
-    <div><dt>Order</dt><dd><a class="mono" [routerLink]="['/orders', d.orderId]">{{ d.orderCode }}</a></dd></div>
-    <div><dt>Amount at stake</dt><dd><strong class="mono">{{ d.amountKes | kes }}</strong></dd></div>
-    <div><dt>Opened</dt><dd class="mono">{{ when(d.openedAt) }}</dd></div>
-    <div><dt>SLA deadline</dt><dd class="mono sla" [attr.data-state]="sla().state">{{ when(d.slaDeadline) }}<small>{{ sla().text }}</small></dd></div>
+    <div>
+      <dt>Buyer</dt>
+      <dd>
+        <strong>{{ d.buyer.name }}</strong
+        ><a [href]="'tel:' + d.buyer.phone">{{ d.buyer.phone }}</a>
+      </dd>
+    </div>
+    <div>
+      <dt>Farmer</dt>
+      <dd>
+        <strong>{{ d.farmer.name }}</strong
+        ><a [href]="'tel:' + d.farmer.phone">{{ d.farmer.phone }}</a>
+      </dd>
+    </div>
+    <div>
+      <dt>Order</dt>
+      <dd>
+        <a class="mono" [routerLink]="['/orders', d.orderId]">{{ d.orderCode }}</a>
+      </dd>
+    </div>
+    <div>
+      <dt>Amount at stake</dt>
+      <dd>
+        <strong class="mono">{{ d.amountKes | currencyKsh }}</strong>
+      </dd>
+    </div>
+    <div>
+      <dt>Opened</dt>
+      <dd class="mono">{{ when(d.openedAt) }}</dd>
+    </div>
+    <div>
+      <dt>SLA deadline</dt>
+      <dd class="mono sla" [attr.data-state]="sla().state">
+        {{ when(d.slaDeadline) }}<small>{{ sla().text }}</small>
+      </dd>
+    </div>
   </dl>
 
   <div class="block">
-    <span class="lbl">Evidence <em>{{ d.evidence.length }}/{{ max }}</em></span>
+    <span class="lbl"
+      >Evidence <em>{{ d.evidence.length }}/{{ max }}</em></span
+    >
     <div class="thumbs">
       @for (e of d.evidence; track e.id) {
         <span class="t">
-          <button type="button" (click)="zoom.set(e)" [attr.aria-label]="'View ' + e.caption"><img [src]="e.url" [alt]="e.caption" /></button>
-          @if (d.status !== 'resolved') { <button type="button" class="x" (click)="service.removeEvidence(d.id, e.id)" [attr.aria-label]="'Remove ' + e.caption">×</button> }
+          <button type="button" (click)="zoom.set(e)" [attr.aria-label]="'View ' + e.caption">
+            <img [src]="e.url" [alt]="e.caption" />
+          </button>
+          @if (d.status !== 'resolved') {
+            <button
+              type="button"
+              class="x"
+              (click)="service.removeEvidence(d.id, e.id)"
+              [attr.aria-label]="'Remove ' + e.caption"
+            >
+              ×
+            </button>
+          }
         </span>
       }
       @if (d.status !== 'resolved' && d.evidence.length < max) {
-        <label class="add" title="Add evidence"><input type="file" accept="image/*" multiple (change)="onPick($event)" />+<span>Add</span></label>
+        <label class="add" title="Add evidence"
+          ><input type="file" accept="image/*" multiple (change)="onPick($event)" />+<span
+            >Add</span
+          ></label
+        >
       }
-      @if (!d.evidence.length && d.status === 'resolved') { <small class="none">No evidence was added.</small> }
+      @if (!d.evidence.length && d.status === 'resolved') {
+        <small class="none">No evidence was added.</small>
+      }
     </div>
-    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
   </div>
 
   <div class="block">
     <span class="lbl">Notes / Chat</span>
-    <app-dispute-chat [notes]="d.notes" [locked]="d.status === 'resolved'" (posted)="post($event)" />
+    <app-dispute-chat
+      [notes]="d.notes"
+      [locked]="d.status === 'resolved'"
+      (posted)="post($event)"
+    />
   </div>
 
   @if (d.resolution; as r) {
     <div class="result">
       <strong>{{ outcome[r.outcome] }}</strong>
       <p>{{ r.note }}</p>
-      <small>{{ r.by }} · {{ when(r.at) }}@if (r.refundKes) { · {{ r.refundKes | kes }} refunded }</small>
+      <small
+        >{{ r.by }} · {{ when(r.at) }}
+        @if (r.refundKes) {
+          · {{ r.refundKes | currencyKsh }} refunded
+        }
+      </small>
     </div>
   } @else {
     @if (showEscalate()) {
       <div class="esc">
         <label for="er">Why is this being escalated?</label>
-        <textarea id="er" rows="2" placeholder="e.g. Needs the operations manager" [value]="reason()" (input)="reason.set($any($event.target).value)"></textarea>
-        <div class="row"><button type="button" class="btn ghost sm" (click)="showEscalate.set(false)">Cancel</button><button type="button" class="btn danger sm" (click)="escalate()">Escalate</button></div>
+        <textarea
+          id="er"
+          rows="2"
+          placeholder="e.g. Needs the operations manager"
+          [value]="reason()"
+          (input)="reason.set($any($event.target).value)"
+        ></textarea>
+        <div class="row">
+          <button type="button" class="btn ghost sm" (click)="showEscalate.set(false)">
+            Cancel</button
+          ><button type="button" class="btn danger sm" (click)="escalate()">Escalate</button>
+        </div>
       </div>
     }
     <div class="secondary">
-      @if (d.status === 'open') { <button type="button" class="btn ghost" (click)="service.startReview(d.id)">Start review</button> }
-      @if (d.status !== 'escalated' && !showEscalate()) { <button type="button" class="btn ghost" (click)="showEscalate.set(true)">Escalate</button> }
+      @if (d.status === 'open') {
+        <button type="button" class="btn ghost" (click)="service.startReview(d.id)">
+          Start review
+        </button>
+      }
+      @if (d.status !== 'escalated' && !showEscalate()) {
+        <button type="button" class="btn ghost" (click)="showEscalate.set(true)">Escalate</button>
+      }
     </div>
     <button type="button" class="resolve" (click)="resolveClick.emit()">Resolve</button>
   }
@@ -66,7 +147,10 @@
 
 @if (zoom(); as z) {
   <div class="lightbox" (click)="zoom.set(null)">
-    <figure (click)="$event.stopPropagation()"><img [src]="z.url" [alt]="z.caption" /><figcaption>{{ z.caption }} · added by the {{ z.by }}</figcaption></figure>
+    <figure (click)="$event.stopPropagation()">
+      <img [src]="z.url" [alt]="z.caption" />
+      <figcaption>{{ z.caption }} · added by the {{ z.by }}</figcaption>
+    </figure>
     <button type="button" aria-label="Close" (click)="zoom.set(null)">×</button>
   </div>
 }

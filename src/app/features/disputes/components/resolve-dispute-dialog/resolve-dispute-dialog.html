@@ -8,8 +8,8 @@
   >
     <h3 id="rd-title">Resolve {{ dispute().code }}</h3>
     <p>
-      {{ dispute().orderCode }} · {{ dispute().amountKes | kes }} is on hold. Choose how to settle
-      it.
+      {{ dispute().orderCode }} · {{ dispute().amountKes | currencyKsh }} is on hold. Choose how to
+      settle it.
     </p>
 
     <div class="opts" role="radiogroup" aria-label="Outcome">
@@ -42,17 +42,17 @@
           [class.err]="touched() && !partialOk()"
         />
         @if (touched() && !partialOk()) {
-          <small>Enter more than 0 and less than {{ dispute().amountKes | kes }}.</small>
+          <small>Enter more than 0 and less than {{ dispute().amountKes | currencyKsh }}.</small>
         }
       </div>
     }
 
     <div class="split" aria-live="polite">
       <div>
-        <small>Buyer gets back</small><strong>{{ refund() | kes }}</strong>
+        <small>Buyer gets back</small><strong>{{ refund() | currencyKsh }}</strong>
       </div>
       <div>
-        <small>Farmer is paid</small><strong>{{ farmerGets() | kes }}</strong
+        <small>Farmer is paid</small><strong>{{ farmerGets() | currencyKsh }}</strong
         ><em>after the 3% platform fee</em>
       </div>
     </div>
