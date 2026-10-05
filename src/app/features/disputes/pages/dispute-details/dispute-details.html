@@ -1,1 +1,21 @@
-<p>dispute-details works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a routerLink="/">AgriAdmin</a> / <a routerLink="/disputes">Disputes</a> /
+  <span>{{ dispute()?.code ?? id }}</span>
+</nav>
+<a class="back" routerLink="/disputes">← Back to disputes</a>
+
+@if (dispute(); as d) {
+  <div class="wrap"><app-dispute-panel [dispute]="d" (resolveClick)="resolving.set(true)" /></div>
+  @if (resolving()) {
+    <app-resolve-dispute-dialog
+      [dispute]="d"
+      (resolved)="resolve($event)"
+      (cancelled)="resolving.set(false)"
+    />
+  }
+} @else {
+  <p class="empty">
+    Dispute not found. Disputes are created when an order is marked as disputed.
+    <a routerLink="/disputes">Back to disputes</a>
+  </p>
+}
