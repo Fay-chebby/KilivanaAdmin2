@@ -1,1 +1,167 @@
-<p>dispute-list works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a routerLink="/">AgriAdmin</a> / <span>Disputes</span>
+</nav>
+<div class="head">
+  <h1>Disputes &amp; Support</h1>
+  <div class="pills">
+    @if (stats().overdue) {
+      <span class="pill amber">{{ stats().overdue }} past deadline</span>
+    }
+    @if (stats().escalated) {
+      <button type="button" class="pill red" (click)="tab.set('escalated')">
+        {{ stats().escalated }} escalated
+      </button>
+    }
+  </div>
+</div>
+
+<div class="stats">
+  <app-stat-card
+    variant="mini"
+    label="Open disputes"
+    [value]="'' + stats().open"
+    icon="alert"
+    tone="red"
+  />
+  <app-stat-card
+    variant="mini"
+    label="In review"
+    [value]="'' + stats().inReview"
+    icon="clock"
+    tone="amber"
+  />
+  <app-stat-card
+    variant="mini"
+    label="Escalated"
+    [value]="'' + stats().escalated"
+    icon="alert"
+    tone="red"
+  />
+  <app-stat-card
+    variant="mini"
+    label="Resolved"
+    [value]="'' + stats().resolved"
+    icon="check"
+    tone="green"
+  />
+</div>
+
+<div class="layout">
+  <section class="left">
+    <div class="bar">
+      <div class="tabs" role="tablist">
+        @for (t of tabs(); track t.id) {
+          <button
+            type="button"
+            role="tab"
+            [class.on]="tab() === t.id"
+            [attr.aria-selected]="tab() === t.id"
+            (click)="tab.set(t.id)"
+          >
+            {{ t.label }} <span>{{ t.count }}</span>
+          </button>
+        }
+      </div>
+      <input
+        type="search"
+        placeholder="Search dispute, order, buyer…"
+        aria-label="Search disputes"
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+      />
+    </div>
+
+    <div class="card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Dispute ID</th>
+            <th>Order</th>
+            <th>Buyer</th>
+            <th>Farmer</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>SLA</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of rows(); track d.id) {
+            <tr
+              [class.sel]="selected()?.id === d.id"
+              tabindex="0"
+              (click)="select(d.id)"
+              (keydown.enter)="select(d.id)"
+            >
+              <td>
+                <span class="id">{{ d.code }}</span>
+              </td>
+              <td class="mono">{{ d.orderCode }}</td>
+              <td>{{ d.buyer.name }}</td>
+              <td>{{ d.farmer.name }}</td>
+              <td class="mono">
+                <strong>{{ d.amountKes | kes }}</strong>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  [attr.data-tone]="meta[d.status].tone"
+                  [class.strong]="d.status === 'escalated'"
+                  >{{ meta[d.status].label }}</span
+                >
+              </td>
+              <td class="mono sla" [attr.data-state]="sla(d).state">
+                {{ d.slaDeadline.slice(0, 10) }}<small>{{ sla(d).text }}</small>
+              </td>
+              <td class="r">
+                @if (d.status !== 'resolved') {
+                  <button
+                    type="button"
+                    class="rbtn"
+                    (click)="select(d.id); resolving.set(d); $event.stopPropagation()"
+                  >
+                    Resolve
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="rbtn ghost"
+                    (click)="select(d.id); $event.stopPropagation()"
+                  >
+                    View
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty">
+                No disputes here. Disputes appear when an order is marked as disputed.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="right">
+    @if (selected(); as d) {
+      <app-dispute-panel [dispute]="d" (resolveClick)="resolving.set(d)" />
+      <button type="button" class="full" (click)="open(d.id)">Open as a full page</button>
+    } @else {
+      <div class="card none">
+        <strong>Select a dispute</strong>
+        <p>Click a row to see the details, evidence and messages.</p>
+      </div>
+    }
+  </aside>
+</div>
+
+@if (resolving(); as d) {
+  <app-resolve-dispute-dialog
+    [dispute]="d"
+    (resolved)="resolve($event)"
+    (cancelled)="resolving.set(null)"
+  />
+}
