@@ -27,6 +27,7 @@ import { LOGISTICS_ROUTES } from './features/logistics/Logistics.routes';
 import { DISPUTE_ROUTES } from './features/disputes/disputes.routes';
 import { KYC_ROUTES } from './features/kyc/kyc.routes';
 import { PAYMENT_ROUTES } from './features/payments/Payments.routes';
+import { NOTIFICATION_ROUTES } from './features/settings/notifications.routes';
 
 export const routes: Routes = [
   {
@@ -130,7 +131,7 @@ export const routes: Routes = [
 
       {
         path: 'settings',
-        component: GeneralSettings,
+        children: NOTIFICATION_ROUTES,
       },
 
       {

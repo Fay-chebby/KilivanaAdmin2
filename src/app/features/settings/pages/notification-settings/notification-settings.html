@@ -1,1 +1,86 @@
-<p>notification-settings works!</p>
+<div class="page">
+  <div class="head">
+    <h1>Notifications &amp; Settings</h1>
+    <button class="btn-primary" (click)="save()">Save Changes</button>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Platform Fees</h2>
+      <label class="row"
+        >Transaction fee
+        <span class="input"
+          ><input [value]="transactionFee()" (input)="setFee('tx', $event)" />%</span
+        >
+      </label>
+      <label class="row"
+        >Inspection fee
+        <span class="input"
+          >KES <input [value]="inspectionFee()" (input)="setFee('insp', $event)"
+        /></span>
+      </label>
+      <div class="row">
+        Payout delay <span class="mono">{{ payoutDelay }}</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Notifications</h2>
+      @for (t of toggles(); track t.key) {
+        <div class="row">
+          {{ t.label }}
+          <button
+            class="switch"
+            [class.on]="t.on"
+            (click)="toggle(t.key)"
+            type="button"
+            role="switch"
+            [attr.aria-checked]="t.on"
+          >
+            <span></span>
+          </button>
+        </div>
+      }
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Audit Log</h2>
+    @if (error()) {
+      <div class="alert">{{ error() }} <button (click)="loadAudit(page())">Retry</button></div>
+    }
+    @if (loading()) {
+      <div class="state">Loading...</div>
+    } @else if (audit().length === 0) {
+      <div class="state">No audit entries yet.</div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Staff</th>
+            <th>Action</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of audit(); track a.id) {
+            <tr>
+              <td class="mono muted">{{ a.timestamp | date: 'yyyy-MM-dd HH:mm' }}</td>
+              <td class="strong">{{ a.staff }}</td>
+              <td>{{ a.action }}</td>
+              <td class="mono">{{ a.target }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="pager">
+        <button (click)="loadAudit(page() - 1)" [disabled]="page() === 0">Previous</button>
+        <span>Page {{ page() + 1 }} of {{ totalPages() }}</span>
+        <button (click)="loadAudit(page() + 1)" [disabled]="page() + 1 >= totalPages()">
+          Next
+        </button>
+      </div>
+    }
+  </section>
+</div>
