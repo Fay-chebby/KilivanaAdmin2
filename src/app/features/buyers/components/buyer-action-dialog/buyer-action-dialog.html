@@ -1,20 +1,68 @@
 @if (open()) {
-  <div class="backdrop" (click)="cancelled.emit()">
-    <div class="dialog" (click)="$event.stopPropagation()">
-      <h3>{{ title() }}</h3>
-      <p>{{ message() }}</p>
-      <div class="actions">
-        <button class="btn btn--ghost" (click)="cancelled.emit()" [disabled]="loading()">
+  <div class="dialog-backdrop" (click)="cancelled.emit()">
+    <div
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="dialog__header">
+        <h2>{{ title() }}</h2>
+
+        <button
+          type="button"
+          class="dialog__close"
+          [disabled]="loading()"
+          (click)="cancelled.emit()"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="dialog__body">
+        <p>{{ message() }}</p>
+
+        @if (showReason()) {
+          <div class="form-field">
+            <label for="suspension-reason"> Reason for suspension </label>
+
+            <textarea
+              id="suspension-reason"
+              rows="4"
+              placeholder="Enter the reason for suspending this buyer..."
+              [value]="reason()"
+              [disabled]="loading()"
+              (input)="onReasonChange($event)"
+            ></textarea>
+          </div>
+        }
+      </div>
+
+      <div class="dialog__actions">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading()"
+          (click)="cancelled.emit()"
+        >
           Cancel
         </button>
+
         <button
+          type="button"
           class="btn"
           [class.btn--danger]="danger()"
           [class.btn--primary]="!danger()"
-          (click)="confirmed.emit()"
           [disabled]="loading()"
+          (click)="confirmed.emit()"
         >
-          {{ loading() ? 'Please wait...' : confirmLabel() }}
+          @if (loading()) {
+            Processing...
+          } @else {
+            {{ confirmLabel() }}
+          }
         </button>
       </div>
     </div>

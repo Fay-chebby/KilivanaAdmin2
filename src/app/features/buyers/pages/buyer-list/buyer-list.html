@@ -239,6 +239,9 @@
   [confirmLabel]="action() === 'delete' ? 'Delete' : 'Confirm'"
   [danger]="action() === 'delete' || action() === 'suspend'"
   [loading]="processing()"
+  [showReason]="action() === 'suspend'"
+  [reason]="suspensionReason()"
+  (reasonChange)="suspensionReason.set($event)"
   (confirmed)="confirm()"
   (cancelled)="closeDialog()"
 />

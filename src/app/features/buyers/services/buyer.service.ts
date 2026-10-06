@@ -38,12 +38,31 @@ export class BuyerService {
     );
   }
 
-  suspend(id: number): Observable<void> {
-    return this.setStatus(id, 'SUSPENDED');
+  suspend(userId: number, reason: string): Observable<void> {
+    return this.http
+      .put<ApiResponse<unknown>>(
+        `${this.buyersUrl}/${userId}/suspend`,
+        {},
+        {
+          headers: this.headers,
+          params: {
+            reason: reason.trim(),
+          },
+        },
+      )
+      .pipe(map(() => void 0));
   }
 
-  reactivate(id: number): Observable<void> {
-    return this.setStatus(id, 'ACTIVE');
+  reactivate(userId: number): Observable<void> {
+    return this.http
+      .put<ApiResponse<unknown>>(
+        `${this.buyersUrl}/${userId}/unsuspend`,
+        {},
+        {
+          headers: this.headers,
+        },
+      )
+      .pipe(map(() => void 0));
   }
 
   delete(id: number): Observable<void> {
