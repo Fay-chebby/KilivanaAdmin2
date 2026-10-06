@@ -30,16 +30,16 @@
           <dd>{{ farmer().phone }}</dd>
         </div>
         <div>
-          <dt>Crops</dt>
-          <dd>{{ farmer().crops.join(', ') }}</dd>
+          <dt>Username</dt>
+          <dd>{{ farmer().username }}</dd>
         </div>
         <div>
-          <dt>Farms</dt>
-          <dd>{{ farmer().farms }}</dd>
+          <dt>Region</dt>
+          <dd>{{ farmer().region }}</dd>
         </div>
         <div>
-          <dt>KYC</dt>
-          <dd>{{ kycLabel[farmer().kyc] }}</dd>
+          <dt>Joined</dt>
+          <dd>{{ farmer().joinedAt | date: 'mediumDate' }}</dd>
         </div>
       </dl>
       <a class="profile-link" [routerLink]="['/farmers', farmer().id]" (click)="cancelled.emit()"
@@ -73,10 +73,15 @@
           ></textarea>
         }
       }
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
     </div>
 
     <footer>
-      <button type="button" class="btn" (click)="cancelled.emit()">Cancel</button>
+      <button type="button" class="btn" [disabled]="busy()" (click)="cancelled.emit()">
+        Cancel
+      </button>
       <button
         type="button"
         class="btn solid"
@@ -84,7 +89,7 @@
         [disabled]="!canConfirm()"
         (click)="submit()"
       >
-        {{ cfg().confirm }}
+        {{ busy() ? 'Working…' : cfg().confirm }}
       </button>
     </footer>
   </div>

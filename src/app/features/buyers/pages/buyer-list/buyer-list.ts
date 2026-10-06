@@ -160,8 +160,16 @@ export class BuyerList implements OnInit {
       return;
     }
 
+    if (action === 'verify') {
+      this.fail('Verification is not connected to the backend yet.');
+      return;
+    }
+
     const status: BuyerStatus = action === 'suspend' ? 'suspended' : 'verified';
-    this.buyerService.updateStatus(b.id, status).subscribe({
+    const request$ =
+      action === 'suspend' ? this.buyerService.suspend(b.id) : this.buyerService.reactivate(b.id);
+
+    request$.subscribe({
       next: () => {
         this.buyers.update((list) => list.map((x) => (x.id === b.id ? { ...x, status } : x)));
         this.finish();

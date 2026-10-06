@@ -61,6 +61,7 @@ export interface Driver {
   code: string; // DA-001
   fullName: string;
   username: string;
+  profileId: number;
   phone: string;
   email: string;
   region: string;

@@ -1,37 +1,27 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { DecimalPipe, DatePipe, NgTemplateOutlet } from '@angular/common';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { map } from 'rxjs';
-import { FarmerService } from '../../services/farmer.service';
+import { EMPTY, catchError, map, switchMap, tap } from 'rxjs';
+import { FarmerService, apiError } from '../../services/farmer.service';
 import { FarmerBadge } from '../../components/farmer-badge/Farmer badge ';
-import { FarmCard } from '../../components/farm-card/farm-card';
 import { FarmerActionDialog } from '../../components/farmer-action-dialog/farmer-action-dialog';
 import {
   FarmerAction,
-  KYC_LABEL,
-  ORDER_STATUS_LABEL,
+  FarmerDetail,
   STATUS_LABEL,
   avatarColor,
   initials,
-  kycTone,
-  orderTone,
   statusTone,
 } from '../../models/farmer.model';
 
-type Tab = 'overview' | 'farms' | 'orders' | 'documents';
+type Tab = 'overview' | 'images';
+type LoadState = 'loading' | 'ready' | 'notfound' | 'error';
 
 @Component({
   selector: 'app-farmer-details',
-  imports: [
-    RouterLink,
-    DecimalPipe,
-    DatePipe,
-    NgTemplateOutlet,
-    FarmerBadge,
-    FarmCard,
-    FarmerActionDialog,
-  ],
+  imports: [RouterLink, DatePipe, FarmerBadge, FarmerActionDialog],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './farmer-details.html',
   styleUrl: './farmer-details.scss',
@@ -41,46 +31,69 @@ export class FarmerDetails {
   private readonly service = inject(FarmerService);
 
   readonly statusLabel = STATUS_LABEL;
-  readonly kycLabel = KYC_LABEL;
-  readonly orderLabel = ORDER_STATUS_LABEL;
   readonly statusTone = statusTone;
-  readonly kycTone = kycTone;
-  readonly orderTone = orderTone;
   readonly initials = initials;
   readonly avatarColor = avatarColor;
 
   readonly tabs: { id: Tab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
-    { id: 'farms', label: 'Farms' },
-    { id: 'orders', label: 'Orders' },
-    { id: 'documents', label: 'Documents' },
+    { id: 'images', label: 'Images' },
   ];
   readonly tab = signal<Tab>('overview');
-  readonly dialog = signal<FarmerAction | null>(null);
+  readonly state = signal<LoadState>('loading');
+  readonly errorMsg = signal('');
+  readonly farmer = signal<FarmerDetail | null>(null);
 
-  private readonly id = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), {
-    initialValue: '',
-  });
-  readonly farmer = computed(() => this.service.getDetail(this.id()));
+  readonly dialog = signal<FarmerAction | null>(null);
+  readonly busy = signal(false);
+  readonly actionError = signal<string | null>(null);
+
+  constructor() {
+    this.route.paramMap
+      .pipe(
+        map((p) => p.get('id') ?? ''),
+        tap(() => this.state.set('loading')),
+        switchMap((id) =>
+          this.service.getDetail(id).pipe(
+            catchError((e: HttpErrorResponse) => {
+              this.errorMsg.set(apiError(e));
+              this.state.set(e.status === 404 ? 'notfound' : 'error');
+              return EMPTY;
+            }),
+          ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((f) => {
+        this.farmer.set(f);
+        this.state.set('ready');
+      });
+  }
+
+  ask(action: FarmerAction) {
+    this.actionError.set(null);
+    this.dialog.set(action);
+  }
+  closeDialog() {
+    if (!this.busy()) this.dialog.set(null);
+  }
 
   confirm(reason: string) {
     const action = this.dialog();
     const f = this.farmer();
     if (!action || !f) return;
-    switch (action) {
-      case 'approve':
-        this.service.approve(f.id);
-        break;
-      case 'reject':
-        this.service.reject(f.id, reason);
-        break;
-      case 'suspend':
-        this.service.suspend(f.id, reason);
-        break;
-      case 'reinstate':
-        this.service.reinstate(f.id);
-        break;
-    }
-    this.dialog.set(null);
+    this.busy.set(true);
+    this.actionError.set(null);
+    this.service.applyAction(f.id, action, reason).subscribe({
+      next: (updated) => {
+        this.farmer.update((d) => (d ? { ...d, ...updated } : d));
+        this.busy.set(false);
+        this.dialog.set(null);
+      },
+      error: (e) => {
+        this.busy.set(false);
+        this.actionError.set(apiError(e));
+      },
+    });
   }
 }

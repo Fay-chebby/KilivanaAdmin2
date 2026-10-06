@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Farmer, FarmerAction, KYC_LABEL, avatarColor, initials } from '../../models/farmer.model';
+import { Farmer, FarmerAction, avatarColor, initials } from '../../models/farmer.model';
 
 const CONFIG: Record<
   FarmerAction,
@@ -39,7 +40,7 @@ const CONFIG: Record<
 
 @Component({
   selector: 'app-farmer-action-dialog',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './farmer-action-dialog.html',
   styleUrl: './farmer-action-dialog.scss',
@@ -47,13 +48,16 @@ const CONFIG: Record<
 export class FarmerActionDialog {
   readonly farmer = input.required<Farmer>();
   readonly action = input.required<FarmerAction>();
+  readonly busy = input(false);
+  readonly error = input<string | null>(null);
   readonly confirmed = output<string>();
   readonly cancelled = output<void>();
 
-  readonly kycLabel = KYC_LABEL;
   readonly reason = signal('');
   readonly cfg = computed(() => CONFIG[this.action()]);
-  readonly canConfirm = computed(() => !this.cfg().needsReason || this.reason().trim().length > 0);
+  readonly canConfirm = computed(
+    () => !this.busy() && (!this.cfg().needsReason || this.reason().trim().length > 0),
+  );
   readonly initials = computed(() => initials(this.farmer().name));
   readonly color = computed(() => avatarColor(this.farmer().name));
 

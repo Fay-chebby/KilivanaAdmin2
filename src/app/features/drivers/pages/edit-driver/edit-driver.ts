@@ -1,91 +1,138 @@
-import { Component, inject, OnInit } from '@angular/core';
-
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { DriverForm } from '../../components/driver-form/driver-form';
-
-import { Driver, DriverFormValue } from '../../models/driver.model';
-
 import { DriverService } from '../../services/driver.service';
+import { DriverFormValue, Driver } from '../../models/driver.model';
 
 @Component({
   selector: 'app-edit-driver',
-  imports: [RouterLink, DriverForm],
+  standalone: true,
+  imports: [DriverForm],
   templateUrl: './edit-driver.html',
   styleUrl: './edit-driver.scss',
 })
 export class EditDriver implements OnInit {
-  private readonly svc = inject(DriverService);
-  private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly driverService = inject(DriverService);
 
-  /**
-   * Driver ID from the URL.
-   *
-   * Angular route parameters are strings,
-   * while the backend uses Long/numeric IDs.
-   */
-  readonly id = Number(this.route.snapshot.paramMap.get('id'));
+  readonly driver = signal<Driver | null>(null);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly error = signal<string | null>(null);
 
-  /**
-   * Driver loaded from the backend.
-   *
-   * This is intentionally a normal property because
-   * the existing HTML expects `driver`, not `driver()`.
-   */
-  driver: Driver | null = null;
-
-  loading = true;
-  saving = false;
+  private driverId!: number;
 
   ngOnInit(): void {
-    this.loadDriver();
-  }
+    const id = Number(this.route.snapshot.paramMap.get('id'));
 
-  /**
-   * Load the driver from Spring Boot.
-   */
-  private loadDriver(): void {
-    if (!Number.isFinite(this.id)) {
-      this.loading = false;
+    if (!Number.isInteger(id) || id <= 0) {
+      this.error.set('Invalid driver ID.');
+      this.loading.set(false);
       return;
     }
 
-    this.svc.getById(this.id).subscribe({
-      next: (response) => {
-        this.driver = this.svc.mapApiDriver(response.data);
+    this.driverId = id;
 
-        this.loading = false;
+    this.loadDriver();
+  }
+
+  // ============================================================
+  // LOAD DRIVER
+  // ============================================================
+
+  private loadDriver(): void {
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.driverService.getById(this.driverId).subscribe({
+      next: (response) => {
+        if (!response.success || !response.data) {
+          this.error.set(response.message || 'Failed to load driver.');
+
+          this.loading.set(false);
+          return;
+        }
+
+        const driver = this.driverService.mapApiDriver(response.data);
+
+        this.driver.set(driver);
+
+        this.loading.set(false);
       },
 
       error: (error) => {
         console.error('Failed to load driver:', error);
 
-        this.loading = false;
+        this.error.set(error?.error?.message || error?.message || 'Failed to load driver.');
+
+        this.loading.set(false);
       },
     });
   }
 
-  /**
-   * Save driver changes.
-   *
-   * The backend has PUT /api/v1/admin/users/{id},
-   * but its exact request schema has not yet been
-   * provided, so we do not send a guessed request.
-   */
+  // ============================================================
+  // SAVE DRIVER
+  // ============================================================
+
   save(value: DriverFormValue): void {
-    if (!this.driver) {
+    const driver = this.driver();
+
+    if (!driver) {
+      this.error.set('Driver information is not available.');
       return;
     }
 
-    console.log('Driver update data:', value);
+    // Driver.id is mapped from backend userId
+    const userId = Number(driver.id);
 
-    console.warn('Driver update endpoint still needs its exact request schema.');
+    console.log('Updating driver with userId:', userId);
+
+    console.log('Driver:', driver);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      this.error.set('Invalid driver user ID.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+
+    this.driverService.update(userId, value).subscribe({
+      next: (response) => {
+        this.saving.set(false);
+
+        if (!response.success || !response.data) {
+          this.error.set(response.message || 'Failed to update driver.');
+          return;
+        }
+
+        /*
+         * The update endpoint returns a DRIVER PROFILE,
+         * not the complete admin driver object.
+         *
+         * Therefore we do not pass response.data
+         * through mapApiDriver().
+         */
+
+        this.router.navigate(['/drivers']);
+      },
+
+      error: (error) => {
+        console.error('Failed to update driver:', error);
+
+        this.saving.set(false);
+
+        this.error.set(error?.error?.message || error?.message || 'Failed to update driver.');
+      },
+    });
   }
 
-  /**
-   * Return to the driver list.
-   */
+  // ============================================================
+  // CANCEL
+  // ============================================================
+
   cancel(): void {
     this.router.navigate(['/drivers']);
   }

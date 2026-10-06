@@ -64,11 +64,11 @@ export class BuyerDetails implements OnInit {
         return '';
     }
   }
-
   confirm() {
     const b = this.buyer();
     const action = this.action();
     if (!b || !action) return;
+
     this.processing.set(true);
 
     if (action === 'delete') {
@@ -79,8 +79,16 @@ export class BuyerDetails implements OnInit {
       return;
     }
 
+    if (action === 'verify') {
+      this.fail('Verification is not connected to the backend yet.');
+      return;
+    }
+
     const status: BuyerStatus = action === 'suspend' ? 'suspended' : 'verified';
-    this.buyerService.updateStatus(b.id, status).subscribe({
+    const request$ =
+      action === 'suspend' ? this.buyerService.suspend(b.id) : this.buyerService.reactivate(b.id);
+
+    request$.subscribe({
       next: () => {
         this.buyer.set({ ...b, status });
         this.processing.set(false);
@@ -89,7 +97,6 @@ export class BuyerDetails implements OnInit {
       error: () => this.fail('Failed to update buyer.'),
     });
   }
-
   private fail(msg: string) {
     this.processing.set(false);
     this.action.set(null);

@@ -55,6 +55,7 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+
           "configurations": {
             "production": {
               "buildTarget": "kilivana-admin:build:production"

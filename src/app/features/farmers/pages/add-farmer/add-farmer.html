@@ -5,5 +5,13 @@
   </nav>
   <h1>Add Farmer</h1>
   <p class="sub">New farmers start as pending until you approve them.</p>
-  <app-farmer-form submitLabel="Add farmer" (submitted)="save($event)" (cancelled)="cancel()" />
+  <app-farmer-form
+    mode="create"
+    submitLabel="Add farmer"
+    [regions]="regions()"
+    [saving]="saving()"
+    [error]="error()"
+    (submitted)="save($event)"
+    (cancelled)="cancel()"
+  />
 </section>

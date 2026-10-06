@@ -1,0 +1,11 @@
+{
+  "/api": {
+    "target": "https://either-juvenile-progeny.ngrok-free.dev",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "headers": {
+      "ngrok-skip-browser-warning": "true"
+    }
+  }
+}

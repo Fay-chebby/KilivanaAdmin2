@@ -1,108 +1,101 @@
-import { Injectable } from '@angular/core';
-import { delay, Observable, of, throwError } from 'rxjs';
-import { Buyer, BuyerStatus } from '../models/buyer.model';
+import { inject, Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { map, Observable } from 'rxjs';
+import { ApiResponse, Buyer, BuyerDto, BuyerStatus, BuyerType } from '../models/buyer.model';
 
 @Injectable({ providedIn: 'root' })
 export class BuyerService {
-  private buyers: Buyer[] = [
-    {
-      id: '1',
-      code: 'B-001',
-      name: 'AgriMart Ltd',
-      email: 'procurement@agrimart.com',
-      phone: '+233 24 123 4567',
-      address: '12 Independence Ave, Accra',
-      type: 'corporate',
-      region: 'Greater Accra',
-      status: 'verified',
-      ordersCount: 142,
-      totalSpend: 284000,
-      disputesCount: 2,
-      createdAt: '2024-02-14T09:30:00Z',
-    },
-    {
-      id: '2',
-      code: 'B-002',
-      name: 'Kofi Agyeman',
-      email: 'kofi.agyeman@gmail.com',
-      phone: '+233 20 987 6543',
-      address: 'Adum, Kumasi',
-      type: 'individual',
-      region: 'Ashanti',
-      status: 'verified',
-      ordersCount: 18,
-      totalSpend: 4200,
-      disputesCount: 0,
-      createdAt: '2024-05-02T11:15:00Z',
-    },
-    {
-      id: '3',
-      code: 'B-003',
-      name: 'FreshPak Exports',
-      email: 'ops@freshpak.gh',
-      phone: '+233 30 555 0101',
-      address: 'Koforidua Industrial Area',
-      type: 'corporate',
-      region: 'Eastern',
-      status: 'pending',
-      ordersCount: 3,
-      totalSpend: 21000,
-      disputesCount: 0,
-      createdAt: '2025-01-20T14:00:00Z',
-    },
-    {
-      id: '4',
-      code: 'B-004',
-      name: 'Mercy Tetteh',
-      email: 'mercy.tetteh@mail.com',
-      phone: '+233 55 222 3344',
-      address: 'Ho Market Road',
-      type: 'individual',
-      region: 'Volta',
-      status: 'suspended',
-      ordersCount: 7,
-      totalSpend: 1800,
-      disputesCount: 3,
-      createdAt: '2024-09-08T08:45:00Z',
-    },
-    {
-      id: '5',
-      code: 'B-005',
-      name: 'Ghana Foods Co.',
-      email: 'buying@ghanafoods.com',
-      phone: '+233 24 777 8899',
-      address: 'Tema Community 1',
-      type: 'corporate',
-      region: 'Greater Accra',
-      status: 'verified',
-      ordersCount: 89,
-      totalSpend: 156000,
-      disputesCount: 1,
-      createdAt: '2024-03-30T10:00:00Z',
-    },
-  ];
+  private http = inject(HttpClient);
+
+  private api = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+
+  private buyersUrl = `${this.api}/admin/buyers`;
+  private usersUrl = `${this.api}/admin/users`;
+
+  private headers = new HttpHeaders({
+    'ngrok-skip-browser-warning': 'true',
+  });
 
   getAll(): Observable<Buyer[]> {
-    return of([...this.buyers]).pipe(delay(400));
+    return this.http
+      .get<ApiResponse<BuyerDto[]>>(this.buyersUrl, {
+        headers: this.headers,
+      })
+      .pipe(map((res) => (res.data ?? []).map((d) => this.toBuyer(d))));
   }
 
-  getById(id: string): Observable<Buyer> {
-    const buyer = this.buyers.find((b) => b.id === id);
-    return buyer
-      ? of({ ...buyer }).pipe(delay(300))
-      : throwError(() => new Error('Buyer not found'));
+  getById(id: number | string): Observable<Buyer> {
+    return this.getAll().pipe(
+      map((list) => {
+        const found = list.find((b) => String(b.id) === String(id));
+
+        if (!found) {
+          throw new Error('Buyer not found');
+        }
+
+        return found;
+      }),
+    );
   }
 
-  updateStatus(id: string, status: BuyerStatus): Observable<Buyer> {
-    const index = this.buyers.findIndex((b) => b.id === id);
-    if (index === -1) return throwError(() => new Error('Buyer not found'));
-
-    this.buyers[index] = { ...this.buyers[index], status };
-    return of({ ...this.buyers[index] }).pipe(delay(300));
+  suspend(id: number): Observable<void> {
+    return this.setStatus(id, 'SUSPENDED');
   }
 
-  delete(id: string): Observable<void> {
-    this.buyers = this.buyers.filter((b) => b.id !== id);
-    return of(void 0).pipe(delay(300));
+  reactivate(id: number): Observable<void> {
+    return this.setStatus(id, 'ACTIVE');
+  }
+
+  delete(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<unknown>>(`${this.usersUrl}/${id}`, {
+        headers: this.headers,
+      })
+      .pipe(map(() => void 0));
+  }
+
+  private setStatus(id: number, status: string): Observable<void> {
+    return this.http
+      .put<ApiResponse<unknown>>(
+        `${this.usersUrl}/${id}/status`,
+        { status },
+        {
+          headers: this.headers,
+        },
+      )
+      .pipe(map(() => void 0));
+  }
+
+  private toBuyer(d: BuyerDto): Buyer {
+    return {
+      id: d.userId,
+      profileId: d.profileId,
+      code: d.code,
+      name: d.fullName,
+      email: d.email,
+      phone: d.phone,
+      region: d.region,
+      address: d.address,
+      status: this.mapStatus(d.status),
+      type: (d.type?.toLowerCase() === 'corporate' ? 'corporate' : 'individual') as BuyerType,
+      ordersCount: d.ordersCount ?? 0,
+      totalSpend: d.totalSpend ?? 0,
+      disputesCount: d.disputesCount ?? 0,
+      createdAt: d.createdAt,
+    };
+  }
+
+  private mapStatus(s: string): BuyerStatus {
+    switch ((s ?? '').toLowerCase()) {
+      case 'suspended':
+        return 'suspended';
+
+      case 'verified':
+      case 'active':
+        return 'verified';
+
+      default:
+        return 'pending';
+    }
   }
 }

@@ -20,9 +20,14 @@ export interface ApiResponse<T> {
   } | null;
 }
 
+// ============================================================
+// ADMIN DRIVER RESPONSE
+// ============================================================
+
 interface DriverApiResponse {
   userId: number;
   profileId: number;
+
   code: string;
   fullName: string;
   username: string;
@@ -30,22 +35,82 @@ interface DriverApiResponse {
   phone: string;
   region: string;
   address: string;
+
   status: string;
   suspensionReason: string | null;
+
   idType: string;
   idNumber: string;
+
   licenseNumber: string;
   licenseExpiryDate: string;
+
   kycStatus: string;
+
   vehicleType: string;
   vehicleCapacity: string;
+  vehicleNumber: string;
   plateNumber: string;
   vehicleMake: string;
+
   activeOrderId: number | null;
   totalDeliveries: number;
   rating: number | null;
+
   createdAt: string;
 }
+
+// ============================================================
+// DRIVER PROFILE RESPONSE
+// ============================================================
+
+interface DriverProfileApiResponse {
+  id: number;
+  userId: number;
+
+  address: string;
+
+  licenseNumber: string;
+
+  vehicleType: string;
+  vehicleNumber: string;
+  vehicleDetails: string;
+
+  vehicleMake: string;
+
+  vehicleCapacityKg: number;
+  vehicleCapacity: string;
+
+  licenseExpiryDate: string;
+
+  idType: string;
+  idNumber: string;
+
+  kycStatus: string;
+  availabilityStatus: string;
+
+  suspensionReason: string | null;
+
+  createdAt: string;
+  updatedAt: string;
+
+  images: DriverProfileImage[];
+}
+
+interface DriverProfileImage {
+  id: number;
+  url: string;
+  publicId: string;
+  assetId: string;
+  sortOrder: number;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================================
+// CREATE DRIVER REQUEST
+// ============================================================
 
 interface RegisterDriverRequest {
   fullName: string;
@@ -67,10 +132,39 @@ interface RegisterDriverRequest {
   availabilityStatus: string;
 }
 
+// ============================================================
+// UPDATE DRIVER PROFILE REQUEST
+// ============================================================
+
+interface UpdateDriverProfileRequest {
+  address: string;
+  licenseNumber: string;
+  vehicleType: string;
+  vehicleNumber: string;
+  vehicleDetails: string;
+  vehicleMake: string;
+  vehicleCapacityKg: number;
+  vehicleCapacity: string;
+  licenseExpiryDate: string;
+  idType: string;
+  idNumber: string;
+  kycStatus: string;
+  availabilityStatus: string;
+  suspensionReason: string | null;
+}
+
+// ============================================================
+// NOTICE
+// ============================================================
+
 export interface Notice {
   text: string;
   type: 'success' | 'error';
 }
+
+// ============================================================
+// SERVICE
+// ============================================================
 
 @Injectable({
   providedIn: 'root',
@@ -79,11 +173,16 @@ export class DriverService {
   private readonly http = inject(HttpClient);
 
   private readonly _drivers = signal<Driver[]>([]);
+
   readonly drivers = this._drivers.asReadonly();
 
   readonly notice = signal<Notice | null>(null);
 
   private noticeTimer?: ReturnType<typeof setTimeout>;
+
+  // ============================================================
+  // LOAD DRIVERS
+  // ============================================================
 
   loadDrivers(): Observable<ApiResponse<DriverApiResponse[]>> {
     return this.http
@@ -96,6 +195,7 @@ export class DriverService {
             console.error('Failed to load drivers:', response.message);
 
             this._drivers.set([]);
+
             return;
           }
 
@@ -107,6 +207,10 @@ export class DriverService {
         }),
       );
   }
+
+  // ============================================================
+  // CREATE DRIVER
+  // ============================================================
 
   create(value: DriverFormValue): Observable<ApiResponse<DriverApiResponse>> {
     const request: RegisterDriverRequest = {
@@ -168,15 +272,107 @@ export class DriverService {
       );
   }
 
-  getById(id: number): Observable<ApiResponse<DriverApiResponse>> {
-    return this.http.get<ApiResponse<DriverApiResponse>>(`${API_BASE_URL}/admin/drivers/${id}`, {
-      headers: NGROK_HEADERS,
-    });
+  // ============================================================
+  // GET DRIVER
+  // ============================================================
+
+  getById(userId: number): Observable<ApiResponse<DriverApiResponse>> {
+    return this.http.get<ApiResponse<DriverApiResponse>>(
+      `${API_BASE_URL}/admin/drivers/${userId}`,
+      {
+        headers: NGROK_HEADERS,
+      },
+    );
   }
 
-  delete(id: number): Observable<ApiResponse<unknown>> {
+  // ============================================================
+  // UPDATE DRIVER PROFILE
+  // ============================================================
+
+  update(
+    userId: number,
+    value: DriverFormValue,
+  ): Observable<ApiResponse<DriverProfileApiResponse>> {
+    const request: UpdateDriverProfileRequest = {
+      address: value.address.trim(),
+
+      licenseNumber: value.licenceNumber.trim(),
+
+      vehicleType: value.vehicleType.toUpperCase(),
+
+      vehicleNumber: value.plateNumber.trim().toUpperCase(),
+
+      vehicleDetails: '',
+
+      vehicleMake: value.vehicleMake.trim(),
+
+      vehicleCapacityKg: this.extractCapacityKg(value.vehicleCapacity),
+
+      vehicleCapacity: value.vehicleCapacity.trim(),
+
+      licenseExpiryDate: value.licenceExpiry,
+
+      idType: value.idType,
+
+      idNumber: value.idNumber.trim(),
+
+      kycStatus: value.kycStatus.toUpperCase(),
+
+      availabilityStatus: 'AVAILABLE',
+
+      suspensionReason: null,
+    };
+
+    console.log('Updating driver userId:', userId);
+
+    console.log('Update driver request:', request);
+
     return this.http
-      .delete<ApiResponse<unknown>>(`${API_BASE_URL}/admin/drivers/${id}`, {
+      .put<ApiResponse<DriverProfileApiResponse>>(
+        `${API_BASE_URL}/profiles/drivers/${userId}`,
+        request,
+        {
+          headers: NGROK_HEADERS,
+        },
+      )
+      .pipe(
+        tap((response) => {
+          if (!response.success) {
+            this.flash(response.message || 'Failed to update driver.', 'error');
+
+            return;
+          }
+
+          this.flash('Driver updated successfully.');
+        }),
+      );
+  }
+
+  // ============================================================
+  // CAPACITY HELPER
+  // ============================================================
+
+  private extractCapacityKg(value: string): number {
+    if (!value) {
+      return 0;
+    }
+
+    const match = value.match(/[\d,.]+/);
+
+    if (!match) {
+      return 0;
+    }
+
+    return Number(match[0].replace(/,/g, '')) || 0;
+  }
+
+  // ============================================================
+  // DELETE DRIVER
+  // ============================================================
+
+  delete(userId: number): Observable<ApiResponse<unknown>> {
+    return this.http
+      .delete<ApiResponse<unknown>>(`${API_BASE_URL}/admin/drivers/${userId}`, {
         headers: NGROK_HEADERS,
       })
       .pipe(
@@ -187,9 +383,9 @@ export class DriverService {
             return;
           }
 
-          const driver = this._drivers().find((item) => item.id === id);
+          const driver = this._drivers().find((item) => item.id === userId);
 
-          this._drivers.update((drivers) => drivers.filter((item) => item.id !== id));
+          this._drivers.update((drivers) => drivers.filter((item) => item.id !== userId));
 
           if (driver) {
             this.flash(`${driver.fullName} was deleted.`);
@@ -197,12 +393,17 @@ export class DriverService {
         }),
       );
   }
-  suspend(id: number, reason: string): Observable<ApiResponse<DriverApiResponse>> {
+
+  // ============================================================
+  // SUSPEND DRIVER
+  // ============================================================
+
+  suspend(userId: number, reason: string): Observable<ApiResponse<DriverApiResponse>> {
     const params = new HttpParams().set('reason', reason.trim());
 
     return this.http
       .put<ApiResponse<DriverApiResponse>>(
-        `${API_BASE_URL}/admin/drivers/${id}/suspend`,
+        `${API_BASE_URL}/admin/drivers/${userId}/suspend`,
         {},
         {
           headers: NGROK_HEADERS,
@@ -227,10 +428,15 @@ export class DriverService {
         }),
       );
   }
-  unsuspend(id: number): Observable<ApiResponse<DriverApiResponse>> {
+
+  // ============================================================
+  // ACTIVATE / UNSUSPEND DRIVER
+  // ============================================================
+
+  unsuspend(userId: number): Observable<ApiResponse<DriverApiResponse>> {
     return this.http
       .put<ApiResponse<DriverApiResponse>>(
-        `${API_BASE_URL}/admin/drivers/${id}/unsuspend`,
+        `${API_BASE_URL}/admin/drivers/${userId}/unsuspend`,
         {},
         {
           headers: NGROK_HEADERS,
@@ -255,13 +461,23 @@ export class DriverService {
       );
   }
 
+  // ============================================================
+  // CHECK DRIVER LOCK
+  // ============================================================
+
   isLocked(driver: Driver): boolean {
     return driver.status === 'on-delivery';
   }
 
+  // ============================================================
+  // API -> FRONTEND DRIVER
+  // ============================================================
+
   private fromApi(driver: DriverApiResponse): Driver {
     return {
       id: driver.userId,
+
+      profileId: driver.profileId,
 
       code: driver.code,
 
@@ -296,7 +512,7 @@ export class DriverService {
 
         capacity: driver.vehicleCapacity,
 
-        plateNumber: driver.plateNumber,
+        plateNumber: driver.vehicleNumber || driver.plateNumber,
 
         make: driver.vehicleMake,
       },
@@ -313,6 +529,10 @@ export class DriverService {
       createdAt: driver.createdAt,
     };
   }
+
+  // ============================================================
+  // STATUS MAPPING
+  // ============================================================
 
   private mapStatus(status: string): Driver['status'] {
     switch (status?.toUpperCase()) {
@@ -336,9 +556,17 @@ export class DriverService {
     }
   }
 
+  // ============================================================
+  // KYC MAPPING
+  // ============================================================
+
   private mapKycStatus(status: string): Driver['kycStatus'] {
     return status?.toUpperCase() === 'VERIFIED' ? 'verified' : 'pending';
   }
+
+  // ============================================================
+  // VEHICLE TYPE MAPPING
+  // ============================================================
 
   private mapVehicleType(type: string): Driver['vehicle']['type'] {
     switch (type?.toUpperCase()) {
@@ -361,6 +589,10 @@ export class DriverService {
     }
   }
 
+  // ============================================================
+  // NOTIFICATION
+  // ============================================================
+
   private flash(text: string, type: Notice['type'] = 'success'): void {
     clearTimeout(this.noticeTimer);
 
@@ -369,14 +601,20 @@ export class DriverService {
       type,
     });
 
-    this.noticeTimer = setTimeout(() => {
-      this.notice.set(null);
-    }, 3500);
+    this.noticeTimer = setTimeout(() => this.notice.set(null), 3500);
   }
+
+  // ============================================================
+  // MAP API DRIVER
+  // ============================================================
 
   mapApiDriver(driver: DriverApiResponse): Driver {
     return this.fromApi(driver);
   }
+
+  // ============================================================
+  // UPDATE LOCAL DRIVER
+  // ============================================================
 
   setDriver(driver: Driver): void {
     this._drivers.update((drivers) => {

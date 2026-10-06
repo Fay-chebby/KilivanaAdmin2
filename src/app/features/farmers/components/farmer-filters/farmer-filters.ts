@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FarmerFilterValue, FarmerStatus, KENYA_COUNTIES } from '../../models/farmer.model';
+import { FarmerFilterValue, FarmerStatus } from '../../models/farmer.model';
 
 @Component({
   selector: 'app-farmer-filters',
@@ -10,7 +10,7 @@ import { FarmerFilterValue, FarmerStatus, KENYA_COUNTIES } from '../../models/fa
   styleUrl: './farmer-filters.scss',
 })
 export class FarmerFilters {
-  readonly regions = KENYA_COUNTIES;
+  readonly regions = input<string[]>([]);
   readonly statuses: { value: FarmerStatus; label: string }[] = [
     { value: 'verified', label: 'Verified' },
     { value: 'pending', label: 'Pending' },

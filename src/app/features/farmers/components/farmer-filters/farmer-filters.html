@@ -23,7 +23,7 @@
 
   <select aria-label="Filter by region" [(ngModel)]="region" (ngModelChange)="emit()">
     <option value="">All Regions</option>
-    @for (r of regions; track r) {
+    @for (r of regions(); track r) {
       <option [value]="r">{{ r }}</option>
     }
   </select>

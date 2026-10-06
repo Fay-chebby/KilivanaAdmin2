@@ -294,3 +294,42 @@ td {
     margin-top: 8px;
   }
 }
+.label.sub {
+  margin-top: 16px;
+}
+.text {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.imgs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  figure {
+    position: relative;
+    margin: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    aspect-ratio: 4/3;
+    background: #f3f4f6;
+  }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  figcaption {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: #0f7b3e;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+}

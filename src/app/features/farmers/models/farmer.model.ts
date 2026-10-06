@@ -1,23 +1,77 @@
 export type FarmerStatus = 'verified' | 'pending' | 'suspended' | 'rejected';
-export type KycStatus = 'approved' | 'pending' | 'under_review' | 'rejected';
 export type FarmerAction = 'approve' | 'reject' | 'suspend' | 'reinstate';
 export type Tone = 'green' | 'amber' | 'red' | 'blue' | 'gray';
 
-export interface Farmer {
-  id: string;
-  code: string; // e.g. F-001
+/* ---------- API shapes (from your Swagger examples) ---------- */
+export interface ApiEnvelope<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
+  error?: { code: string; details: string } | null;
+}
+
+export interface ApiUser {
+  id: number;
   name: string;
   email: string;
   phone: string;
+  username: string;
+  referenceCode: string;
   region: string;
-  crops: string[];
-  status: FarmerStatus;
-  kyc: KycStatus;
-  farms: number;
-  rating: number | null;
-  revenue: number | null;
-  joinedAt: string; // ISO date
-  statusReason?: string;
+  role: string;
+  status: string;
+  verificationStatus: string;
+  createdAt: string;
+}
+
+export interface ApiFarmerProfile {
+  id: number;
+  userId: number;
+  farmName: string;
+  location: string;
+  farmDetails: string;
+  verificationInfo: string;
+  createdAt: string;
+  updatedAt: string;
+  images: FarmerImage[];
+}
+
+export interface FarmerImage {
+  id: number;
+  url: string;
+  publicId: string;
+  assetId: string;
+  sortOrder: number;
+  isPrimary: boolean;
+}
+
+/* ---------- UI models ---------- */
+export interface Farmer {
+  id: string;
+  code: string; // referenceCode
+  name: string;
+  email: string;
+  phone: string;
+  username: string;
+  region: string;
+  status: FarmerStatus; // derived from API status + verificationStatus
+  accountStatus: string; // raw API status
+  verification: string; // raw API verificationStatus
+  joinedAt: string;
+}
+
+export interface FarmerProfile {
+  id: number;
+  farmName: string;
+  location: string;
+  farmDetails: string;
+  verificationInfo: string;
+  images: FarmerImage[];
+}
+
+export interface FarmerDetail extends Farmer {
+  profile: FarmerProfile | null;
 }
 
 export interface FarmerStats {
@@ -26,7 +80,6 @@ export interface FarmerStats {
   pending: number;
   suspended: number;
 }
-
 export interface FarmerFilterValue {
   search: string;
   region: string;
@@ -37,96 +90,50 @@ export interface FarmerFormValue {
   name: string;
   email: string;
   phone: string;
+  username: string; // create only
+  password: string; // create only
   region: string;
-  crops: string[];
-}
-
-export interface FarmerOrder {
-  id: string;
-  product: string;
-  buyer: string;
-  amount: number;
-  status: 'in_transit' | 'completed' | 'processing' | 'cancelled';
-}
-
-export interface FarmerFarm {
-  id: string;
-  name: string;
+  farmName: string;
   location: string;
-  hectares: number;
-  crops: string[];
-  status: 'active' | 'fallow';
+  farmDetails: string;
 }
 
-export interface FarmerDocument {
-  id: string;
-  name: string;
-  uploadedAt: string;
-  status: 'approved' | 'pending' | 'rejected';
-}
+/* ---------- mapping ---------- */
+const BLOCKED = new Set(['SUSPENDED', 'INACTIVE', 'BLOCKED', 'DISABLED', 'DEACTIVATED']);
 
-export interface FarmerDetail extends Farmer {
-  cropPortfolio: { name: string; active: boolean }[];
-  performance: {
-    totalOrders: number;
-    completionRate: number;
-    avgResponse: string;
-    disputes: number;
+export function toFarmer(u: ApiUser): Farmer {
+  const account = (u.status ?? '').toUpperCase();
+  const ver = (u.verificationStatus ?? '').toUpperCase();
+  const status: FarmerStatus = BLOCKED.has(account)
+    ? 'suspended'
+    : ver === 'REJECTED'
+      ? 'rejected'
+      : ver === 'VERIFIED' || ver === 'APPROVED'
+        ? 'verified'
+        : 'pending';
+  return {
+    id: String(u.id),
+    code: u.referenceCode,
+    name: u.name,
+    email: u.email,
+    phone: u.phone,
+    username: u.username,
+    region: u.region,
+    status,
+    accountStatus: u.status,
+    verification: u.verificationStatus,
+    joinedAt: u.createdAt,
   };
-  orders: FarmerOrder[];
-  farmList: FarmerFarm[];
-  documents: FarmerDocument[];
 }
 
-export const KENYA_COUNTIES = [
-  'Mombasa',
-  'Kwale',
-  'Kilifi',
-  'Tana River',
-  'Lamu',
-  'Taita-Taveta',
-  'Garissa',
-  'Wajir',
-  'Mandera',
-  'Marsabit',
-  'Isiolo',
-  'Meru',
-  'Tharaka-Nithi',
-  'Embu',
-  'Kitui',
-  'Machakos',
-  'Makueni',
-  'Nyandarua',
-  'Nyeri',
-  'Kirinyaga',
-  'Murang’a',
-  'Kiambu',
-  'Turkana',
-  'West Pokot',
-  'Samburu',
-  'Trans Nzoia',
-  'Uasin Gishu',
-  'Elgeyo-Marakwet',
-  'Nandi',
-  'Baringo',
-  'Laikipia',
-  'Nakuru',
-  'Narok',
-  'Kajiado',
-  'Kericho',
-  'Bomet',
-  'Kakamega',
-  'Vihiga',
-  'Bungoma',
-  'Busia',
-  'Siaya',
-  'Kisumu',
-  'Homa Bay',
-  'Migori',
-  'Kisii',
-  'Nyamira',
-  'Nairobi City',
-];
+export const toProfile = (p: ApiFarmerProfile): FarmerProfile => ({
+  id: p.id,
+  farmName: p.farmName,
+  location: p.location,
+  farmDetails: p.farmDetails,
+  verificationInfo: p.verificationInfo,
+  images: [...(p.images ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
+});
 
 export const STATUS_LABEL: Record<FarmerStatus, string> = {
   verified: 'Verified',
@@ -134,39 +141,20 @@ export const STATUS_LABEL: Record<FarmerStatus, string> = {
   suspended: 'Suspended',
   rejected: 'Rejected',
 };
-export const KYC_LABEL: Record<KycStatus, string> = {
-  approved: 'Approved',
-  pending: 'Pending',
-  under_review: 'Under Review',
-  rejected: 'Rejected',
-};
-export const ORDER_STATUS_LABEL: Record<FarmerOrder['status'], string> = {
-  in_transit: 'In Transit',
-  completed: 'Completed',
-  processing: 'Processing',
-  cancelled: 'Cancelled',
-};
-
 export const statusTone = (s: FarmerStatus): Tone =>
   (({ verified: 'green', pending: 'amber', suspended: 'red', rejected: 'red' }) as const)[s];
-export const kycTone = (s: KycStatus): Tone =>
-  (({ approved: 'green', pending: 'amber', under_review: 'amber', rejected: 'red' }) as const)[s];
-export const orderTone = (s: FarmerOrder['status']): Tone =>
-  (({ in_transit: 'blue', completed: 'green', processing: 'amber', cancelled: 'gray' }) as const)[
-    s
-  ];
 
 export const initials = (name: string) =>
-  name
+  (name ?? '')
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map((p) => p[0]!.toUpperCase())
     .join('');
 
-const AVATAR_COLORS = ['#0f9d58', '#e11d48', '#16a34a', '#ea7c1a', '#7c3aed', '#0891b2'];
+const COLORS = ['#0f9d58', '#e11d48', '#16a34a', '#ea7c1a', '#7c3aed', '#0891b2'];
 export const avatarColor = (seed: string) => {
   let h = 0;
-  for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  for (const c of seed ?? '') h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return COLORS[h % COLORS.length];
 };

@@ -6,15 +6,21 @@
     </nav>
     <h1>Edit {{ f.name }}</h1>
     <app-farmer-form
+      mode="edit"
       [farmer]="f"
       submitLabel="Save changes"
+      [regions]="regions()"
+      [saving]="saving()"
+      [error]="error()"
       (submitted)="save($event)"
       (cancelled)="cancel()"
     />
   </section>
 } @else {
   <section class="page">
-    <h1>Farmer not found</h1>
-    <a routerLink="/farmers">Back to farmers</a>
+    <h1>{{ loading() ? 'Loading…' : 'Farmer not found' }}</h1>
+    @if (loadFailed()) {
+      <a routerLink="/farmers">Back to farmers</a>
+    }
   </section>
 }
