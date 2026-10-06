@@ -1,1 +1,193 @@
-<p>payment-list works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <span>AgriAdmin</span><span class="sep">/</span><span class="cur">Payments</span>
+</nav>
+<header class="head">
+  <h1>Payments &amp; Finance</h1>
+  <div class="head-actions">
+    <button type="button" class="btn ghost" (click)="exportCsv()">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <path
+          d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      Export
+    </button>
+    <button
+      type="button"
+      class="btn primary"
+      [disabled]="!stats().pendingPayoutCount"
+      [attr.title]="stats().pendingPayoutCount ? null : 'No pending payouts to run'"
+      (click)="openBatch()"
+    >
+      Run Payout Batch
+    </button>
+  </div>
+</header>
+
+@if (notice(); as n) {
+  <p class="notice" [class.bad]="!n.ok" role="status">
+    <span>{{ n.message }}</span>
+    <button type="button" class="x" aria-label="Dismiss message" (click)="dismissNotice()">
+      &times;
+    </button>
+  </p>
+}
+
+<section class="stats">
+  <app-stat-card
+    [label]="stats().monthLabel + ' platform revenue'"
+    [value]="compactKes(stats().revenue)"
+    icon="dollar"
+    tone="green"
+  />
+  <app-stat-card
+    label="Gross order volume"
+    [value]="compactKes(stats().gross)"
+    icon="trending-up"
+    tone="green"
+  />
+  <app-stat-card
+    label="Pending payouts"
+    [value]="kes(stats().pendingPayouts)"
+    icon="arrow-up-right"
+    tone="amber"
+  />
+  <app-stat-card
+    label="Open refunds"
+    [value]="kes(stats().openRefunds)"
+    icon="arrow-down-right"
+    tone="red"
+  />
+</section>
+
+<section class="card chart-card">
+  <app-revenue-chart
+    [points]="chartPoints()"
+    title="Monthly platform revenue (KSh)"
+    valueHeader="Platform revenue"
+  />
+  <p class="delta">
+    <strong [class.down]="stats().revenueDelta < 0"
+      >{{ stats().revenueDelta >= 0 ? '+' : '' }}{{ stats().revenueDelta }}%</strong
+    >
+    revenue and
+    <strong [class.down]="stats().grossDelta < 0"
+      >{{ stats().grossDelta >= 0 ? '+' : '' }}{{ stats().grossDelta }}%</strong
+    >
+    order volume vs last month. Revenue is the 3% platform fee on each payment.
+  </p>
+</section>
+
+<div class="tabs" role="tablist" aria-label="Payment views" (keydown)="onTabKey($event)">
+  @for (t of tabs; track t.key) {
+    <button
+      type="button"
+      role="tab"
+      class="tab"
+      [id]="'tab-' + t.key"
+      [class.on]="tab() === t.key"
+      [attr.aria-selected]="tab() === t.key"
+      [attr.tabindex]="tab() === t.key ? 0 : -1"
+      [attr.aria-controls]="'panel'"
+      (click)="setTab(t.key)"
+    >
+      {{ t.label }} <span class="count">{{ counts()[t.key] }}</span>
+    </button>
+  }
+</div>
+
+<section class="card table-card" id="panel" role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()">
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>Type</th>
+          <th>Party</th>
+          <th>Reference</th>
+          <th class="num">Amount</th>
+          <th class="num">Fee</th>
+          <th class="num">Net</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th><span class="sr">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (t of pageRows(); track t.id) {
+          <tr>
+            <td>
+              <a class="mono id" [routerLink]="['/payments', t.id]">{{ t.id }}</a>
+            </td>
+            <td>
+              <span [class]="'pill type ' + t.type">{{ typeLabel[t.type] }}</span>
+            </td>
+            <td class="party">{{ t.party }}</td>
+            <td class="mono muted">{{ t.reference }}</td>
+            <td class="num mono">{{ kes(t.amount) }}</td>
+            <td class="num mono">{{ t.fee ? kes(t.fee) : '—' }}</td>
+            <td class="num mono strong" [class.neg]="t.net < 0">{{ kes(t.net) }}</td>
+            <td>
+              <span [class]="'pill status ' + t.status">{{ statusLabel[t.status] }}</span>
+            </td>
+            <td class="mono muted">{{ t.createdAt | date: 'yyyy-MM-dd' }}</td>
+            <td class="act">
+              @if (canSettle(t)) {
+                <button type="button" class="btn small" (click)="openSettle(t)">
+                  {{ t.type === 'refund' ? 'Process' : 'Pay now' }}
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="10" class="empty">
+              No
+              {{
+                tab() === 'refund' ? 'refunds' : tab() === 'payout' ? 'payouts' : 'transactions'
+              }}
+              yet.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="foot">
+    <span>{{ range() }}</span>
+    @if (totalPages() > 1) {
+      <div class="pager">
+        <button type="button" class="btn small" [disabled]="page() === 1" (click)="prev()">
+          Previous
+        </button>
+        <span class="pg">Page {{ page() }} of {{ totalPages() }}</span>
+        <button
+          type="button"
+          class="btn small"
+          [disabled]="page() === totalPages()"
+          (click)="next()"
+        >
+          Next
+        </button>
+      </div>
+    }
+  </footer>
+</section>
+
+@if (dialogView(); as v) {
+  <app-payment-action-dialog
+    [title]="v.title"
+    [message]="v.message"
+    [lines]="v.lines"
+    [confirmLabel]="v.confirmLabel"
+    [tone]="v.tone"
+    (confirmed)="confirm()"
+    (dismissed)="dialog.set(null)"
+  />
+}
