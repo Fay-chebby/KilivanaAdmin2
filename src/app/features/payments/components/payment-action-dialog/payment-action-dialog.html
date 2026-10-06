@@ -1,0 +1,21 @@
+<dialog #dlg aria-labelledby="pad-title" (cancel)="onEsc($event)" (click)="onBackdrop($event)">
+  <div class="box">
+    <h2 id="pad-title">{{ title() }}</h2>
+    @if (message()) {
+      <p class="msg">{{ message() }}</p>
+    }
+    @if (lines().length) {
+      <ul>
+        @for (l of lines(); track $index) {
+          <li>{{ l }}</li>
+        }
+      </ul>
+    }
+    <div class="row">
+      <button type="button" class="btn ghost" (click)="dismissed.emit()">Cancel</button>
+      <button type="button" class="btn" [class.red]="tone() === 'red'" (click)="confirmed.emit()">
+        {{ confirmLabel() }}
+      </button>
+    </div>
+  </div>
+</dialog>

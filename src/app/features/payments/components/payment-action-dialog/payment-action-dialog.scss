@@ -1,0 +1,65 @@
+dialog {
+  border: 0;
+  padding: 0;
+  border-radius: 14px;
+  width: min(440px, calc(100vw - 32px));
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+  color: #0f172a;
+}
+dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+.box {
+  padding: 22px;
+}
+h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+.msg {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #475569;
+}
+ul {
+  margin: 0 0 16px;
+  padding: 10px 14px 10px 30px;
+  max-height: 180px;
+  overflow: auto;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+li {
+  padding: 2px 0;
+}
+.row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.btn {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #0f7b3a;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn.red {
+  background: #dc2626;
+}
+.btn.ghost {
+  background: #fff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}

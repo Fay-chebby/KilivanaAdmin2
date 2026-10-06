@@ -1,0 +1,176 @@
+:host {
+  display: block;
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.toggle {
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+  color: #475569;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.toggle:hover {
+  color: #0f7b3a;
+  background: #f0fdf4;
+}
+.toggle:focus-visible,
+.col:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.plot {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-rows: 200px auto;
+  column-gap: 8px;
+}
+.yaxis {
+  position: relative;
+}
+.yaxis span {
+  position: absolute;
+  right: 0;
+  transform: translateY(50%);
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.area {
+  position: relative;
+  display: grid;
+  align-items: end;
+}
+.gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid #eef2f6;
+  pointer-events: none;
+}
+.xaxis {
+  grid-column: 2;
+  display: grid;
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.xaxis .cur {
+  color: #334155;
+  font-weight: 600;
+}
+
+/* The column is the hit target. The bar is the mark. */
+.col {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+  font: inherit;
+}
+.bar {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 28px;
+  background: #15803d;
+  border-radius: 4px 4px 0 0;
+  transition: background-color 0.12s;
+}
+.col:hover .bar,
+.col:focus-visible .bar {
+  background: #16a34a;
+}
+.now {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+.tip strong {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.tip span {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+.col:hover .tip,
+.col:focus-visible .tip {
+  display: flex;
+}
+
+.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data th {
+  text-align: left;
+  padding: 8px 4px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+}
+.data td {
+  padding: 8px 4px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+.data .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    transition: none;
+  }
+}
