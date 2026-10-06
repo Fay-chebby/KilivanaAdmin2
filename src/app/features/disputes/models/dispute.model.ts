@@ -54,9 +54,9 @@ export interface Resolution {
 }
 
 export interface Dispute {
-  id: string; // same as the order id
+  id: number; // same as the order id
   code: string; // DSP-041
-  orderId: string;
+  orderId: number;
   orderCode: string;
   buyer: { name: string; phone: string; type: string };
   farmer: { name: string; phone: string };

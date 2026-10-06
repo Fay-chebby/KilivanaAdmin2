@@ -1,10 +1,13 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-
 import { Driver, DriverFormValue } from '../models/driver.model';
 
 const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+
+const NGROK_HEADERS = new HttpHeaders({
+  'ngrok-skip-browser-warning': 'true',
+});
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -82,57 +85,82 @@ export class DriverService {
 
   private noticeTimer?: ReturnType<typeof setTimeout>;
 
-  /**
-   * Load all drivers from the backend.
-   */
   loadDrivers(): Observable<ApiResponse<DriverApiResponse[]>> {
-    return this.http.get<ApiResponse<DriverApiResponse[]>>(`${API_BASE_URL}/admin/drivers`).pipe(
-      tap((response) => {
-        const drivers = response.data.map((driver) => this.fromApi(driver));
+    return this.http
+      .get<ApiResponse<DriverApiResponse[]>>(`${API_BASE_URL}/admin/drivers`, {
+        headers: NGROK_HEADERS,
+      })
+      .pipe(
+        tap((response) => {
+          if (!response.success) {
+            console.error('Failed to load drivers:', response.message);
 
-        this._drivers.set(drivers);
-      }),
-    );
+            this._drivers.set([]);
+            return;
+          }
+
+          const apiDrivers = response.data ?? [];
+
+          const drivers = apiDrivers.map((driver) => this.fromApi(driver));
+
+          this._drivers.set(drivers);
+        }),
+      );
   }
-
-  /**
-   * Register a new driver.
-   */
 
   create(value: DriverFormValue): Observable<ApiResponse<DriverApiResponse>> {
     const request: RegisterDriverRequest = {
       fullName: value.fullName.trim(),
 
-      // Backend still requires username.
-      // We use the driver's email as the username.
       username: value.email.trim().toLowerCase().split('@')[0],
 
       password: value.password,
 
       phone: value.phone.trim(),
-      email: value.email.trim(),
+
+      email: value.email.trim().toLowerCase(),
+
       region: value.region,
+
       address: value.address.trim(),
+
       idType: value.idType,
+
       idNumber: value.idNumber.trim(),
+
       licenceNumber: value.licenceNumber.trim(),
+
       licenceExpiry: value.licenceExpiry,
+
       kycStatus: value.kycStatus.toUpperCase(),
+
       vehicleType: value.vehicleType.toUpperCase(),
+
       vehicleCapacity: value.vehicleCapacity.trim(),
+
       plateNumber: value.plateNumber.trim().toUpperCase(),
+
       vehicleMake: value.vehicleMake.trim(),
+
       availabilityStatus: 'AVAILABLE',
     };
 
     return this.http
-      .post<ApiResponse<DriverApiResponse>>(`${API_BASE_URL}/admin/drivers`, request)
+      .post<ApiResponse<DriverApiResponse>>(`${API_BASE_URL}/admin/drivers`, request, {
+        headers: NGROK_HEADERS,
+      })
       .pipe(
         tap((response) => {
-          // Convert backend driver to frontend Driver model
+          if (!response.success) {
+            console.error('Driver creation failed:', response.message);
+
+            this.flash(response.message || 'Failed to create driver.', 'error');
+
+            return;
+          }
+
           const driver = this.fromApi(response.data);
 
-          // Immediately add the new driver to the existing list
           this._drivers.update((drivers) => [driver, ...drivers]);
 
           this.flash(`${driver.fullName} registered successfully.`);
@@ -140,42 +168,40 @@ export class DriverService {
       );
   }
 
-  /**
-   * Get one driver from the backend.
-   */
   getById(id: number): Observable<ApiResponse<DriverApiResponse>> {
-    return this.http.get<ApiResponse<DriverApiResponse>>(`${API_BASE_URL}/admin/drivers/${id}`);
+    return this.http.get<ApiResponse<DriverApiResponse>>(`${API_BASE_URL}/admin/drivers/${id}`, {
+      headers: NGROK_HEADERS,
+    });
   }
 
-  /**
-   * Delete a driver.
-   */
   delete(id: number): Observable<ApiResponse<unknown>> {
-    return this.http.delete<ApiResponse<unknown>>(`${API_BASE_URL}/admin/drivers/${id}`).pipe(
-      tap(() => {
-        const driver = this._drivers().find((d) => d.id === id);
+    return this.http
+      .delete<ApiResponse<unknown>>(`${API_BASE_URL}/admin/drivers/${id}`, {
+        headers: NGROK_HEADERS,
+      })
+      .pipe(
+        tap((response) => {
+          if (!response.success) {
+            this.flash(response.message || 'Failed to delete driver.', 'error');
 
-        this._drivers.update((drivers) => drivers.filter((d) => d.id !== id));
+            return;
+          }
 
-        if (driver) {
-          this.flash(`${driver.fullName} was deleted.`);
-        }
-      }),
-    );
+          const driver = this._drivers().find((item) => item.id === id);
+
+          this._drivers.update((drivers) => drivers.filter((item) => item.id !== id));
+
+          if (driver) {
+            this.flash(`${driver.fullName} was deleted.`);
+          }
+        }),
+      );
   }
 
-  /**
-   * Check whether a driver is currently locked because
-   * they have an active delivery.
-   */
   isLocked(driver: Driver): boolean {
     return driver.status === 'on-delivery';
   }
 
-  /**
-   * Convert backend driver response into the model
-   * currently used by the Angular UI.
-   */
   private fromApi(driver: DriverApiResponse): Driver {
     return {
       id: driver.userId,
@@ -183,28 +209,38 @@ export class DriverService {
       code: driver.code,
 
       fullName: driver.fullName,
+
       username: driver.username,
+
       phone: driver.phone,
+
       email: driver.email,
 
       region: driver.region,
+
       address: driver.address,
 
       status: this.mapStatus(driver.status),
+
       suspensionReason: driver.suspensionReason ?? null,
 
       idType: driver.idType as Driver['idType'],
+
       idNumber: driver.idNumber,
 
       licenceNumber: driver.licenseNumber,
+
       licenceExpiry: driver.licenseExpiryDate,
 
       kycStatus: this.mapKycStatus(driver.kycStatus),
 
       vehicle: {
         type: this.mapVehicleType(driver.vehicleType),
+
         capacity: driver.vehicleCapacity,
+
         plateNumber: driver.plateNumber,
+
         make: driver.vehicleMake,
       },
 
@@ -213,7 +249,7 @@ export class DriverService {
           ? String(driver.activeOrderId)
           : null,
 
-      totalDeliveries: driver.totalDeliveries,
+      totalDeliveries: driver.totalDeliveries ?? 0,
 
       rating: driver.rating ?? null,
 
@@ -222,7 +258,7 @@ export class DriverService {
   }
 
   private mapStatus(status: string): Driver['status'] {
-    switch (status.toUpperCase()) {
+    switch (status?.toUpperCase()) {
       case 'AVAILABLE':
         return 'available';
 
@@ -234,17 +270,21 @@ export class DriverService {
         return 'suspended';
 
       case 'OFFLINE':
+        return 'offline';
+
       default:
+        console.warn('Unknown driver status from backend:', status);
+
         return 'offline';
     }
   }
 
   private mapKycStatus(status: string): Driver['kycStatus'] {
-    return status.toUpperCase() === 'VERIFIED' ? 'verified' : 'pending';
+    return status?.toUpperCase() === 'VERIFIED' ? 'verified' : 'pending';
   }
 
   private mapVehicleType(type: string): Driver['vehicle']['type'] {
-    switch (type.toUpperCase()) {
+    switch (type?.toUpperCase()) {
       case 'VAN':
         return 'Van';
 
@@ -255,7 +295,11 @@ export class DriverService {
         return 'Motorbike';
 
       case 'TRUCK':
+        return 'Truck';
+
       default:
+        console.warn('Unknown vehicle type from backend:', type);
+
         return 'Truck';
     }
   }
@@ -268,18 +312,21 @@ export class DriverService {
       type,
     });
 
-    this.noticeTimer = setTimeout(() => this.notice.set(null), 3500);
+    this.noticeTimer = setTimeout(() => {
+      this.notice.set(null);
+    }, 3500);
   }
+
   mapApiDriver(driver: DriverApiResponse): Driver {
     return this.fromApi(driver);
   }
 
   setDriver(driver: Driver): void {
     this._drivers.update((drivers) => {
-      const exists = drivers.some((d) => d.id === driver.id);
+      const exists = drivers.some((item) => item.id === driver.id);
 
       if (exists) {
-        return drivers.map((d) => (d.id === driver.id ? driver : d));
+        return drivers.map((item) => (item.id === driver.id ? driver : item));
       }
 
       return [driver, ...drivers];

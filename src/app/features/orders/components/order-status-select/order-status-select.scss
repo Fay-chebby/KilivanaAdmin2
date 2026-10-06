@@ -1,13 +1,87 @@
-select {
-  border: 1px solid #d7ddd9;
-  border-radius: 10px;
-  padding: 9px 12px;
-  font: inherit;
-  font-size: 13px;
-  background: #fff;
+.status-select {
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-select__control {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 6px 30px 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
   cursor: pointer;
-  &:focus {
-    outline: 2px solid #007a33;
-    outline-offset: 1px;
-  }
+  outline: none;
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-size:
+    4px 4px,
+    4px 4px;
+  background-repeat: no-repeat;
+
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.status-select__control:hover {
+  border-color: #d1d5db;
+}
+
+.status-select__control:focus {
+  box-shadow: 0 0 0 3px rgb(0 128 0 / 10%);
+}
+
+/* Placed */
+.status-select__control.status-placed {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+/* Confirmed */
+.status-select__control.status-confirmed {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+/* Processing */
+.status-select__control.status-processing {
+  background-color: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+
+/* Shipped */
+.status-select__control.status-shipped {
+  background-color: #f0f9ff;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+/* Delivered */
+.status-select__control.status-delivered {
+  background-color: #ecfdf5;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+/* Cancelled */
+.status-select__control.status-cancelled {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.status-select__control option {
+  background: white;
+  color: #1f2937;
 }

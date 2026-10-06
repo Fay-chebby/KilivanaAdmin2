@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
-import { Order, loadKg } from '../../models/order.model';
-import { OrderService } from '../../services/order.service';
+
+import { Order } from '../../models/order.model';
+import { DeliveryService } from '../../../logistics/services/delivery.service';
 
 @Component({
   selector: 'app-assign-driver-dialog',
@@ -8,37 +9,37 @@ import { OrderService } from '../../services/order.service';
   styleUrl: './assign-driver-dialog.scss',
 })
 export class AssignDriverDialog {
-  private readonly service = inject(OrderService);
+  private readonly deliveryService = inject(DeliveryService);
 
   readonly order = input.required<Order>();
+
   readonly assigned = output<string>();
+
   readonly cancelled = output<void>();
 
   protected readonly selected = signal<string | null>(null);
-  protected readonly load = computed(() => loadKg(this.order()));
 
-  /** Drivers who can take the job first, then the closest to the farm, then the least busy */
   protected readonly options = computed(() =>
-    this.service
-      .agents()
-      .map((a) => {
-        const fits = a.capacityKg >= this.load();
-        const reason = !a.available
-          ? 'Unavailable'
-          : !fits
-            ? `Too small for ${this.load().toLocaleString('en-KE')} kg`
-            : '';
-        return {
-          a,
-          near: a.county === this.order().farmer.county,
-          busy: this.service.agentLoad(a.id),
-          reason,
-          ok: !reason,
-          current: a.id === this.order().delivery?.agentId,
-        };
-      })
-      .sort(
-        (x, y) => Number(y.ok) - Number(x.ok) || Number(y.near) - Number(x.near) || x.busy - y.busy,
-      ),
+    this.deliveryService.drivers.map((driver) => ({
+      a: driver,
+    })),
   );
+
+  protected selectDriver(driverId: string): void {
+    this.selected.set(driverId);
+  }
+
+  protected confirm(): void {
+    const driverId = this.selected();
+
+    if (!driverId) {
+      return;
+    }
+
+    this.assigned.emit(driverId);
+  }
+
+  protected cancel(): void {
+    this.cancelled.emit();
+  }
 }

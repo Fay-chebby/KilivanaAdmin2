@@ -25,6 +25,7 @@ import { PRODUCT_ROUTES } from './features/products/Products.routes';
 import { ORDER_ROUTES } from './features/orders/Orders.routes';
 import { LOGISTICS_ROUTES } from './features/logistics/Logistics.routes';
 import { DISPUTE_ROUTES } from './features/disputes/disputes.routes';
+import { KYC_ROUTES } from './features/kyc/kyc.routes';
 
 export const routes: Routes = [
   {
@@ -103,7 +104,7 @@ export const routes: Routes = [
 
       {
         path: 'kyc',
-        component: KycList,
+        children: KYC_ROUTES,
       },
 
       {

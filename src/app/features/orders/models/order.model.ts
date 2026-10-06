@@ -1,126 +1,215 @@
 export type OrderStatus =
   | 'placed'
   | 'confirmed'
-  | 'in_transit'
+  | 'processing'
+  | 'shipped'
   | 'delivered'
-  | 'completed'
-  | 'disputed'
   | 'cancelled';
-export type PaymentStatus = 'pending' | 'paid' | 'held' | 'settled' | 'refunded';
-export type PaymentMethod = 'mpesa' | 'card' | 'bank';
-export type DeliveryStatus = 'assigned' | 'picked_up' | 'delivered';
-export type Tone = 'green' | 'amber' | 'red' | 'grey' | 'blue';
-export type Vehicle = 'Motorbike' | 'Pickup' | 'Van' | 'Truck';
 
-export const PLATFORM_FEE_RATE = 0.03;
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+
+export type Tone = 'green' | 'blue' | 'amber' | 'red' | 'gray';
+
+export type PaymentMethod = 'mpesa' | 'card' | 'cash' | 'bank';
+
+export interface OrderItem {
+  id: number;
+  productId: number;
+  sellerId: number;
+  productName: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface Order {
+  id: number;
+  code: string;
+  buyerId: number;
+  status: OrderStatus;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  paymentStatus: PaymentStatus;
+  addressId: number;
+  cancellationReason: string | null;
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SortInfo {
+  sorted: boolean;
+  empty: boolean;
+  unsorted: boolean;
+}
+
+export interface Pageable {
+  pageNumber: number;
+  pageSize: number;
+  offset: number;
+  sort: SortInfo;
+  unpaged: boolean;
+  paged: boolean;
+}
+
+export interface OrderPage {
+  totalElements: number;
+  totalPages: number;
+  pageable: Pageable;
+  size: number;
+  content: Order[];
+  number: number;
+  sort: SortInfo;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
+  error: {
+    code: string;
+    details: string;
+  } | null;
+}
+
+/* -----------------------------
+   UI metadata
+----------------------------- */
 
 export const ORDER_STATUS_META: Record<OrderStatus, { label: string; tone: Tone }> = {
-  placed: { label: 'Placed', tone: 'grey' },
-  confirmed: { label: 'Confirmed', tone: 'blue' },
-  in_transit: { label: 'In Transit', tone: 'blue' },
-  delivered: { label: 'Delivered', tone: 'green' },
-  completed: { label: 'Completed', tone: 'green' },
-  disputed: { label: 'Disputed', tone: 'red' },
-  cancelled: { label: 'Cancelled', tone: 'grey' },
+  placed: {
+    label: 'Placed',
+    tone: 'amber',
+  },
+  confirmed: {
+    label: 'Confirmed',
+    tone: 'blue',
+  },
+  processing: {
+    label: 'Processing',
+    tone: 'blue',
+  },
+  shipped: {
+    label: 'Shipped',
+    tone: 'blue',
+  },
+  delivered: {
+    label: 'Delivered',
+    tone: 'green',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    tone: 'red',
+  },
 };
 
+export const STATUS_OPTIONS: Array<{
+  value: OrderStatus;
+  label: string;
+}> = [
+  { value: 'placed', label: 'Placed' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'processing', label: 'Processing' },
+  { value: 'shipped', label: 'Shipped' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
 export const PAYMENT_META: Record<PaymentStatus, { label: string; tone: Tone }> = {
-  pending: { label: 'Pending', tone: 'amber' },
-  paid: { label: 'Paid', tone: 'green' },
-  held: { label: 'Held', tone: 'amber' },
-  settled: { label: 'Settled', tone: 'green' },
-  refunded: { label: 'Refunded', tone: 'grey' },
+  pending: {
+    label: 'Pending',
+    tone: 'amber',
+  },
+  paid: {
+    label: 'Paid',
+    tone: 'green',
+  },
+  failed: {
+    label: 'Failed',
+    tone: 'red',
+  },
+  refunded: {
+    label: 'Refunded',
+    tone: 'gray',
+  },
 };
 
 export const METHOD_LABEL: Record<PaymentMethod, string> = {
   mpesa: 'M-Pesa',
   card: 'Card',
-  bank: 'Bank transfer',
+  cash: 'Cash',
+  bank: 'Bank',
 };
-export const PIPELINE = ['Placed', 'Confirmed', 'In Transit', 'Delivered', 'Completed'];
-export const STATUS_OPTIONS = Object.keys(ORDER_STATUS_META) as OrderStatus[];
 
-export interface OrderItem {
-  productId: string | null;
-  name: string;
-  qty: number;
-  unit: string;
-  unitPriceKes: number;
+/* -----------------------------
+   Order calculations
+----------------------------- */
+
+export function subtotal(order: Order): number {
+  return Number(order.subtotal || 0);
 }
+
+export function productSummary(order: Order): string {
+  if (!order.items?.length) {
+    return '—';
+  }
+
+  if (order.items.length === 1) {
+    return order.items[0].productName;
+  }
+
+  return `${order.items[0].productName} + ${order.items.length - 1} more`;
+}
+
+export function qtySummary(order: Order): string {
+  if (!order.items?.length) {
+    return '0';
+  }
+
+  return String(order.items.reduce((total, item) => total + Number(item.quantity || 0), 0));
+}
+
+/*
+ * These are UI/business calculations only.
+ * They are NOT fields returned by the backend.
+ */
+
+export const PLATFORM_FEE_RATE = 0.05;
+
+export function platformFee(order: Order): number {
+  return Number(order.subtotal || 0) * PLATFORM_FEE_RATE;
+}
+
+export function farmerPayout(order: Order): number {
+  return Number(order.subtotal || 0) - platformFee(order);
+}
+
+/* -----------------------------
+   Order pipeline
+----------------------------- */
+
+export const PIPELINE: OrderStatus[] = [
+  'placed',
+  'confirmed',
+  'processing',
+  'shipped',
+  'delivered',
+];
+
+/* -----------------------------
+   Timeline
+----------------------------- */
 
 export interface OrderEvent {
-  at: string;
+  id: string | number;
+  status?: OrderStatus;
   text: string;
-  actor: string;
+  createdAt: string;
 }
-
-export interface Agent {
-  id: string;
-  name: string;
-  phone: string;
-  vehicle: Vehicle;
-  plate: string;
-  capacityKg: number;
-  county: string;
-  available: boolean;
-}
-
-export interface OrderDelivery {
-  agentId: string;
-  agentName: string;
-  agentPhone: string;
-  vehicle: Vehicle;
-  plate: string;
-  assignedAt: string;
-  status: DeliveryStatus;
-}
-
-export interface Order {
-  id: string;
-  code: string; // ORD-2851
-  buyer: {
-    name: string;
-    type: 'Corporate' | 'Individual';
-    phone: string;
-    county: string;
-    address: string;
-  };
-  farmer: { name: string; phone: string; county: string; location: string };
-  items: OrderItem[];
-  status: OrderStatus;
-  progress: number; // highest pipeline step reached (0 to 4)
-  payment: {
-    status: PaymentStatus;
-    method: PaymentMethod | null;
-    reference: string | null;
-    paidAt: string | null;
-  };
-  delivery: OrderDelivery | null;
-  note: string; // reason for a cancellation or dispute
-  placedAt: string; // 2026-09-28T14:22
-  events: OrderEvent[];
-}
-
-export const subtotal = (o: Order) => o.items.reduce((a, i) => a + i.qty * i.unitPriceKes, 0);
-export const platformFee = (o: Order) => Math.round(subtotal(o) * PLATFORM_FEE_RATE);
-export const farmerPayout = (o: Order) => subtotal(o) - platformFee(o);
-
-/** Rough weight of the load, used to pick a vehicle that can carry it */
-const KG_PER_UNIT: Record<string, number> = {
-  kg: 1,
-  bag: 50,
-  crate: 60,
-  litre: 0.92,
-  tray: 2,
-  bunch: 0.5,
-  piece: 0.5,
-};
-export const loadKg = (o: Order) =>
-  Math.round(o.items.reduce((a, i) => a + i.qty * (KG_PER_UNIT[i.unit] ?? 1), 0));
-
-export const productSummary = (o: Order) =>
-  o.items[0].name + (o.items.length > 1 ? ` +${o.items.length - 1} more` : '');
-export const qtySummary = (o: Order) =>
-  o.items.length === 1
-    ? `${o.items[0].qty.toLocaleString('en-KE')} ${o.items[0].unit}`
-    : `${o.items.length} items`;

@@ -1,6 +1,20 @@
-<select aria-label="Filter by status" (change)="changed.emit($any($event.target).value)">
-  <option value="" [selected]="!value()">All statuses</option>
-  @for (s of options; track s) {
-    <option [value]="s" [selected]="value() === s">{{ meta[s].label }}</option>
-  }
-</select>
+<div class="status-select">
+  <select
+    [value]="status()"
+    [attr.aria-label]="'Change order status'"
+    (change)="changeStatus($event)"
+    class="status-select__control"
+    [class.status-placed]="status() === 'placed'"
+    [class.status-confirmed]="status() === 'confirmed'"
+    [class.status-processing]="status() === 'processing'"
+    [class.status-shipped]="status() === 'shipped'"
+    [class.status-delivered]="status() === 'delivered'"
+    [class.status-cancelled]="status() === 'cancelled'"
+  >
+    @for (option of options; track option.value) {
+      <option [value]="option.value">
+        {{ option.label }}
+      </option>
+    }
+  </select>
+</div>

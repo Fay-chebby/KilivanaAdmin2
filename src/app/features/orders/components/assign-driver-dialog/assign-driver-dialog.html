@@ -1,4 +1,4 @@
-<div class="backdrop" (click)="cancelled.emit()">
+<div class="backdrop" (click)="cancel()">
   <div
     class="modal"
     role="dialog"
@@ -6,60 +6,71 @@
     aria-labelledby="ad-title"
     (click)="$event.stopPropagation()"
   >
-    <h3 id="ad-title">{{ order().delivery ? 'Reassign driver' : 'Assign a driver' }}</h3>
+    <h3 id="ad-title">Assign a driver</h3>
+
     <p>
-      {{ order().code }} · about {{ load().toLocaleString('en-KE') }} kg · collect from
-      {{ order().farmer.location }}, {{ order().farmer.county }} and deliver to
-      {{ order().buyer.county }}.
+      {{ order().code }}
+      · {{ order().items.length }}
+      {{ order().items.length === 1 ? 'item' : 'items' }}
+      · Buyer #{{ order().buyerId }}
     </p>
+
+    <div class="order-info">
+      <div>
+        <span>Delivery address</span>
+        <strong>#{{ order().addressId }}</strong>
+      </div>
+
+      <div>
+        <span>Order total</span>
+        <strong> KSh {{ order().total.toLocaleString('en-KE') }} </strong>
+      </div>
+    </div>
 
     <div class="list" role="radiogroup" aria-label="Drivers">
       @for (o of options(); track o.a.id) {
-        <label class="opt" [class.on]="selected() === o.a.id" [class.off]="!o.ok">
+        <label class="opt" [class.on]="selected() === o.a.id">
           <input
             type="radio"
             name="driver"
-            [disabled]="!o.ok"
             [checked]="selected() === o.a.id"
-            (change)="selected.set(o.a.id)"
+            (change)="selectDriver(o.a.id)"
           />
+
           <span class="who">
-            <strong
-              >{{ o.a.name }}
-              @if (o.current) {
-                <em>Current</em>
-              }
+            <strong>
+              {{ o.a.name }}
             </strong>
-            <small
-              >{{ o.a.vehicle }} · {{ o.a.plate }} · up to
-              {{ o.a.capacityKg.toLocaleString('en-KE') }} kg</small
-            >
+
+            <small> {{ o.a.vehicle }} · {{ o.a.plate }} </small>
+
+            <small>
+              {{ o.a.phone }}
+            </small>
           </span>
+
           <span class="meta">
-            @if (o.reason) {
-              <span class="no">{{ o.reason }}</span>
-            } @else if (o.near) {
-              <span class="near">Near the farm</span>
+            @if (selected() === o.a.id) {
+              <span class="near">Selected</span>
             }
-            <small>{{ o.a.county }} · {{ o.busy }} active</small>
           </span>
         </label>
       }
     </div>
+
+    @if (options().length === 0) {
+      <p class="empty">No drivers are currently available.</p>
+    }
 
     <p class="note">
       The driver gets a pickup code and a delivery code for this order in Logistics.
     </p>
 
     <div class="actions">
-      <button type="button" class="btn ghost" (click)="cancelled.emit()">Cancel</button>
-      <button
-        type="button"
-        class="btn"
-        [disabled]="!selected() || selected() === order().delivery?.agentId"
-        (click)="assigned.emit(selected()!)"
-      >
-        {{ order().delivery ? 'Reassign driver' : 'Assign driver' }}
+      <button type="button" class="btn ghost" (click)="cancel()">Cancel</button>
+
+      <button type="button" class="btn" [disabled]="!selected()" (click)="confirm()">
+        Assign driver
       </button>
     </div>
   </div>

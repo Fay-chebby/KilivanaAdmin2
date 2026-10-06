@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { ORDER_STATUS_META, STATUS_OPTIONS } from '../../models/order.model';
+import { OrderStatus, STATUS_OPTIONS } from '../../models/order.model';
 
 @Component({
   selector: 'app-order-status-select',
@@ -7,8 +7,15 @@ import { ORDER_STATUS_META, STATUS_OPTIONS } from '../../models/order.model';
   styleUrl: './order-status-select.scss',
 })
 export class OrderStatusSelect {
-  readonly value = input('');
-  readonly changed = output<string>();
+  readonly status = input.required<OrderStatus>();
+
+  readonly changed = output<OrderStatus>();
+
   protected readonly options = STATUS_OPTIONS;
-  protected readonly meta = ORDER_STATUS_META;
+
+  protected changeStatus(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+
+    this.changed.emit(value as OrderStatus);
+  }
 }

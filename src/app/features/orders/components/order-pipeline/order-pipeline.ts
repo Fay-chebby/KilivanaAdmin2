@@ -7,12 +7,23 @@ import { OrderStatus, PIPELINE } from '../../models/order.model';
   styleUrl: './order-pipeline.scss',
 })
 export class OrderPipeline {
-  readonly progress = input.required<number>();
   readonly status = input.required<OrderStatus>();
 
   protected readonly steps = PIPELINE;
-  protected readonly halted = computed(
-    () => this.status() === 'disputed' || this.status() === 'cancelled',
-  );
-  protected readonly finished = computed(() => this.status() === 'completed');
+
+  protected readonly halted = computed(() => this.status() === 'cancelled');
+
+  protected readonly finished = computed(() => this.status() === 'delivered');
+
+  protected readonly currentIndex = computed(() => {
+    return this.steps.indexOf(this.status());
+  });
+
+  protected isCompleted(index: number): boolean {
+    return !this.halted() && index < this.currentIndex();
+  }
+
+  protected isCurrent(index: number): boolean {
+    return index === this.currentIndex();
+  }
 }
