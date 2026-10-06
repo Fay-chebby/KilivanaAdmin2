@@ -120,7 +120,7 @@ export class DriverList implements OnInit {
 
     const count = (status: DriverStatus) => all.filter((driver) => driver.status === status).length;
 
-    const totalDeliveries = all.reduce((sum, driver) => sum + driver.totalDeliveries, 0);
+    const totalDrivers = all.length;
 
     return [
       {
@@ -149,14 +149,13 @@ export class DriverList implements OnInit {
 
       {
         key: 'all' as const,
-        label: 'Total Deliveries',
-        value: totalDeliveries.toLocaleString(),
-        icon: 'box',
+        label: 'Total Drivers',
+        value: totalDrivers.toLocaleString(),
+        icon: 'users',
         tone: 'blue' as StatTone,
       },
     ];
   });
-
   /**
    * Filter by a status card.
    */
@@ -216,17 +215,15 @@ export class DriverList implements OnInit {
      * connected yet because their exact backend
      * request contracts have not been supplied.
      */
-    if (dialog.type === 'suspend') {
-      console.warn('Suspend driver endpoint has not been connected yet.', reason);
 
-      this.dialog.set(null);
+    if (dialog.type === 'suspend') {
+      this.suspendDriver(driver, reason);
       return;
     }
 
     if (dialog.type === 'activate') {
-      console.warn('Activate driver endpoint has not been connected yet.');
-
-      this.dialog.set(null);
+      this.activateDriver(driver);
+      return;
     }
   }
 
@@ -246,6 +243,33 @@ export class DriverList implements OnInit {
       error: (error) => {
         console.error('Failed to delete driver:', error);
 
+        this.dialog.set(null);
+      },
+    });
+  }
+  private suspendDriver(driver: Driver, reason: string): void {
+    if (this.svc.isLocked(driver)) {
+      return;
+    }
+
+    this.svc.suspend(driver.id, reason).subscribe({
+      next: () => {
+        this.dialog.set(null);
+      },
+      error: (error) => {
+        console.error('Failed to suspend driver:', error);
+        this.dialog.set(null);
+      },
+    });
+  }
+  //activate
+  private activateDriver(driver: Driver): void {
+    this.svc.unsuspend(driver.id).subscribe({
+      next: () => {
+        this.dialog.set(null);
+      },
+      error: (error) => {
+        console.error('Failed to activate driver:', error);
         this.dialog.set(null);
       },
     });

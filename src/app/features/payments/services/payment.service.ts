@@ -8,6 +8,7 @@ import {
   TxnType,
   canSettle,
   kes,
+  payoutOf,
 } from '../models/payment.model';
 
 const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString();
@@ -41,7 +42,7 @@ function txn(
   };
 }
 
-// Newest first. Replace with your API. Payouts are 97% of the matching payment.
+// Newest first. Replace with your API. A payout is the matching payment minus the platform fee.
 const SEED: Transaction[] = [
   txn(
     9901,
@@ -79,9 +80,9 @@ const SEED: Transaction[] = [
     'M-Pesa',
     'SJI2B8C4RZ',
   ),
-  txn(9895, 'payout', 'Grace Achieng', 'ORD-2846', 62_565, 'pending', 2, 'M-Pesa'),
+  txn(9895, 'payout', 'Grace Achieng', 'ORD-2846', payoutOf(64_500), 'pending', 2, 'M-Pesa'),
   txn(9894, 'payment', 'Eldoret Wholesale', 'ORD-2845', 118_200, 'settled', 3, 'Card', 'CH-5521'),
-  txn(9893, 'payout', 'Samuel Kiprop', 'ORD-2845', 114_654, 'pending', 3, 'M-Pesa'),
+  txn(9893, 'payout', 'Samuel Kiprop', 'ORD-2845', payoutOf(118_200), 'pending', 3, 'M-Pesa'),
   txn(9892, 'refund', 'Fatuma Hassan', 'ORD-2844', 4_800, 'settled', 4, 'M-Pesa', 'SJG7Q3V8LM'),
   txn(
     9891,
@@ -94,7 +95,7 @@ const SEED: Transaction[] = [
     'Bank transfer',
     'EQB-70419982',
   ),
-  txn(9890, 'payout', 'Rift Valley Growers', 'ORD-2843', 196_910, 'pending', 5, 'M-Pesa'),
+  txn(9890, 'payout', 'Rift Valley Growers', 'ORD-2843', payoutOf(203_000), 'pending', 5, 'M-Pesa'),
   txn(
     9889,
     'payment',
@@ -106,9 +107,29 @@ const SEED: Transaction[] = [
     'M-Pesa',
     'SJF1X6D0KT',
   ),
-  txn(9888, 'payout', 'Lucy Njeri', 'ORD-2842', 37_248, 'settled', 6, 'M-Pesa', 'SJF2Y9H3UC'),
+  txn(
+    9888,
+    'payout',
+    'Lucy Njeri',
+    'ORD-2842',
+    payoutOf(38_400),
+    'settled',
+    6,
+    'M-Pesa',
+    'SJF2Y9H3UC',
+  ),
   txn(9887, 'payment', 'Thika Retailers', 'ORD-2841', 71_300, 'settled', 8, 'M-Pesa', 'SJD5M7P1AB'),
-  txn(9886, 'payout', 'David Otieno', 'ORD-2841', 69_161, 'settled', 8, 'M-Pesa', 'SJD6N2R8GH'),
+  txn(
+    9886,
+    'payout',
+    'David Otieno',
+    'ORD-2841',
+    payoutOf(71_300),
+    'settled',
+    8,
+    'M-Pesa',
+    'SJD6N2R8GH',
+  ),
   txn(9885, 'refund', 'Brian Mutua', 'ORD-2840', 7_500, 'pending', 9, 'M-Pesa'),
   txn(
     9884,

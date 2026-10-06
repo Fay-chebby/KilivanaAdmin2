@@ -1,9 +1,14 @@
+import { PLATFORM_FEE_RATE } from '../../orders/models/order.model';
+
+export { PLATFORM_FEE_RATE };
+
 export type TxnType = 'payment' | 'payout' | 'refund';
 export type TxnStatus = 'settled' | 'pending';
 export type PaymentTab = 'all' | 'payout' | 'refund';
 
-/** Platform fee taken from each buyer payment. Payouts go to farmers after this fee. */
-export const PLATFORM_FEE_RATE = 0.03;
+/** What the farmer receives for a payment: the amount minus the platform fee (the rate comes from the order model). */
+export const payoutOf = (paymentAmount: number) =>
+  paymentAmount - Math.round(paymentAmount * PLATFORM_FEE_RATE);
 
 export interface Transaction {
   id: string; // TXN-9901

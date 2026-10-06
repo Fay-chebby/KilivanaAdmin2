@@ -4,6 +4,7 @@
 <header class="head">
   <h1>Payments &amp; Finance</h1>
   <div class="head-actions">
+    <a routerLink="/payments/reconciliation" class="btn ghost">Reconciliation</a>
     <button type="button" class="btn ghost" (click)="exportCsv()">
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
         <path
@@ -79,7 +80,7 @@
     <strong [class.down]="stats().grossDelta < 0"
       >{{ stats().grossDelta >= 0 ? '+' : '' }}{{ stats().grossDelta }}%</strong
     >
-    order volume vs last month. Revenue is the 3% platform fee on each payment.
+    order volume vs last month. Revenue is the {{ feePct }}% platform fee on each payment.
   </p>
 </section>
 

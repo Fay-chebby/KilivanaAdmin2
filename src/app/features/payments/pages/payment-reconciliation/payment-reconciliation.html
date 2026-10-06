@@ -1,1 +1,275 @@
-<p>payment-reconciliation works!</p>
+<nav class="crumbs" aria-label="Breadcrumb">
+  <span>AgriAdmin</span><span class="sep">/</span><a routerLink="/payments">Payments</a
+  ><span class="sep">/</span><span class="cur">Reconciliation</span>
+</nav>
+<header class="head">
+  <div>
+    <h1>Payment Reconciliation</h1>
+    <p class="sub">Compare settled transactions with your M-Pesa and bank statements.</p>
+  </div>
+  <div class="head-actions">
+    <input #picker type="file" accept=".csv,text/csv" hidden (change)="onFile($event)" />
+    <button type="button" class="btn primary" (click)="picker.click()">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <path
+          d="M12 15V4m0 0L8 8m4-4l4 4M5 19h14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      Import statement
+    </button>
+  </div>
+</header>
+<p class="format">
+  CSV columns: <code>date</code> (yyyy-mm-dd), <code>reference</code>, <code>amount</code>,
+  <code>direction</code> (in or out).
+</p>
+
+@if (notice(); as n) {
+  <div class="notice" [class.bad]="!n.ok" role="status">
+    <div>
+      <span>{{ n.message }}</span>
+      @if (importErrors().length) {
+        <ul>
+          @for (e of importErrors(); track $index) {
+            <li>{{ e }}</li>
+          }
+        </ul>
+      }
+    </div>
+    <button type="button" class="x" aria-label="Dismiss message" (click)="dismiss()">
+      &times;
+    </button>
+  </div>
+}
+
+<section class="stats">
+  <app-stat-card
+    label="Matched"
+    [value]="stats().matched.toString()"
+    icon="check-circle"
+    tone="green"
+  />
+  <app-stat-card
+    label="Needs review"
+    [value]="stats().review.toString()"
+    icon="alert"
+    tone="amber"
+  />
+  <app-stat-card
+    label="Unreconciled value"
+    [value]="kes(stats().unreconciled)"
+    icon="dollar"
+    tone="red"
+  />
+  <app-stat-card
+    label="Reconciled rate"
+    [value]="stats().reconciledRate + '%'"
+    icon="percent"
+    tone="blue"
+  />
+</section>
+
+<div class="chips" role="group" aria-label="Filter items">
+  @for (f of filters; track f.key) {
+    <button
+      type="button"
+      class="chip"
+      [class.on]="filter() === f.key"
+      [attr.aria-pressed]="filter() === f.key"
+      (click)="setFilter(f.key)"
+    >
+      {{ f.label }} <span class="count">{{ counts()[f.key] }}</span>
+    </button>
+  }
+</div>
+
+<div class="layout">
+  <section class="card table-card">
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Our record</th>
+            <th>Statement</th>
+            <th class="num">Expected</th>
+            <th class="num">On statement</th>
+            <th class="num">Difference</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (i of pageRows(); track i.key) {
+            <tr [class.sel]="i.key === selectedKey()" (click)="select(i.key)">
+              <td>
+                @if (i.resolution) {
+                  <span class="pill resolved">Resolved</span>
+                } @else {
+                  <span [class]="'pill ' + i.kind">{{ kindLabel[i.kind] }}</span>
+                }
+              </td>
+              <td>
+                @if (i.txn; as t) {
+                  <span class="strong">{{ t.id }}</span
+                  ><span class="small">{{ t.party }}</span>
+                } @else {
+                  <span class="muted">No record</span>
+                }
+              </td>
+              <td>
+                @if (i.line; as l) {
+                  <span class="mono">{{ l.reference }}</span
+                  ><span class="small">{{ l.provider }}, money {{ l.direction }}</span>
+                } @else {
+                  <span class="muted">Not on statement</span>
+                }
+              </td>
+              <td class="num mono">{{ i.expected === null ? '—' : kes(i.expected) }}</td>
+              <td class="num mono">{{ i.actual === null ? '—' : kes(i.actual) }}</td>
+              <td class="num mono strong" [class.neg]="i.variance !== 0 && !i.resolution">
+                {{ i.kind === 'matched' ? '—' : signedKes(i.variance) }}
+              </td>
+              <td class="mono muted">{{ i.date | date: 'yyyy-MM-dd' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty">
+                @if (filter() === 'review') {
+                  Nothing needs review. Every settled transaction matches the statement.
+                } @else {
+                  No items here yet. Import a statement to start.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <footer class="foot">
+      <span>{{ range() }}</span>
+      @if (totalPages() > 1) {
+        <div class="pager">
+          <button type="button" class="btn small" [disabled]="page() === 1" (click)="prev()">
+            Previous
+          </button>
+          <span class="pg">Page {{ page() }} of {{ totalPages() }}</span>
+          <button
+            type="button"
+            class="btn small"
+            [disabled]="page() === totalPages()"
+            (click)="next()"
+          >
+            Next
+          </button>
+        </div>
+      }
+    </footer>
+  </section>
+
+  <aside class="card panel" aria-live="polite">
+    @if (selected(); as s) {
+      <div class="p-head">
+        <strong>{{ s.txn ? s.txn.id : s.line?.reference }}</strong>
+        @if (s.resolution) {
+          <span class="pill resolved">Resolved</span>
+        } @else {
+          <span [class]="'pill ' + s.kind">{{ kindLabel[s.kind] }}</span>
+        }
+      </div>
+      <p class="reason">{{ s.reason }}</p>
+
+      <dl>
+        @if (s.txn; as t) {
+          <dt>Transaction</dt>
+          <dd>
+            <a [routerLink]="['/payments', t.id]">{{ t.id }}</a
+            >, {{ typeLabel[t.type] }}
+          </dd>
+          <dt>Party</dt>
+          <dd>{{ t.party }}</dd>
+          <dt>Order</dt>
+          <dd class="mono">{{ t.reference }}</dd>
+        }
+        @if (s.line; as l) {
+          <dt>Statement line</dt>
+          <dd class="mono">{{ l.id }}, {{ l.provider }}</dd>
+          <dt>Reference</dt>
+          <dd class="mono">{{ l.reference }}</dd>
+        }
+        <dt>Expected</dt>
+        <dd class="mono">{{ s.expected === null ? '—' : kes(s.expected) }}</dd>
+        <dt>On statement</dt>
+        <dd class="mono">{{ s.actual === null ? '—' : kes(s.actual) }}</dd>
+        @if (s.kind !== 'matched') {
+          <dt>Difference</dt>
+          <dd class="mono neg">{{ signedKes(s.variance) }}</dd>
+        }
+      </dl>
+
+      @if (s.kind === 'matched') {
+        <p class="ok">This item matches. There is nothing to do.</p>
+      } @else if (s.resolution; as r) {
+        <div class="resolved-box">
+          <strong>Resolved on {{ r.at | date: 'd MMM y, h:mm a' }}</strong>
+          <p>{{ r.note }}</p>
+          <button type="button" class="btn small" (click)="reopen()">Reopen</button>
+        </div>
+      } @else {
+        @if (s.kind === 'unknown') {
+          <div class="action">
+            <label for="link-target">Link to a transaction that is not on the statement</label>
+            <div class="row">
+              <select
+                id="link-target"
+                [value]="linkTarget()"
+                (change)="linkTarget.set($any($event.target).value)"
+              >
+                <option value="">Choose a transaction</option>
+                @for (o of linkOptions(); track o.key) {
+                  <option [value]="o.key" [selected]="o.key === linkTarget()">
+                    {{ o.txn?.id }}, {{ o.txn?.party }}, {{ kes(o.expected ?? 0) }}
+                  </option>
+                }
+              </select>
+              <button type="button" class="btn small" [disabled]="!linkTarget()" (click)="link()">
+                Link
+              </button>
+            </div>
+            @if (!linkOptions().length) {
+              <p class="hint">Every settled transaction is already on the statement.</p>
+            }
+          </div>
+        }
+        <div class="action">
+          <label for="note">Explain the difference</label>
+          <textarea
+            id="note"
+            rows="3"
+            [attr.maxlength]="maxNote"
+            [value]="note()"
+            (input)="note.set($any($event.target).value)"
+            placeholder="For example: the bank deducted a KSh 500 transfer charge."
+          ></textarea>
+          <div class="row end">
+            <span class="hint">{{ note().trim().length }}/{{ maxNote }}</span>
+            <button
+              type="button"
+              class="btn primary small"
+              [disabled]="noteTooShort()"
+              (click)="resolve()"
+            >
+              Mark resolved
+            </button>
+          </div>
+        </div>
+      }
+    } @else {
+      <p class="empty">Select a row to see the details and resolve it.</p>
+    }
+  </aside>
+</div>

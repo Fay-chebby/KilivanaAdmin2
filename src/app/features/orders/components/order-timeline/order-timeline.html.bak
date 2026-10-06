@@ -3,8 +3,9 @@
   <ol>
     @for (e of events(); track $index; let last = $last) {
       <li [class.last]="last">
-        <time class="mono">{{ when(e.createdAt) }}</time>
+        <time class="mono">{{ when(e.at) }}</time>
         <span class="text">{{ e.text }}</span>
+        <span class="actor">{{ e.actor }}</span>
       </li>
     }
   </ol>

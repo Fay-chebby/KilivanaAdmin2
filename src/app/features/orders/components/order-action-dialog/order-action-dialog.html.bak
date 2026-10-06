@@ -11,14 +11,14 @@
     @switch (kind()) {
       @case ('payment') {
         <p>
-          Confirm that the buyer has paid {{ total() | currencyKsh }} for
+          Confirm that {{ order().buyer.name }} has paid {{ total() | currencyKsh }} for
           {{ order().code }}. M-Pesa payments are normally recorded automatically.
         </p>
       }
       @case ('cancel') {
         <p>
           {{ order().code }} will be cancelled and the buyer and farmer notified.{{
-            order().paymentStatus === 'paid'
+            order().payment.status === 'paid'
               ? ' The buyer will be refunded ' + (total() | currencyKsh) + '.'
               : ''
           }}
@@ -32,19 +32,19 @@
       @case ('resolve_buyer') {
         <p>
           The order is cancelled and {{ total() | currencyKsh }} is refunded to
-          the buyer.
+          {{ order().buyer.name }}.
         </p>
       }
       @case ('resolve_farmer') {
         <p>
           The order is completed and {{ payout() | currencyKsh }} is paid to
-          the farmer after the platform fee.
+          {{ order().farmer.name }} after the platform fee.
         </p>
       }
       @case ('release') {
         <p>
           The goods were delivered. {{ payout() | currencyKsh }} will be paid to
-          the farmer after the platform fee and the order will be completed.
+          {{ order().farmer.name }} after the platform fee and the order will be completed.
         </p>
       }
     }

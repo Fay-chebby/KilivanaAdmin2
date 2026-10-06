@@ -47,6 +47,9 @@ h1 {
   background: #0f7b3a;
   color: #fff;
 }
+a.btn {
+  text-decoration: none;
+}
 .btn.primary:hover:not(:disabled) {
   background: #0c6a32;
 }

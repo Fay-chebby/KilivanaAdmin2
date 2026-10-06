@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Driver, DriverFormValue } from '../models/driver.model';
 
@@ -194,6 +194,63 @@ export class DriverService {
           if (driver) {
             this.flash(`${driver.fullName} was deleted.`);
           }
+        }),
+      );
+  }
+  suspend(id: number, reason: string): Observable<ApiResponse<DriverApiResponse>> {
+    const params = new HttpParams().set('reason', reason.trim());
+
+    return this.http
+      .put<ApiResponse<DriverApiResponse>>(
+        `${API_BASE_URL}/admin/drivers/${id}/suspend`,
+        {},
+        {
+          headers: NGROK_HEADERS,
+          params,
+        },
+      )
+      .pipe(
+        tap((response) => {
+          if (!response.success) {
+            this.flash(response.message || 'Failed to suspend driver.', 'error');
+
+            return;
+          }
+
+          const driver = this.fromApi(response.data);
+
+          this._drivers.update((drivers) =>
+            drivers.map((item) => (item.id === driver.id ? driver : item)),
+          );
+
+          this.flash(`${driver.fullName} was suspended.`);
+        }),
+      );
+  }
+  unsuspend(id: number): Observable<ApiResponse<DriverApiResponse>> {
+    return this.http
+      .put<ApiResponse<DriverApiResponse>>(
+        `${API_BASE_URL}/admin/drivers/${id}/unsuspend`,
+        {},
+        {
+          headers: NGROK_HEADERS,
+        },
+      )
+      .pipe(
+        tap((response) => {
+          if (!response.success) {
+            this.flash(response.message || 'Failed to activate driver.', 'error');
+
+            return;
+          }
+
+          const driver = this.fromApi(response.data);
+
+          this._drivers.update((drivers) =>
+            drivers.map((item) => (item.id === driver.id ? driver : item)),
+          );
+
+          this.flash(`${driver.fullName} was activated.`);
         }),
       );
   }

@@ -6,6 +6,7 @@ import { PaymentActionDialog } from '../../components/payment-action-dialog/paym
 import { ChartPoint, RevenueChart } from '../../components/revenue-chart/revenue-chart';
 import {
   PAYMENT_TABS,
+  PLATFORM_FEE_RATE,
   PayResult,
   PaymentTab,
   TXN_STATUS_LABEL,
@@ -40,6 +41,7 @@ export class PaymentList {
   readonly compactKes = compactKes;
   readonly canSettle = canSettle;
   readonly stats = this.service.stats;
+  readonly feePct = Math.round(PLATFORM_FEE_RATE * 1000) / 10;
 
   tab = signal<PaymentTab>('all');
   page = signal(1);

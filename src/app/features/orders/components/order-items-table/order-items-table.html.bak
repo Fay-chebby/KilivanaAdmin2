@@ -1,19 +1,19 @@
 <section class="card">
   <h2>Order items</h2>
   <ul class="items">
-    @for (i of order().items; track i.id) {
+    @for (i of order().items; track i.name) {
       <li>
         <div>
           @if (i.productId) {
-            <a [routerLink]="['/products', i.productId]">{{ i.productName }}</a>
+            <a [routerLink]="['/products', i.productId]">{{ i.name }}</a>
           } @else {
-            <strong>{{ i.productName }}</strong>
+            <strong>{{ i.name }}</strong>
           }
-          <small>Seller #{{ i.sellerId }}</small>
+          <small>Supplied by {{ order().farmer.name }}</small>
         </div>
         <div class="r">
-          <small>{{ num(i.quantity) }} {{ i.unit }} × {{ i.unitPrice | currencyKsh }}</small>
-          <strong class="mono">{{ i.quantity * i.unitPrice | currencyKsh }}</strong>
+          <small>{{ num(i.qty) }} {{ i.unit }} × {{ i.unitPriceKes | currencyKsh }}</small>
+          <strong class="mono">{{ i.qty * i.unitPriceKes | currencyKsh }}</strong>
         </div>
       </li>
     }
