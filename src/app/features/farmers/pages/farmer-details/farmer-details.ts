@@ -5,23 +5,27 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { EMPTY, catchError, map, switchMap, tap } from 'rxjs';
 import { FarmerService, apiError } from '../../services/farmer.service';
+import { FarmCard } from '../../components/farm-card/farm-card';
 import { FarmerBadge } from '../../components/farmer-badge/Farmer badge ';
 import { FarmerActionDialog } from '../../components/farmer-action-dialog/farmer-action-dialog';
 import {
+  DOC_LABEL,
   FarmerAction,
   FarmerDetail,
   STATUS_LABEL,
   avatarColor,
+  docTone,
   initials,
   statusTone,
+  titleCase,
 } from '../../models/farmer.model';
 
-type Tab = 'overview' | 'images';
+type Tab = 'overview' | 'farms' | 'documents';
 type LoadState = 'loading' | 'ready' | 'notfound' | 'error';
 
 @Component({
   selector: 'app-farmer-details',
-  imports: [RouterLink, DatePipe, FarmerBadge, FarmerActionDialog],
+  imports: [RouterLink, DatePipe, FarmerBadge, FarmerActionDialog, FarmCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './farmer-details.html',
   styleUrl: './farmer-details.scss',
@@ -33,11 +37,15 @@ export class FarmerDetails {
   readonly statusLabel = STATUS_LABEL;
   readonly statusTone = statusTone;
   readonly initials = initials;
+  readonly docLabel = DOC_LABEL;
+  readonly docTone = docTone;
+  readonly titleCase = titleCase;
   readonly avatarColor = avatarColor;
 
   readonly tabs: { id: Tab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
-    { id: 'images', label: 'Images' },
+    { id: 'farms', label: 'Farms' },
+    { id: 'documents', label: 'Documents' },
   ];
   readonly tab = signal<Tab>('overview');
   readonly state = signal<LoadState>('loading');

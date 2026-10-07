@@ -83,7 +83,9 @@
             <th>Farmer</th>
             <th>ID</th>
             <th>Phone</th>
-            <th>Region</th>
+            <th>County</th>
+            <th>Crops</th>
+            <th>Farms</th>
             <th>Status</th>
             <th>Joined</th>
             <th>Actions</th>
@@ -114,6 +116,20 @@
               <td class="mono">{{ f.code }}</td>
               <td class="mono">{{ f.phone }}</td>
               <td>{{ f.region }}</td>
+              <td>
+                <div class="crops">
+                  @for (c of f.crops.slice(0, 3); track c) {
+                    <span class="crop">{{ c }}</span>
+                  }
+                  @if (f.crops.length > 3) {
+                    <span class="muted">+{{ f.crops.length - 3 }} more</span>
+                  }
+                  @if (!f.crops.length) {
+                    <span class="muted">—</span>
+                  }
+                </div>
+              </td>
+              <td>{{ f.farmCount }}</td>
               <td>
                 <app-farmer-badge [tone]="statusTone(f.status)">{{
                   statusLabel[f.status]
@@ -169,7 +185,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="8" class="empty">
+              <td colspan="10" class="empty">
                 @if (loading()) {
                   <strong>Loading farmers…</strong>
                 } @else if (loadError()) {

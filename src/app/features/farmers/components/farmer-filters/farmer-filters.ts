@@ -16,6 +16,7 @@ export class FarmerFilters {
     { value: 'pending', label: 'Pending' },
     { value: 'suspended', label: 'Suspended' },
     { value: 'rejected', label: 'Rejected' },
+    { value: 'inactive', label: 'Inactive' },
   ];
   readonly changed = output<FarmerFilterValue>();
 

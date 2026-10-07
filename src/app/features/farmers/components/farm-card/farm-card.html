@@ -1,0 +1,72 @@
+<article class="farm">
+  @if (farm().imageUrl) {
+    <img class="cover" [src]="farm().imageUrl!" [alt]="farm().name" loading="lazy" />
+  }
+
+  <div class="body">
+    <header>
+      <h4>{{ farm().name }}</h4>
+
+      <app-farmer-badge [tone]="farmTone(farm().status)">
+        {{ titleCase(farm().status) || 'Unknown' }}
+      </app-farmer-badge>
+    </header>
+
+    <p class="loc">
+      {{ location() }}
+    </p>
+
+    <dl>
+      <div>
+        <dt>Size</dt>
+        <dd>
+          {{ farm().sizeAcres !== null ? (farm().sizeAcres | number: '1.0-2') + ' acres' : '—' }}
+        </dd>
+      </div>
+
+      <div>
+        <dt>Ownership</dt>
+        <dd>
+          {{ titleCase(farm().ownershipType) || '—' }}
+        </dd>
+      </div>
+    </dl>
+
+    <h5>Crops</h5>
+
+    @if (farm().crops.length) {
+      <ul class="crops">
+        @for (c of farm().crops; track c.id) {
+          <li>
+            <div>
+              <strong>{{ c.name }}</strong>
+
+              <small>
+                {{ c.variety }}
+
+                @if (c.variety && c.areaAcres !== null) {
+                  ·
+                }
+
+                @if (c.areaAcres !== null) {
+                  {{ c.areaAcres | number: '1.0-2' }} acres
+                }
+
+                @if (c.expectedHarvestDate) {
+                  · harvest
+                  {{ c.expectedHarvestDate | date: 'mediumDate' }}
+                }
+              </small>
+            </div>
+
+            <app-farmer-badge [tone]="cropTone(c.status)">
+              {{ titleCase(c.status) }}
+            </app-farmer-badge>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="none">No crops recorded.</p>
+    }
+  </div>
+</article>

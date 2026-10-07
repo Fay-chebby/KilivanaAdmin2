@@ -1,22 +1,31 @@
 @switch (state()) {
-  @case ('loading') { <section class="page"><div class="card empty"><strong>Loading farmer…</strong></div></section> }
+  @case ('loading') {
+    <section class="page">
+      <div class="card empty"><strong>Loading farmer…</strong></div>
+    </section>
+  }
   @case ('notfound') {
-    <section class="page"><div class="card empty">
-      <strong>Farmer not found</strong><span>This farmer may have been removed.</span>
-      <a class="btn solid" routerLink="/farmers">Back to farmers</a>
-    </div></section>
+    <section class="page">
+      <div class="card empty">
+        <strong>Farmer not found</strong><span>This farmer may have been removed.</span>
+        <a class="btn solid" routerLink="/farmers">Back to farmers</a>
+      </div>
+    </section>
   }
   @case ('error') {
-    <section class="page"><div class="card empty">
-      <strong>Couldn't load this farmer</strong><span>{{ errorMsg() }}</span>
-      <a class="btn solid" routerLink="/farmers">Back to farmers</a>
-    </div></section>
+    <section class="page">
+      <div class="card empty">
+        <strong>Couldn't load this farmer</strong><span>{{ errorMsg() }}</span>
+        <a class="btn solid" routerLink="/farmers">Back to farmers</a>
+      </div>
+    </section>
   }
   @case ('ready') {
     @if (farmer(); as f) {
       <section class="page">
         <nav class="crumbs" aria-label="Breadcrumb">
-          <a routerLink="/dashboard">AgriAdmin</a> / <a routerLink="/farmers">Farmers</a> / <span>{{ f.name }}</span>
+          <a routerLink="/dashboard">AgriAdmin</a> / <a routerLink="/farmers">Farmers</a> /
+          <span>{{ f.name }}</span>
         </nav>
 
         <header class="head">
@@ -29,8 +38,14 @@
                 <button type="button" class="btn reject" (click)="ask('reject')">Reject</button>
                 <button type="button" class="btn approve" (click)="ask('approve')">Approve</button>
               }
-              @case ('verified') { <button type="button" class="btn reject" (click)="ask('suspend')">Suspend</button> }
-              @case ('suspended') { <button type="button" class="btn approve" (click)="ask('reinstate')">Reinstate</button> }
+              @case ('verified') {
+                <button type="button" class="btn reject" (click)="ask('suspend')">Suspend</button>
+              }
+              @case ('suspended') {
+                <button type="button" class="btn approve" (click)="ask('reinstate')">
+                  Reinstate
+                </button>
+              }
             }
           </div>
         </header>
@@ -38,24 +53,47 @@
         <div class="layout">
           <aside>
             <div class="card profile">
-              <span class="avatar lg" [style.background]="avatarColor(f.name)">{{ initials(f.name) }}</span>
+              <span class="avatar lg" [style.background]="avatarColor(f.name)">{{
+                initials(f.name)
+              }}</span>
               <h2>{{ f.name }}</h2>
               <span class="code">{{ f.code }}</span>
-              <app-farmer-badge [tone]="statusTone(f.status)">{{ statusLabel[f.status] }}</app-farmer-badge>
+              <app-farmer-badge [tone]="statusTone(f.status)">{{
+                statusLabel[f.status]
+              }}</app-farmer-badge>
               <dl>
-                <div><dt>Region</dt><dd>{{ f.region }}</dd></div>
-                <div><dt>Phone</dt><dd>{{ f.phone }}</dd></div>
-                <div><dt>Email</dt><dd class="trunc" [title]="f.email">{{ f.email }}</dd></div>
-                <div><dt>Username</dt><dd>{{ f.username }}</dd></div>
-                <div><dt>Joined</dt><dd>{{ f.joinedAt | date:'yyyy-MM-dd' }}</dd></div>
+                <div>
+                  <dt>Region</dt>
+                  <dd>{{ f.region }}</dd>
+                </div>
+                <div>
+                  <dt>Phone</dt>
+                  <dd>{{ f.phone }}</dd>
+                </div>
+                <div>
+                  <dt>Email</dt>
+                  <dd class="trunc" [title]="f.email">{{ f.email }}</dd>
+                </div>
+                <div>
+                  <dt>Username</dt>
+                  <dd>{{ f.username }}</dd>
+                </div>
+                <div>
+                  <dt>Joined</dt>
+                  <dd>{{ f.joinedAt | date: 'yyyy-MM-dd' }}</dd>
+                </div>
               </dl>
             </div>
 
             <div class="card">
               <h3 class="label">Account</h3>
               <ul class="list">
-                <li><span>Account status</span><strong>{{ f.accountStatus }}</strong></li>
-                <li><span>Verification</span><strong>{{ f.verification }}</strong></li>
+                <li>
+                  <span>Account status</span><strong>{{ f.accountStatus }}</strong>
+                </li>
+                <li>
+                  <span>Verification</span><strong>{{ f.verification }}</strong>
+                </li>
               </ul>
             </div>
           </aside>
@@ -63,7 +101,15 @@
           <div class="main">
             <div class="tabs" role="tablist">
               @for (t of tabs; track t.id) {
-                <button type="button" role="tab" [class.on]="tab() === t.id" [attr.aria-selected]="tab() === t.id" (click)="tab.set(t.id)">{{ t.label }}</button>
+                <button
+                  type="button"
+                  role="tab"
+                  [class.on]="tab() === t.id"
+                  [attr.aria-selected]="tab() === t.id"
+                  (click)="tab.set(t.id)"
+                >
+                  {{ t.label }}
+                </button>
               }
             </div>
 
@@ -73,32 +119,104 @@
                   <div class="card">
                     <h3 class="label">Farm profile</h3>
                     <ul class="list">
-                      <li><span>Farm name</span><strong>{{ p.farmName }}</strong></li>
-                      <li><span>Location</span><strong>{{ p.location }}</strong></li>
+                      <li>
+                        <span>Farm name</span><strong>{{ p.farmName }}</strong>
+                      </li>
+                      <li>
+                        <span>Location</span><strong>{{ p.location }}</strong>
+                      </li>
                     </ul>
-                    @if (p.farmDetails) { <h3 class="label sub">About the farm</h3><p class="text">{{ p.farmDetails }}</p> }
-                    @if (p.verificationInfo) { <h3 class="label sub">Verification notes</h3><p class="text">{{ p.verificationInfo }}</p> }
+                    @if (p.farmDetails) {
+                      <h3 class="label sub">About the farm</h3>
+                      <p class="text">{{ p.farmDetails }}</p>
+                    }
+                    @if (p.verificationInfo) {
+                      <h3 class="label sub">Verification notes</h3>
+                      <p class="text">{{ p.verificationInfo }}</p>
+                    }
+                    @if (p.images.length) {
+                      <h3 class="label sub">Photos</h3>
+                      <div class="imgs">
+                        @for (img of p.images; track img.id) {
+                          <figure>
+                            <img [src]="img.url" [alt]="p.farmName + ' photo'" loading="lazy" />
+                            @if (img.isPrimary) {
+                              <figcaption>Primary</figcaption>
+                            }
+                          </figure>
+                        }
+                      </div>
+                    }
                   </div>
                 } @else {
                   <div class="card empty">
                     <strong>No farm profile yet</strong>
                     <span>Add the farm name and location so this farmer can be reviewed.</span>
-                    <a class="btn solid" [routerLink]="['/farmers', f.id, 'edit']">Add farm profile</a>
+                    <a class="btn solid" [routerLink]="['/farmers', f.id, 'edit']"
+                      >Add farm profile</a
+                    >
                   </div>
                 }
+
+                <div class="card">
+                  <h3 class="label">Crops grown</h3>
+                  @if (f.crops.length) {
+                    <div class="chips">
+                      @for (c of f.crops; track c) {
+                        <span class="chip">{{ c }}</span>
+                      }
+                    </div>
+                  } @else {
+                    <p class="note">No crops recorded yet.</p>
+                  }
+                </div>
               }
-              @case ('images') {
-                @if (f.profile?.images?.length) {
-                  <div class="imgs">
-                    @for (img of f.profile!.images; track img.id) {
-                      <figure>
-                        <img [src]="img.url" [alt]="f.profile!.farmName + ' photo'" loading="lazy" />
-                        @if (img.isPrimary) { <figcaption>Primary</figcaption> }
-                      </figure>
+
+              @case ('farms') {
+                @if (f.farms.length) {
+                  <div class="farm-grid">
+                    @for (farm of f.farms; track farm.id) {
+                      <app-farm-card [farm]="farm" />
                     }
                   </div>
                 } @else {
-                  <div class="card empty"><strong>No images uploaded</strong><span>Images this farmer uploads will appear here.</span></div>
+                  <div class="card empty">
+                    <strong>No farms yet</strong
+                    ><span>Farms registered by this farmer will appear here.</span>
+                  </div>
+                }
+              }
+
+              @case ('documents') {
+                @if (f.documents.length) {
+                  <div class="card">
+                    <ul class="list">
+                      @for (d of f.documents; track d.id) {
+                        <li>
+                          <div>
+                            <strong>{{ docLabel[d.type] || titleCase(d.type) }}</strong>
+                            <small
+                              >Uploaded {{ d.uploadedAt | date: 'mediumDate' }}
+                              @if (d.rejectionReason) {
+                                · {{ d.rejectionReason }}
+                              }
+                            </small>
+                          </div>
+                          <div class="doc-right">
+                            <app-farmer-badge [tone]="docTone(d.status)">{{
+                              titleCase(d.status)
+                            }}</app-farmer-badge>
+                            <a class="link" [href]="d.url" target="_blank" rel="noopener">View</a>
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                } @else {
+                  <div class="card empty">
+                    <strong>No documents uploaded</strong
+                    ><span>KYC documents from this farmer will appear here.</span>
+                  </div>
                 }
               }
             }
@@ -107,8 +225,14 @@
       </section>
 
       @if (dialog(); as action) {
-        <app-farmer-action-dialog [farmer]="f" [action]="action" [busy]="busy()" [error]="actionError()"
-                                  (confirmed)="confirm($event)" (cancelled)="closeDialog()" />
+        <app-farmer-action-dialog
+          [farmer]="f"
+          [action]="action"
+          [busy]="busy()"
+          [error]="actionError()"
+          (confirmed)="confirm($event)"
+          (cancelled)="closeDialog()"
+        />
       }
     }
   }

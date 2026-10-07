@@ -333,3 +333,23 @@ td {
     border-radius: 999px;
   }
 }
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  background: #ecfdf3;
+  color: #15803d;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+}
+.doc-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.farm-grid {
+  align-items: start;
+}
