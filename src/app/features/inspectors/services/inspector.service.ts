@@ -1,276 +1,838 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+
 import {
+  ApiResponse,
   FarmAssignment,
   FarmPhoto,
   Inspector,
   InspectorCreatePayload,
+  InspectorImage,
   InspectorPayload,
-  SEED_KYC,
-  VerificationStatus,
+  InspectorProfileRequest,
+  InspectorProfileResponse,
+  InspectionRequest,
+  InspectionResponse,
+  InspectionStatus,
+  UserRegistrationRequest,
+  UserResponse,
+  InspectorStatus,
 } from '../models/inspector.model';
 
-/**
- * In-memory implementation so everything works today.
- * When your API is ready, replace the bodies with HttpClient calls
- * (keep the method names and the components won't change).
- */
-@Injectable({ providedIn: 'root' })
-export class InspectorService {
-  private readonly _inspectors = signal<Inspector[]>([
-    {
-      id: '1',
-      code: 'I-001',
-      name: 'Dr. Wambui Njoroge',
-      email: 'w.njoroge@agri.co.ke',
-      phone: '0712000001',
-      specialization: 'Tea & Coffee',
-      region: 'Kiambu',
-      status: 'active',
-      pending: 0,
-      completed: 127,
-      passRate: 91,
-      rating: 4.7,
-      createdAt: '2025-01-10',
-      mustChangePassword: false,
-      kyc: { ...SEED_KYC },
-    },
-    {
-      id: '2',
-      code: 'I-002',
-      name: 'Brian Kiprop',
-      email: 'b.kiprop@agri.co.ke',
-      phone: '0722000002',
-      specialization: 'Grains & Cereals',
-      region: 'Uasin Gishu',
-      status: 'active',
-      pending: 0,
-      completed: 84,
-      passRate: 88,
-      rating: 4.5,
-      createdAt: '2025-02-03',
-      mustChangePassword: false,
-      kyc: { ...SEED_KYC },
-    },
-    {
-      id: '3',
-      code: 'I-003',
-      name: 'Faith Achieng',
-      email: 'f.achieng@agri.co.ke',
-      phone: '0733000003',
-      specialization: 'Vegetables & Horticulture',
-      region: 'Kisumu',
-      status: 'active',
-      pending: 0,
-      completed: 63,
-      passRate: 94,
-      rating: 4.9,
-      createdAt: '2025-03-15',
-      mustChangePassword: false,
-      kyc: { ...SEED_KYC },
-    },
-    {
-      id: '4',
-      code: 'I-004',
-      name: 'Peter Mutua',
-      email: 'p.mutua@agri.co.ke',
-      phone: '0700000004',
-      specialization: 'Root Crops',
-      region: 'Nyeri',
-      status: 'on_leave',
-      pending: 0,
-      completed: 48,
-      passRate: 86,
-      rating: 4.3,
-      createdAt: '2025-04-01',
-      mustChangePassword: false,
-      kyc: { ...SEED_KYC },
-    },
-  ]);
+import { catchError, forkJoin, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 
-  private readonly _assignments = signal<FarmAssignment[]>([
-    {
-      id: 'a1',
-      inspectorId: '1',
-      farmerName: 'Wanjiru Kamau',
-      farmName: 'Kamau Tea Estate',
-      location: 'Limuru, Kiambu',
-      crop: 'Tea',
-      sizeAcres: 12,
-      dueDate: '2026-10-08',
-      status: 'pending',
-      notes: '',
-      photos: [],
-    },
-    {
-      id: 'a2',
-      inspectorId: '1',
-      farmerName: 'Achieng Otieno',
-      farmName: 'Otieno Lakeside Farm',
-      location: 'Nyando, Kisumu',
-      crop: 'Tea',
-      sizeAcres: 8,
-      dueDate: '2026-10-12',
-      status: 'pending',
-      notes: '',
-      photos: [],
-    },
-    {
-      id: 'a3',
-      inspectorId: '2',
-      farmerName: 'Hassan Abdi',
-      farmName: 'Abdi Maize Farm',
-      location: 'Eldoret, Uasin Gishu',
-      crop: 'Maize',
-      sizeAcres: 25,
-      dueDate: '2026-10-05',
-      status: 'pending',
-      notes: '',
-      photos: [],
-    },
-    {
-      id: 'a4',
-      inspectorId: '3',
-      farmerName: 'Njeri Mwangi',
-      farmName: 'Green Rows',
-      location: 'Kiambu Town, Kiambu',
-      crop: 'Tomatoes',
-      sizeAcres: 3,
-      dueDate: '2026-10-02',
-      status: 'verified',
-      notes: 'Farm confirmed, matches registration.',
-      photos: [],
-    },
-  ]);
+@Injectable({
+  providedIn: 'root',
+})
+export class InspectorService {
+  private readonly http = inject(HttpClient);
+
+  private readonly API = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+
+  // Ngrok header only
+  private readonly ngrokHeaders = new HttpHeaders({
+    'ngrok-skip-browser-warning': 'true',
+  });
+
+  private readonly _inspectors = signal<Inspector[]>([]);
+  private readonly _assignments = signal<FarmAssignment[]>([]);
+  private readonly _loading = signal(false);
 
   readonly inspectors = this._inspectors.asReadonly();
   readonly assignments = this._assignments.asReadonly();
+  readonly loading = this._loading.asReadonly();
 
   readonly stats = computed(() => {
-    const list = this._inspectors();
+    const inspectors = this._inspectors();
+    const assignments = this._assignments();
+
     return {
-      total: list.length,
-      active: list.filter((i) => i.status === 'active').length,
-      suspended: list.filter((i) => i.status === 'suspended').length,
-      pending: this._assignments().filter((a) => a.status === 'pending').length,
+      total: inspectors.length,
+
+      active: inspectors.filter((i) => i.status === 'active').length,
+
+      suspended: inspectors.filter((i) => i.status === 'suspended').length,
+
+      pending: assignments.filter(
+        (a) =>
+          a.status === 'pending' ||
+          a.inspectionStatus === 'ASSIGNED' ||
+          a.inspectionStatus === 'PENDING',
+      ).length,
     };
   });
 
-  getById(id: string) {
-    return this._inspectors().find((i) => i.id === id);
+  // =========================================================
+  // INSPECTOR LIST
+  // =========================================================
+
+  loadInspectors(): Observable<Inspector[]> {
+    this._loading.set(true);
+
+    return this.http
+      .get<ApiResponse<UserResponse[]>>(`${this.API}/admin/users/role/INSPECTOR`, {
+        headers: this.ngrokHeaders,
+      })
+      .pipe(
+        switchMap((response) => {
+          const users = response.data ?? [];
+
+          if (!users.length) {
+            return of([]);
+          }
+
+          return forkJoin(users.map((user) => this.buildInspector(user)));
+        }),
+
+        tap((inspectors) => {
+          this._inspectors.set(inspectors);
+          this._loading.set(false);
+        }),
+
+        catchError((error) => {
+          this._loading.set(false);
+          return throwError(() => error);
+        }),
+      );
   }
 
-  assignmentsFor(inspectorId: string) {
-    return this._assignments().filter((a) => a.inspectorId === inspectorId);
+  private buildInspector(user: UserResponse): Observable<Inspector> {
+    return forkJoin({
+      profile: this.getProfile(user.id).pipe(catchError(() => of(null))),
+
+      inspections: this.getInspectorInspections(user.id).pipe(catchError(() => of(null))),
+    }).pipe(
+      map(({ profile, inspections }) => {
+        const profileData = profile?.data ?? null;
+
+        const inspectionData = inspections?.data ?? [];
+
+        return this.mapInspector(user, profileData, inspectionData);
+      }),
+    );
   }
 
-  create(payload: InspectorCreatePayload): Inspector {
-    // Real API: send temporaryPassword to the backend (it must hash it and
-    // notify the inspector). Never store or return it in plain text.
-    const { temporaryPassword, idSighted, kyc, ...basic } = payload;
-    void temporaryPassword;
-    const n = this._inspectors().length + 1;
-    const inspector: Inspector = {
-      ...basic,
-      id: crypto.randomUUID(),
-      code: `I-${String(n).padStart(3, '0')}`,
-      pending: 0,
-      completed: 0,
-      passRate: 0,
-      rating: 0,
-      createdAt: new Date().toISOString().slice(0, 10),
-      mustChangePassword: true,
-      kyc: { ...kyc, verifiedAt: idSighted ? new Date().toISOString().slice(0, 10) : null },
+  // =========================================================
+  // GET INSPECTOR
+  // =========================================================
+
+  getById(id: number): Inspector | undefined {
+    return this._inspectors().find((inspector) => inspector.id === id);
+  }
+
+  getInspector(id: number): Observable<Inspector> {
+    const cached = this.getById(id);
+
+    if (cached) {
+      return of(cached);
+    }
+
+    return forkJoin({
+      user: this.getUser(id),
+      profile: this.getProfile(id),
+      inspections: this.getInspectorInspections(id),
+    }).pipe(
+      map(({ user, profile, inspections }) =>
+        this.mapInspector(user.data, profile.data, inspections.data ?? []),
+      ),
+
+      tap((inspector) => {
+        this._inspectors.update((list) => {
+          const exists = list.some((item) => item.id === inspector.id);
+
+          return exists
+            ? list.map((item) => (item.id === inspector.id ? inspector : item))
+            : [...list, inspector];
+        });
+      }),
+    );
+  }
+
+  // =========================================================
+  // USER
+  // =========================================================
+
+  getUser(id: number): Observable<ApiResponse<UserResponse>> {
+    return this.http.get<ApiResponse<UserResponse>>(`${this.API}/admin/users/${id}`, {
+      headers: this.ngrokHeaders,
+    });
+  }
+
+  // =========================================================
+  // PROFILE
+  // =========================================================
+
+  getProfile(userId: number): Observable<ApiResponse<InspectorProfileResponse>> {
+    return this.http.get<ApiResponse<InspectorProfileResponse>>(
+      `${this.API}/profiles/inspectors/${userId}`,
+      {
+        headers: this.ngrokHeaders,
+      },
+    );
+  }
+
+  createProfile(
+    userId: number,
+    payload: InspectorProfileRequest,
+  ): Observable<ApiResponse<InspectorProfileResponse>> {
+    return this.http.post<ApiResponse<InspectorProfileResponse>>(
+      `${this.API}/profiles/inspectors/${userId}`,
+      payload,
+      {
+        headers: this.ngrokHeaders,
+      },
+    );
+  }
+
+  updateProfile(
+    userId: number,
+    payload: InspectorProfileRequest,
+  ): Observable<ApiResponse<InspectorProfileResponse>> {
+    return this.http.put<ApiResponse<InspectorProfileResponse>>(
+      `${this.API}/profiles/inspectors/${userId}`,
+      payload,
+      {
+        headers: this.ngrokHeaders,
+      },
+    );
+  }
+
+  deleteProfile(userId: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.API}/profiles/inspectors/${userId}`, {
+      headers: this.ngrokHeaders,
+    });
+  }
+
+  // =========================================================
+  // CREATE
+  // =========================================================
+
+  create(payload: InspectorCreatePayload): Observable<Inspector> {
+    this._loading.set(true);
+
+    const userPayload: UserRegistrationRequest = {
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      password: payload.temporaryPassword,
+      role: 'INSPECTOR',
+      username: this.generateUsername(payload.name),
+      region: payload.region,
     };
-    this._inspectors.update((l) => [...l, inspector]);
-    return inspector;
+
+    return this.http
+      .post<ApiResponse<UserResponse>>(`${this.API}/admin/users`, userPayload, {
+        headers: this.ngrokHeaders,
+      })
+      .pipe(
+        switchMap((userResponse) => {
+          const user = userResponse.data;
+
+          const profilePayload: InspectorProfileRequest = {
+            inspectorDetails: payload.inspectorDetails,
+
+            specialization: payload.specialization,
+
+            assignedArea: payload.assignedArea,
+
+            status: this.toBackendInspectorStatus(payload.status),
+          };
+
+          return this.createProfile(user.id, profilePayload).pipe(
+            switchMap(() => this.activateUser(user.id)),
+
+            switchMap(() => this.getInspector(user.id)),
+
+            catchError((error) => {
+              return this.http
+                .delete<ApiResponse<void>>(`${this.API}/admin/users/${user.id}`, {
+                  headers: this.ngrokHeaders,
+                })
+                .pipe(switchMap(() => throwError(() => error)));
+            }),
+          );
+        }),
+
+        tap((inspector) => {
+          this._inspectors.update((list) => [
+            ...list.filter((item) => item.id !== inspector.id),
+            inspector,
+          ]);
+
+          this._loading.set(false);
+        }),
+
+        catchError((error) => {
+          this._loading.set(false);
+          return throwError(() => error);
+        }),
+      );
   }
 
-  update(id: string, payload: InspectorPayload) {
-    const { idSighted, kyc, ...basic } = payload;
-    this._inspectors.update((l) =>
-      l.map((i) =>
-        i.id === id
-          ? {
-              ...i,
-              ...basic,
-              kyc: {
-                ...i.kyc,
-                ...kyc,
-                verifiedAt: idSighted
-                  ? (i.kyc.verifiedAt ?? new Date().toISOString().slice(0, 10))
-                  : null,
-              },
-            }
-          : i,
-      ),
+  // =========================================================
+  // UPDATE
+  // =========================================================
+
+  update(id: number, payload: InspectorPayload): Observable<Inspector> {
+    this._loading.set(true);
+
+    const profilePayload: InspectorProfileRequest = {
+      inspectorDetails: payload.inspectorDetails,
+
+      specialization: payload.specialization,
+
+      assignedArea: payload.assignedArea,
+
+      status: this.toBackendInspectorStatus(payload.status),
+    };
+
+    return this.updateProfile(id, profilePayload).pipe(
+      switchMap(() => this.getInspector(id)),
+
+      tap((inspector) => {
+        this._inspectors.update((list) => list.map((item) => (item.id === id ? inspector : item)));
+
+        this._loading.set(false);
+      }),
+
+      catchError((error) => {
+        this._loading.set(false);
+        return throwError(() => error);
+      }),
     );
   }
 
-  /** 12 random characters, no look-alikes (0/O, 1/l/I) */
+  // =========================================================
+  // ACTIVATE
+  // =========================================================
+
+  activateUser(id: number): Observable<ApiResponse<UserResponse>> {
+    return this.http.put<ApiResponse<UserResponse>>(
+      `${this.API}/admin/users/${id}/activate`,
+      {},
+      {
+        headers: this.ngrokHeaders,
+      },
+    );
+  }
+
+  // =========================================================
+  // SUSPEND
+  // =========================================================
+  suspend(id: number, reason: string): Observable<Inspector> {
+    const params = new HttpParams().set('reason', reason);
+
+    return this.http
+      .put<ApiResponse<UserResponse>>(
+        `${this.API}/admin/inspectors/${id}/suspend`,
+        {},
+        {
+          headers: this.ngrokHeaders,
+          params,
+        },
+      )
+      .pipe(
+        switchMap(() => this.getInspector(id)),
+
+        tap((inspector) => {
+          const updatedInspector: Inspector = {
+            ...inspector,
+            status: 'suspended',
+            suspendReason: reason,
+          };
+
+          this._inspectors.update((list) =>
+            list.map((item) => (item.id === id ? updatedInspector : item)),
+          );
+        }),
+      );
+  }
+
+  // =========================================================
+  // UNSUSPEND
+  // =========================================================
+
+  reactivate(id: number): Observable<Inspector> {
+    return this.http
+      .put<ApiResponse<UserResponse>>(
+        `${this.API}/admin/inspectors/${id}/unsuspend`,
+        {},
+        {
+          headers: this.ngrokHeaders,
+        },
+      )
+      .pipe(
+        switchMap(() => this.getInspector(id)),
+
+        tap((inspector) => {
+          const updatedInspector: Inspector = {
+            ...inspector,
+            status: 'active',
+            suspendReason: undefined,
+          };
+
+          this._inspectors.update((list) =>
+            list.map((item) => (item.id === id ? updatedInspector : item)),
+          );
+        }),
+      );
+  }
+
+  // =========================================================
+  // DELETE
+  // =========================================================
+
+  remove(id: number): Observable<void> {
+    return this.deleteProfile(id).pipe(
+      switchMap(() =>
+        this.http.delete<ApiResponse<void>>(`${this.API}/admin/users/${id}`, {
+          headers: this.ngrokHeaders,
+        }),
+      ),
+
+      tap(() => {
+        this._inspectors.update((list) => list.filter((item) => item.id !== id));
+
+        this._assignments.update((list) => list.filter((item) => item.inspectorId !== id));
+      }),
+
+      map(() => undefined),
+    );
+  }
+
+  // =========================================================
+  // INSPECTIONS
+  // =========================================================
+
+  getInspectorInspections(inspectorId: number): Observable<ApiResponse<InspectionResponse[]>> {
+    return this.http.get<ApiResponse<InspectionResponse[]>>(
+      `${this.API}/admin/inspections/inspector/${inspectorId}`,
+      {
+        headers: this.ngrokHeaders,
+      },
+    );
+  }
+
+  assignmentsFor(inspectorId: number): FarmAssignment[] {
+    return this._assignments().filter((assignment) => assignment.inspectorId === inspectorId);
+  }
+
+  loadAssignments(inspectorId: number): Observable<FarmAssignment[]> {
+    return this.getInspectorInspections(inspectorId).pipe(
+      map((response) => (response.data ?? []).map((inspection) => this.mapAssignment(inspection))),
+
+      tap((assignments) => {
+        this._assignments.update((current) => [
+          ...current.filter((item) => item.inspectorId !== inspectorId),
+          ...assignments,
+        ]);
+      }),
+    );
+  }
+
+  // =========================================================
+  // UPDATE INSPECTION STATUS
+  // =========================================================
+
+  updateInspectionStatus(
+    inspectionId: number,
+    status: InspectionStatus,
+  ): Observable<InspectionResponse> {
+    const params = new HttpParams().set('status', status);
+
+    return this.http
+      .put<ApiResponse<InspectionResponse>>(
+        `${this.API}/admin/inspections/${inspectionId}/status`,
+        {},
+        {
+          headers: this.ngrokHeaders,
+          params,
+        },
+      )
+      .pipe(
+        tap((response) => {
+          this.updateAssignmentFromInspection(response.data);
+        }),
+
+        map((response) => response.data),
+      );
+  }
+
+  // =========================================================
+  // SUBMIT VERIFICATION
+  // =========================================================
+
+  submitVerification(
+    assignment: FarmAssignment,
+    result: string,
+    notes: string,
+  ): Observable<InspectionResponse> {
+    const payload: InspectionRequest = {
+      inspectorId: assignment.inspectorId,
+
+      targetType: assignment.targetType,
+
+      targetId: assignment.targetId,
+
+      status:
+        assignment.inspectionStatus === 'ASSIGNED'
+          ? 'IN_PROGRESS'
+          : (assignment.inspectionStatus as InspectionStatus),
+
+      result,
+
+      notes,
+
+      evidenceUrls: assignment.photos.map((photo) => photo.url),
+    };
+
+    const params = new HttpParams().set('result', result);
+
+    return this.http
+      .post<ApiResponse<InspectionResponse>>(
+        `${this.API}/admin/inspections/${assignment.inspectionId}/result`,
+        payload,
+        {
+          headers: this.ngrokHeaders,
+          params,
+        },
+      )
+      .pipe(
+        tap((response) => {
+          this.updateAssignmentFromInspection(response.data);
+        }),
+
+        map((response) => response.data),
+      );
+  }
+
+  // =========================================================
+  // EVIDENCE IMAGES
+  // =========================================================
+
+  getEvidenceImages(inspectionId: number): Observable<InspectorImage[]> {
+    return this.http
+      .get<ApiResponse<InspectorImage[]>>(
+        `${this.API}/admin/inspections/${inspectionId}/evidence/images`,
+        {
+          headers: this.ngrokHeaders,
+        },
+      )
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  uploadEvidenceImage(inspectionId: number, file: File): Observable<InspectorImage> {
+    const formData = new FormData();
+
+    formData.append('image', file);
+
+    return this.http
+      .post<ApiResponse<InspectorImage>>(
+        `${this.API}/admin/inspections/${inspectionId}/evidence/images`,
+        formData,
+        {
+          headers: this.ngrokHeaders,
+        },
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  deleteEvidenceImage(inspectionId: number, imageId: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<void>>(
+        `${this.API}/admin/inspections/${inspectionId}/evidence/images/${imageId}`,
+        {
+          headers: this.ngrokHeaders,
+        },
+      )
+      .pipe(map(() => undefined));
+  }
+
+  // =========================================================
+  // INSPECTOR IMAGES
+  // =========================================================
+
+  getInspectorImages(userId: number): Observable<InspectorImage[]> {
+    return this.http
+      .get<ApiResponse<InspectorImage[]>>(`${this.API}/profiles/inspectors/${userId}/images`, {
+        headers: this.ngrokHeaders,
+      })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  setPrimaryImage(userId: number, imageId: number): Observable<InspectorImage> {
+    return this.http
+      .put<ApiResponse<InspectorImage>>(
+        `${this.API}/profiles/inspectors/${userId}/images/${imageId}/primary`,
+        {},
+        {
+          headers: this.ngrokHeaders,
+        },
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  deleteInspectorImage(userId: number, imageId: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<void>>(`${this.API}/profiles/inspectors/${userId}/images/${imageId}`, {
+        headers: this.ngrokHeaders,
+      })
+      .pipe(map(() => undefined));
+  }
+
+  // =========================================================
+  // PENDING / COMPLETED
+  // =========================================================
+
+  pendingFor(inspectorId: number): FarmAssignment[] {
+    return this.assignmentsFor(inspectorId).filter(
+      (assignment) =>
+        assignment.status === 'pending' ||
+        assignment.inspectionStatus === 'ASSIGNED' ||
+        assignment.inspectionStatus === 'PENDING' ||
+        assignment.inspectionStatus === 'IN_PROGRESS',
+    );
+  }
+
+  completedFor(inspector: Inspector): FarmAssignment[] {
+    return this.assignmentsFor(inspector.id).filter(
+      (assignment) => assignment.inspectionStatus === 'COMPLETED',
+    );
+  }
+
+  // =========================================================
+  // PASSWORD
+  // =========================================================
+
   generatePassword(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-    const bytes = crypto.getRandomValues(new Uint8Array(12));
-    return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+
+    let password = '';
+
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    return password;
   }
 
-  /** Issues a new temporary password; the inspector must change it on next sign-in */
-  resetPassword(id: string): string {
-    const pw = this.generatePassword();
-    this._inspectors.update((l) =>
-      l.map((i) => (i.id === id ? { ...i, mustChangePassword: true } : i)),
-    );
-    return pw; // Real API: POST /inspectors/:id/reset-password
+  private generateUsername(name: string): string {
+    const username = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '');
+
+    return username || `inspector.${Date.now()}`;
   }
 
-  remove(id: string) {
-    this._inspectors.update((l) => l.filter((i) => i.id !== id));
-    this._assignments.update((l) => l.filter((a) => a.inspectorId !== id));
-  }
+  // =========================================================
+  // MAP INSPECTOR
+  // =========================================================
 
-  suspend(id: string, reason: string) {
-    this._inspectors.update((l) =>
-      l.map((i) => (i.id === id ? { ...i, status: 'suspended', suspendReason: reason } : i)),
-    );
-  }
-
-  reactivate(id: string) {
-    this._inspectors.update((l) =>
-      l.map((i) => (i.id === id ? { ...i, status: 'active', suspendReason: undefined } : i)),
-    );
-  }
-
-  /** Live counts so list/detail always agree with the assignments */
-  pendingFor(inspectorId: string) {
-    return this._assignments().filter(
-      (a) => a.inspectorId === inspectorId && a.status === 'pending',
+  private mapInspector(
+    user: UserResponse,
+    profile: InspectorProfileResponse | null,
+    inspections: InspectionResponse[],
+  ): Inspector {
+    const pending = inspections.filter(
+      (inspection) =>
+        inspection.status === 'ASSIGNED' ||
+        inspection.status === 'PENDING' ||
+        inspection.status === 'IN_PROGRESS',
     ).length;
+
+    const completed = inspections.filter((inspection) => inspection.status === 'COMPLETED').length;
+
+    const approved = inspections.filter((inspection) => inspection.result === 'APPROVED').length;
+
+    const passRate = completed > 0 ? Math.round((approved / completed) * 100) : 0;
+
+    return {
+      id: user.id,
+
+      code: user.referenceCode ?? `I-${String(user.id).padStart(3, '0')}`,
+
+      name: user.name,
+
+      email: user.email,
+
+      phone: user.phone,
+
+      username: user.username ?? undefined,
+
+      specialization: profile?.specialization ?? '',
+
+      region: user.region ?? '',
+
+      assignedArea: profile?.assignedArea ?? '',
+
+      inspectorDetails: profile?.inspectorDetails ?? '',
+
+      status: this.toFrontendStatus(profile?.status ?? user.status),
+
+      suspendReason: undefined,
+
+      pending,
+
+      completed,
+
+      passRate,
+
+      rating: 0,
+
+      createdAt: profile?.createdAt ?? user.createdAt,
+
+      mustChangePassword: false,
+
+      images: profile?.images ?? [],
+
+      verificationStatus: user.verificationStatus,
+    };
   }
 
-  completedFor(inspector: Inspector) {
-    const done = this._assignments().filter(
-      (a) => a.inspectorId === inspector.id && a.status !== 'pending',
-    ).length;
-    return inspector.completed + done;
+  // =========================================================
+  // MAP ASSIGNMENT
+  // =========================================================
+
+  private mapAssignment(inspection: InspectionResponse): FarmAssignment {
+    return {
+      id: String(inspection.id),
+
+      inspectionId: inspection.id,
+
+      inspectorId: inspection.inspectorId,
+
+      farmerName: `Target #${inspection.targetId}`,
+
+      farmName: `${inspection.targetType} #${inspection.targetId}`,
+
+      location: '',
+
+      crop: '',
+
+      sizeAcres: 0,
+
+      dueDate: inspection.inspectedAt ?? inspection.createdAt,
+
+      status: this.toVerificationStatus(inspection),
+
+      inspectionStatus: inspection.status,
+
+      result: inspection.result,
+
+      notes: inspection.notes ?? '',
+
+      photos: (inspection.evidenceUrls ?? []).map((url, index) => ({
+        id: `${inspection.id}-${index}`,
+
+        url,
+
+        caption: '',
+
+        takenAt: inspection.inspectedAt ?? inspection.createdAt,
+      })),
+
+      targetType: inspection.targetType,
+
+      targetId: inspection.targetId,
+    };
   }
 
-  // ---------- farm verification ----------
-  addPhotos(assignmentId: string, photos: FarmPhoto[]) {
-    this._assignments.update((l) =>
-      l.map((a) => (a.id === assignmentId ? { ...a, photos: [...a.photos, ...photos] } : a)),
-    );
+  private updateAssignmentFromInspection(inspection: InspectionResponse): void {
+    const assignment = this.mapAssignment(inspection);
+
+    this._assignments.update((list) => {
+      const exists = list.some((item) => item.inspectionId === inspection.id);
+
+      if (!exists) {
+        return [...list, assignment];
+      }
+
+      return list.map((item) =>
+        item.inspectionId === inspection.id
+          ? {
+              ...item,
+              ...assignment,
+            }
+          : item,
+      );
+    });
   }
 
-  removePhoto(assignmentId: string, photoId: string) {
-    this._assignments.update((l) =>
-      l.map((a) =>
-        a.id === assignmentId ? { ...a, photos: a.photos.filter((p) => p.id !== photoId) } : a,
+  // =========================================================
+  // STATUS MAPPERS
+  // =========================================================
+
+  private toFrontendStatus(status: string): InspectorStatus {
+    const normalized = status.toUpperCase();
+
+    if (normalized === 'SUSPENDED') {
+      return 'suspended';
+    }
+
+    if (normalized === 'INACTIVE' || normalized === 'ON_LEAVE') {
+      return 'on_leave';
+    }
+
+    return 'active';
+  }
+
+  private toBackendInspectorStatus(status: InspectorStatus): string {
+    switch (status) {
+      case 'suspended':
+        return 'SUSPENDED';
+
+      case 'on_leave':
+        return 'INACTIVE';
+
+      case 'active':
+      default:
+        return 'ACTIVE';
+    }
+  }
+
+  private toVerificationStatus(
+    inspection: InspectionResponse,
+  ): 'pending' | 'verified' | 'rejected' {
+    if (inspection.result === 'APPROVED') {
+      return 'verified';
+    }
+
+    if (inspection.result === 'REJECTED') {
+      return 'rejected';
+    }
+
+    return 'pending';
+  }
+
+  // =========================================================
+  // LOCAL PHOTO HELPERS
+  // =========================================================
+
+  addPhotos(assignmentId: string, photos: FarmPhoto[]): void {
+    this._assignments.update((assignments) =>
+      assignments.map((assignment) =>
+        assignment.id === assignmentId
+          ? {
+              ...assignment,
+              photos: [...assignment.photos, ...photos],
+            }
+          : assignment,
       ),
     );
   }
 
-  submitVerification(assignmentId: string, status: VerificationStatus, notes: string) {
-    this._assignments.update((l) =>
-      l.map((a) => (a.id === assignmentId ? { ...a, status, notes } : a)),
+  removePhoto(assignmentId: string, photoId: string): void {
+    this._assignments.update((assignments) =>
+      assignments.map((assignment) =>
+        assignment.id === assignmentId
+          ? {
+              ...assignment,
+              photos: assignment.photos.filter((photo) => photo.id !== photoId),
+            }
+          : assignment,
+      ),
     );
   }
 }

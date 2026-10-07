@@ -1,108 +1,192 @@
 import { Component, inject, input, signal } from '@angular/core';
-import { FarmPhoto } from '../../models/inspector.model';
-import { FarmAssignment } from '../../models/inspector.model';
+
 import { InspectorService } from '../../services/inspector.service';
 
-const MAX_PHOTOS = 8;
-const MAX_MB = 5;
+import { FarmAssignment, FarmPhoto } from '../../models/inspector.model';
 
-/**
- * Shows the farm an inspector was sent to check, lets photo evidence be added
- * (drag & drop, file picker or phone camera), and records the verdict.
- */
 @Component({
   selector: 'app-farm-verification',
   templateUrl: './farm-verification.html',
   styleUrl: './farm-verification.scss',
 })
 export class FarmVerification {
-  private readonly service = inject(InspectorService);
+  protected readonly service = inject(InspectorService);
 
   readonly assignment = input.required<FarmAssignment>();
 
+  protected readonly maxPhotos = 6;
+
+  protected readonly uploading = signal(false);
+  protected readonly saving = signal(false);
   protected readonly dragging = signal(false);
-  protected readonly error = signal('');
+
+  protected readonly notes = signal<string>('');
+
   protected readonly preview = signal<FarmPhoto | null>(null);
-  protected readonly notes = signal('');
-  protected readonly maxPhotos = MAX_PHOTOS;
 
-  protected onPick(event: Event) {
-    const el = event.target as HTMLInputElement;
-    this.handleFiles(el.files);
-    el.value = '';
-  }
+  protected readonly error = signal<string | null>(null);
 
-  protected onDrop(event: DragEvent) {
-    event.preventDefault();
-    this.dragging.set(false);
-    this.handleFiles(event.dataTransfer?.files ?? null);
-  }
+  protected addPhotos(files: FileList | File[]): void {
+    const assignment = this.assignment();
+    const fileArray = Array.from(files);
 
-  protected onDragOver(event: DragEvent) {
-    event.preventDefault();
-    this.dragging.set(true);
-  }
-
-  private async handleFiles(files: FileList | null) {
-    if (!files?.length) return;
-    this.error.set('');
-    const a = this.assignment();
-    const room = MAX_PHOTOS - a.photos.length;
-    const accepted: File[] = [];
-
-    for (const f of Array.from(files)) {
-      if (!f.type.startsWith('image/')) {
-        this.error.set(`${f.name} is not an image.`);
-        continue;
-      }
-      if (f.size > MAX_MB * 1024 * 1024) {
-        this.error.set(`${f.name} is larger than ${MAX_MB} MB.`);
-        continue;
-      }
-      accepted.push(f);
+    if (!fileArray.length) {
+      return;
     }
-    if (accepted.length > room)
-      this.error.set(`Only ${MAX_PHOTOS} photos per farm. Extra files were skipped.`);
 
-    const photos = await Promise.all(accepted.slice(0, room).map((f) => this.toPhoto(f)));
-    if (photos.length) this.service.addPhotos(a.id, photos);
-    // Real API: send `accepted` as multipart FormData to /assignments/:id/photos
-  }
+    const remaining = this.maxPhotos - assignment.photos.length;
 
-  private toPhoto(file: File): Promise<FarmPhoto> {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () =>
-        resolve({
-          id: crypto.randomUUID(),
-          url: reader.result as string,
-          caption: file.name,
-          takenAt: new Date().toISOString(),
-        });
-      reader.readAsDataURL(file);
+    if (remaining <= 0) {
+      this.error.set(`Maximum of ${this.maxPhotos} photos allowed.`);
+      return;
+    }
+
+    const filesToUpload = fileArray.slice(0, remaining);
+
+    this.uploading.set(true);
+    this.error.set(null);
+
+    let completed = 0;
+    let failed = 0;
+
+    filesToUpload.forEach((file) => {
+      this.service.uploadEvidenceImage(assignment.inspectionId, file).subscribe({
+        next: (image) => {
+          const photo: FarmPhoto = {
+            id: String(image.id),
+            url: image.url,
+            caption: '',
+            takenAt: image.createdAt,
+          };
+
+          this.service.addPhotos(assignment.id, [photo]);
+        },
+
+        error: (error) => {
+          failed++;
+          completed++;
+
+          console.error('Failed to upload evidence:', error);
+
+          if (completed === filesToUpload.length) {
+            this.uploading.set(false);
+          }
+
+          this.error.set('Failed to upload one or more images.');
+        },
+
+        complete: () => {
+          completed++;
+
+          if (completed === filesToUpload.length) {
+            this.uploading.set(false);
+
+            if (failed > 0) {
+              this.error.set('Some images could not be uploaded.');
+            }
+          }
+        },
+      });
     });
   }
 
-  protected remove(photo: FarmPhoto) {
-    this.service.removePhoto(this.assignment().id, photo.id);
+  protected onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.dragging.set(true);
   }
 
-  protected decide(status: 'verified' | 'rejected') {
-    const a = this.assignment();
-    const notes = this.notes().trim() || a.notes;
-    if (status === 'rejected' && !notes) {
-      this.error.set('Add a note explaining why the farm was rejected.');
+  protected onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.dragging.set(false);
+
+    const files = event.dataTransfer?.files;
+
+    if (!files?.length) {
       return;
     }
-    if (status === 'verified' && a.photos.length === 0) {
-      this.error.set('Add at least one photo before verifying the farm.');
-      return;
-    }
-    this.error.set('');
-    this.service.submitVerification(a.id, status, notes);
+
+    this.addPhotos(files);
   }
 
-  protected reopen() {
-    this.service.submitVerification(this.assignment().id, 'pending', this.assignment().notes);
+  protected onPick(event: Event): void {
+    const input = event.target as HTMLInputElement;
+
+    if (!input.files?.length) {
+      return;
+    }
+
+    this.addPhotos(input.files);
+
+    input.value = '';
+  }
+
+  protected remove(photo: FarmPhoto): void {
+    this.removePhoto(photo);
+  }
+
+  protected removePhoto(photo: FarmPhoto): void {
+    const assignment = this.assignment();
+
+    const imageId = Number(photo.id);
+
+    if (!Number.isFinite(imageId)) {
+      this.error.set('Invalid image ID.');
+      return;
+    }
+
+    this.error.set(null);
+
+    this.service.deleteEvidenceImage(assignment.inspectionId, imageId).subscribe({
+      next: () => {
+        this.service.removePhoto(assignment.id, photo.id);
+      },
+
+      error: (error) => {
+        console.error('Failed to delete evidence:', error);
+
+        this.error.set('Failed to remove image.');
+      },
+    });
+  }
+
+  protected decide(status: 'verified' | 'rejected'): void {
+    this.submitVerification(status, this.notes() ?? '');
+  }
+
+  protected reopen(): void {
+    this.submitVerification('pending', this.notes() ?? '');
+  }
+
+  protected submitVerification(status: 'pending' | 'verified' | 'rejected', notes: string): void {
+    const assignment = this.assignment();
+
+    let result = 'CHANGES_REQUIRED';
+
+    if (status === 'verified') {
+      result = 'APPROVED';
+    } else if (status === 'rejected') {
+      result = 'REJECTED';
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+
+    this.service.submitVerification(assignment, result, notes).subscribe({
+      next: () => {
+        this.saving.set(false);
+      },
+
+      error: (error) => {
+        this.saving.set(false);
+
+        console.error('Failed to submit verification:', error);
+
+        this.error.set('Failed to submit verification.');
+      },
+    });
   }
 }

@@ -1,90 +1,138 @@
 @if (inspector(); as i) {
-  <div class="crumbs"><a routerLink="/inspectors">Inspectors</a> / {{ i.code }}</div>
+  <div class="crumbs">
+    <a routerLink="/inspectors">Inspectors</a> /
+    {{ i.code }}
+  </div>
 
   <div class="head">
     <div>
       <h1>{{ i.name }}</h1>
+
       <span class="badge" [attr.data-status]="i.status">
         {{ i.status === 'on_leave' ? 'On leave' : i.status === 'active' ? 'Active' : 'Suspended' }}
       </span>
     </div>
+
     <div class="actions">
-      <a class="btn ghost" [routerLink]="['/inspectors', i.id, 'edit']">Edit</a>
-      <button type="button" class="btn ghost" (click)="modal.set('reset')">Reset password</button>
+      <a class="btn ghost" [routerLink]="['/inspectors', i.id, 'edit']"> Edit </a>
+
       @if (i.status === 'suspended') {
         <button type="button" class="btn ghost" (click)="reactivate()">Reactivate</button>
       } @else {
         <button type="button" class="btn ghost" (click)="modal.set('suspend')">Suspend</button>
       }
+
       <button type="button" class="btn danger" (click)="modal.set('delete')">Delete</button>
     </div>
   </div>
 
   @if (i.status === 'suspended' && i.suspendReason) {
-    <div class="alert" role="status"><strong>Suspended:</strong> {{ i.suspendReason }}</div>
+    <div class="alert" role="status">
+      <strong>Suspended:</strong>
+      {{ i.suspendReason }}
+    </div>
   }
 
   <div class="layout">
     <aside class="side">
+      <!-- PROFILE -->
       <div class="card profile">
         <h2>Profile</h2>
+
         <dl>
           <dt>Login email</dt>
           <dd>{{ i.email }}</dd>
-          <dt>Password</dt>
-          <dd>{{ i.mustChangePassword ? 'Temporary, not yet changed' : 'Set by inspector' }}</dd>
+
           <dt>Phone</dt>
           <dd>{{ i.phone }}</dd>
+
+          @if (i.username) {
+            <dt>Username</dt>
+            <dd>{{ i.username }}</dd>
+          }
+
           <dt>Specialization</dt>
-          <dd>{{ i.specialization }}</dd>
+          <dd>{{ i.specialization || '—' }}</dd>
+
           <dt>Region</dt>
-          <dd>{{ i.region }}</dd>
+          <dd>{{ i.region || '—' }}</dd>
+
+          <dt>Assigned area</dt>
+          <dd>{{ i.assignedArea || '—' }}</dd>
+
+          <dt>Inspector details</dt>
+          <dd>{{ i.inspectorDetails || '—' }}</dd>
+
           <dt>Joined</dt>
-          <dd>{{ i.createdAt }}</dd>
+          <dd>{{ i.createdAt | date: 'mediumDate' }}</dd>
+
           <dt>Pass rate</dt>
           <dd>{{ i.passRate }}%</dd>
+
           <dt>Rating</dt>
           <dd>★ {{ i.rating || '—' }}</dd>
+
           <dt>Pending visits</dt>
           <dd>{{ pending() }}</dd>
+
+          @if (i.verificationStatus) {
+            <dt>Verification</dt>
+            <dd>
+              <span class="badge" [attr.data-status]="i.verificationStatus">
+                {{ i.verificationStatus }}
+              </span>
+            </dd>
+          }
         </dl>
       </div>
 
-      <div class="card kyc">
+      <!-- INSPECTOR IMAGES -->
+      <div class="card">
         <h2>
-          KYC
-          <span class="badge" [attr.data-status]="i.kyc.verifiedAt ? 'active' : 'suspended'">
-            {{ i.kyc.verifiedAt ? 'Verified ' + i.kyc.verifiedAt : 'Not verified' }}
+          Inspector Images
+
+          <span class="badge">
+            {{ i.images?.length || 0 }}
           </span>
         </h2>
-        <dl>
-          <dt>{{ idLabel(i.kyc.idType) }} number</dt>
-          <dd>{{ i.kyc.idNumber }}</dd>
-          <dt>Date of birth</dt>
-          <dd>{{ i.kyc.dateOfBirth }}</dd>
-          <dt>Gender</dt>
-          <dd>{{ i.kyc.gender === 'male' ? 'Male' : 'Female' }}</dd>
-          <dt>Address</dt>
-          <dd>{{ i.kyc.address }}</dd>
-          <dt>Emergency contact</dt>
-          <dd>{{ i.kyc.emergencyName }} · {{ i.kyc.emergencyPhone }}</dd>
-        </dl>
-        <div class="docs">
-          @for (img of images(); track img.label) {
-            @if (img.url) {
-              <button type="button" (click)="zoom.set(img)" [attr.aria-label]="'View ' + img.label">
-                <img [src]="img.url" [alt]="img.label" /><span>{{ img.label }}</span>
+
+        @if (i.images?.length) {
+          <div class="docs">
+            @for (img of i.images; track img.id) {
+              <button
+                type="button"
+                class="image-card"
+                (click)="
+                  zoom.set({
+                    url: img.url,
+                    label: img.isPrimary ? 'Primary inspector image' : 'Inspector image',
+                  })
+                "
+                [attr.aria-label]="
+                  'View ' + (img.isPrimary ? 'primary inspector image' : 'inspector image')
+                "
+              >
+                <img
+                  [src]="img.url"
+                  [alt]="img.isPrimary ? 'Primary inspector image' : 'Inspector image'"
+                />
+
+                <span>
+                  {{ img.isPrimary ? 'Primary image' : 'Inspector image' }}
+                </span>
               </button>
-            } @else {
-              <div class="none">{{ img.label }}<br />not uploaded</div>
             }
-          }
-        </div>
+          </div>
+        } @else {
+          <div class="none">No inspector images uploaded.</div>
+        }
       </div>
     </aside>
 
+    <!-- FARM VERIFICATIONS -->
     <section class="work">
       <h2>Farm verifications</h2>
+
       @if (assignments().length) {
         <div class="tabs" role="tablist">
           @for (a of assignments(); track a.id) {
@@ -96,10 +144,12 @@
               (click)="selectedId.set(a.id)"
             >
               {{ a.farmName }}
+
               <i [attr.data-status]="a.status"></i>
             </button>
           }
         </div>
+
         @if (selected(); as s) {
           <app-farm-verification [assignment]="s" />
         }
@@ -111,6 +161,7 @@
     </section>
   </div>
 
+  <!-- SUSPEND MODAL -->
   @if (modal() === 'suspend') {
     <app-confirm-modal
       title="Suspend inspector?"
@@ -122,6 +173,8 @@
       (cancelled)="modal.set(null)"
     />
   }
+
+  <!-- DELETE MODAL -->
   @if (modal() === 'delete') {
     <app-confirm-modal
       title="Delete inspector?"
@@ -132,19 +185,8 @@
       (cancelled)="modal.set(null)"
     />
   }
-  @if (modal() === 'reset') {
-    <app-confirm-modal
-      title="Reset password?"
-      [message]="
-        'A new temporary password will be created for ' +
-        i.name +
-        '. Their current password stops working.'
-      "
-      confirmLabel="Reset password"
-      (confirmed)="confirm($event)"
-      (cancelled)="modal.set(null)"
-    />
-  }
+
+  <!-- TEMPORARY PASSWORD -->
   @if (tempPassword(); as pw) {
     <app-credentials-modal
       title="Password reset"
@@ -154,12 +196,18 @@
       (done)="tempPassword.set(null)"
     />
   }
+
+  <!-- IMAGE LIGHTBOX -->
   @if (zoom(); as z) {
     <div class="lightbox" (click)="zoom.set(null)">
       <img [src]="z.url" [alt]="z.label" />
+
       <button type="button" aria-label="Close" (click)="zoom.set(null)">×</button>
     </div>
   }
 } @else {
-  <p class="empty">Inspector not found. <a routerLink="/inspectors">Back to inspectors</a></p>
+  <p class="empty">
+    Inspector not found.
+    <a routerLink="/inspectors"> Back to inspectors </a>
+  </p>
 }

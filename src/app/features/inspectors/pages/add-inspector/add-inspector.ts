@@ -1,8 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+
 import { CredentialsModal } from '../../components/credentials-modal/credentials-modal';
 import { InspectorForm } from '../../components/inspector-form/inspector-form';
-import { InspectorCreatePayload } from '../../models/inspector.model';
+
+import { InspectorCreatePayload, InspectorPayload } from '../../models/inspector.model';
 import { InspectorService } from '../../services/inspector.service';
 
 @Component({
@@ -15,22 +17,37 @@ export class AddInspector {
   private readonly service = inject(InspectorService);
   private readonly router = inject(Router);
 
-  protected readonly created = signal<{ name: string; email: string; password: string } | null>(
-    null,
-  );
+  protected readonly created = signal<{
+    name: string;
+    email: string;
+    password: string;
+  } | null>(null);
 
-  protected save(payload: InspectorCreatePayload) {
-    const i = this.service.create(payload);
-    // Show the login details once so the admin can hand them over at the office
-    this.created.set({ name: i.name, email: i.email, password: payload.temporaryPassword });
+  protected save(payload: InspectorCreatePayload | InspectorPayload): void {
+    if (!('temporaryPassword' in payload)) {
+      return;
+    }
+
+    this.service.create(payload).subscribe({
+      next: (inspector) => {
+        this.created.set({
+          name: inspector.name,
+          email: inspector.email,
+          password: payload.temporaryPassword,
+        });
+      },
+      error: (error) => {
+        console.error('Failed to create inspector:', error);
+      },
+    });
   }
 
-  protected finish() {
+  protected finish(): void {
     this.created.set(null);
     this.router.navigate(['/inspectors']);
   }
 
-  protected cancel() {
+  protected cancel(): void {
     this.router.navigate(['/inspectors']);
   }
 }

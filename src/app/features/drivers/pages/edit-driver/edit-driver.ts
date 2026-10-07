@@ -46,19 +46,28 @@ export class EditDriver implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
+    console.log('EDIT ROUTE ID:', this.driverId);
+
     this.driverService.getById(this.driverId).subscribe({
       next: (response) => {
+        console.log('EDIT API RESPONSE:', response);
+
         if (!response.success || !response.data) {
           this.error.set(response.message || 'Failed to load driver.');
-
           this.loading.set(false);
           return;
         }
 
+        console.log('EDIT API USER ID:', response.data.userId);
+        console.log('EDIT API PROFILE ID:', response.data.profileId);
+
         const driver = this.driverService.mapApiDriver(response.data);
 
-        this.driver.set(driver);
+        console.log('MAPPED DRIVER:', driver);
+        console.log('MAPPED DRIVER ID:', driver.id);
+        console.log('MAPPED DRIVER PROFILE ID:', driver.profileId);
 
+        this.driver.set(driver);
         this.loading.set(false);
       },
 

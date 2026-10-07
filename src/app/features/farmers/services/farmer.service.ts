@@ -1,9 +1,13 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+
 import { Injectable, computed, inject, signal } from '@angular/core';
+
 import { Observable, catchError, forkJoin, map, of, switchMap, tap, throwError } from 'rxjs';
+
 import {
   ApiEnvelope,
   ApiFarmer,
+  ApiFarmerImage,
   ApiFarmerProfile,
   ApiKycDocument,
   Farmer,
@@ -11,15 +15,21 @@ import {
   FarmerDetail,
   FarmerDocument,
   FarmerFormValue,
+  FarmerProfileImage,
   FarmerStats,
   KENYA_COUNTIES,
   toDocument,
   toFarm,
   toFarmer,
   toProfile,
+  toProfileImage,
 } from '../models/farmer.model';
 
 const API = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+
+/* =========================================================
+   ERROR HANDLING
+   ========================================================= */
 
 export function apiError(e: unknown): string {
   const err = e as HttpErrorResponse;
@@ -32,12 +42,14 @@ export function apiError(e: unknown): string {
   );
 }
 
+/* =========================================================
+   API HEADERS
+   ========================================================= */
+
 /**
- * Common headers for requests to the Kilivana backend.
+ * Common headers for Kilivana API requests.
  *
- * NOTE:
- * Authorization is added dynamically from localStorage.
- * Do not hard-code the JWT here.
+ * JWT is read dynamically from localStorage.
  */
 function apiHeaders(): HttpHeaders {
   const token =
@@ -59,32 +71,60 @@ function apiHeaders(): HttpHeaders {
   return headers;
 }
 
-/** The list endpoint can return several possible shapes. */
+/* =========================================================
+   RESPONSE HELPERS
+   ========================================================= */
+
+/**
+ * The backend may return lists in different structures:
+ *
+ * []
+ *
+ * {
+ *   content: []
+ * }
+ *
+ * {
+ *   items: []
+ * }
+ *
+ * {
+ *   data: []
+ * }
+ */
 function unwrapList<T>(data: unknown): T[] {
   if (Array.isArray(data)) {
     return data as T[];
   }
 
-  const o = data as Record<string, unknown> | null;
+  const object = data as Record<string, unknown> | null;
 
-  if (!o || typeof o !== 'object') {
+  if (!object || typeof object !== 'object') {
     return [];
   }
 
-  for (const k of ['content', 'items', 'farmers', 'results', 'data']) {
-    if (Array.isArray(o[k])) {
-      return o[k] as T[];
+  for (const key of ['content', 'items', 'farmers', 'results', 'data']) {
+    if (Array.isArray(object[key])) {
+      return object[key] as T[];
     }
   }
 
-  return (Object.values(o).find(Array.isArray) as T[] | undefined) ?? [];
+  return (Object.values(object).find(Array.isArray) as T[] | undefined) ?? [];
 }
+
+/* =========================================================
+   FARMER SERVICE
+   ========================================================= */
 
 @Injectable({
   providedIn: 'root',
 })
 export class FarmerService {
   private readonly http = inject(HttpClient);
+
+  /* =======================================================
+     LOCAL STATE
+     ======================================================= */
 
   private readonly _farmers = signal<Farmer[]>([]);
 
@@ -94,21 +134,35 @@ export class FarmerService {
 
   readonly loadError = signal<string | null>(null);
 
-  readonly stats = computed<FarmerStats>(() => {
-    const l = this._farmers();
+  /* =======================================================
+     FARMER STATS
+     ======================================================= */
 
-    const n = (s: Farmer['status']) => l.filter((f) => f.status === s).length;
+  readonly stats = computed<FarmerStats>(() => {
+    const list = this._farmers();
+
+    const count = (status: Farmer['status']) =>
+      list.filter((farmer) => farmer.status === status).length;
 
     return {
-      total: l.length,
-      verified: n('verified'),
-      pending: n('pending'),
-      suspended: n('suspended'),
+      total: list.length,
+
+      verified: count('verified'),
+
+      pending: count('pending'),
+
+      suspended: count('suspended'),
     };
   });
 
+  /* =======================================================
+     LOAD FARMERS
+     ======================================================= */
+
   /**
-   * GET /admin/farmers
+   * GET /api/v1/admin/farmers
+   *
+   * Loads all farmers for the admin farmer list.
    */
   load(): void {
     this.loading.set(true);
@@ -120,72 +174,207 @@ export class FarmerService {
           page: 0,
           size: 500,
         },
+
         headers: apiHeaders(),
       })
-      .subscribe({
-        next: (r) => {
-          const list = unwrapList<ApiFarmer>(r.data)
+      .pipe(
+        map((response) => {
+          const list = unwrapList<ApiFarmer>(response.data);
+
+          return list
             .map(toFarmer)
             .sort((a, b) => (b.joinedAt ?? '').localeCompare(a.joinedAt ?? ''));
+        }),
+      )
+      .subscribe({
+        next: (farmers) => {
+          this._farmers.set(farmers);
 
-          this._farmers.set(list);
           this.loading.set(false);
         },
 
-        error: (e) => {
-          this.loadError.set(apiError(e));
+        error: (error) => {
+          this.loadError.set(apiError(error));
+
           this.loading.set(false);
         },
       });
   }
 
+  /* =======================================================
+     FETCH ONE FARMER
+     ======================================================= */
+
   /**
-   * GET /admin/farmers/{id}
+   * GET /api/v1/admin/farmers/{id}
    */
   private fetchFarmer(id: string | number): Observable<ApiFarmer> {
     return this.http
       .get<ApiEnvelope<ApiFarmer>>(`${API}/admin/farmers/${id}`, {
         headers: apiHeaders(),
       })
-      .pipe(map((r) => r.data));
+      .pipe(map((response) => response.data));
   }
 
+  /* =======================================================
+     GET FARMER PROFILE
+     ======================================================= */
+
   /**
-   * GET farmer details
+   * GET /api/v1/profiles/farmers/{userId}
+   *
+   * This only retrieves the farmer profile.
+   *
+   * Profile images are retrieved separately through:
+   * GET /profiles/farmers/{userId}/images
+   */
+  getProfile(userId: string | number): Observable<ReturnType<typeof toProfile> | null> {
+    return this.http
+      .get<ApiEnvelope<ApiFarmerProfile>>(`${API}/profiles/farmers/${userId}`, {
+        headers: apiHeaders(),
+      })
+      .pipe(
+        map((response) => (response.data ? toProfile(response.data) : null)),
+
+        catchError(() => of(null)),
+      );
+  }
+
+  /* =======================================================
+     GET FARMER PROFILE IMAGES
+     ======================================================= */
+
+  /**
+   * GET /api/v1/profiles/farmers/{userId}/images
+   *
+   * These are images uploaded through the farmer profile.
+   *
+   * IMPORTANT:
+   * These are NOT KYC documents.
+   */
+  getProfileImages(userId: string | number): Observable<FarmerProfileImage[]> {
+    return this.http
+      .get<ApiEnvelope<unknown>>(`${API}/profiles/farmers/${userId}/images`, {
+        headers: apiHeaders(),
+      })
+      .pipe(
+        map((response) => {
+          const images = unwrapList<ApiFarmerImage>(response.data);
+
+          return images.map(toProfileImage).sort((a, b) => a.sortOrder - b.sortOrder);
+        }),
+
+        catchError(() => of([] as FarmerProfileImage[])),
+      );
+  }
+
+  /* =======================================================
+     GET FARMER KYC DOCUMENTS
+     ======================================================= */
+
+  /**
+   * GET /api/v1/admin/kyc
+   *
+   * The admin KYC endpoint returns KYC documents.
+   *
+   * We filter them by userId to get documents
+   * belonging to this particular farmer.
+   */
+  getKycDocuments(userId: string | number): Observable<FarmerDocument[]> {
+    return this.http
+      .get<ApiEnvelope<unknown>>(`${API}/admin/kyc`, {
+        headers: apiHeaders(),
+      })
+      .pipe(
+        map((response) => {
+          const documents = unwrapList<ApiKycDocument>(response.data);
+
+          return documents
+            .filter((document) => String(document.userId) === String(userId))
+            .map(toDocument);
+        }),
+
+        catchError(() => of([] as FarmerDocument[])),
+      );
+  }
+
+  /* =======================================================
+     GET FARMER DETAILS
+     ======================================================= */
+
+  /**
+   * Gets all information needed by the farmer details page.
+   *
+   * Requests:
+   *
+   * 1. GET /admin/farmers/{id}
+   * 2. GET /profiles/farmers/{id}
+   * 3. GET /profiles/farmers/{id}/images
+   * 4. GET /admin/kyc
+   *
+   * KYC documents and profile images remain completely
+   * separate.
    */
   getDetail(id: string): Observable<FarmerDetail> {
     return forkJoin({
+      /* -----------------------------------------------
+         Farmer
+         ----------------------------------------------- */
+
       farmer: this.fetchFarmer(id),
 
-      profile: this.http
-        .get<ApiEnvelope<ApiFarmerProfile>>(`${API}/profiles/farmers/${id}`, {
-          headers: apiHeaders(),
-        })
-        .pipe(
-          map((r) => (r.data ? toProfile(r.data) : null)),
-          catchError(() => of(null)),
-        ),
+      /* -----------------------------------------------
+         Farmer profile
+         ----------------------------------------------- */
 
-      docs: this.http
-        .get<ApiEnvelope<ApiKycDocument[]>>(`${API}/admin/kyc`, {
-          headers: apiHeaders(),
-        })
-        .pipe(
-          map((r) => (r.data ?? []).filter((d) => String(d.userId) === String(id)).map(toDocument)),
-          catchError(() => of([] as FarmerDocument[])),
-        ),
+      profile: this.getProfile(id),
+
+      /* -----------------------------------------------
+         Profile images
+         ----------------------------------------------- */
+
+      profileImages: this.getProfileImages(id),
+
+      /* -----------------------------------------------
+         KYC documents
+         ----------------------------------------------- */
+
+      documents: this.getKycDocuments(id),
     }).pipe(
-      map(({ farmer, profile, docs }) => ({
-        ...toFarmer(farmer),
-        farms: (farmer.farms ?? []).map(toFarm),
-        profile,
-        documents: docs,
-      })),
+      map(({ farmer, profile, profileImages, documents }) => {
+        const base = toFarmer(farmer);
+
+        return {
+          ...base,
+
+          /* Farmer farms */
+
+          farms: (farmer.farms ?? []).map(toFarm),
+
+          /* Farmer profile */
+
+          profile,
+
+          /* KYC documents */
+
+          documents,
+
+          /* Profile images */
+
+          profileImages,
+        };
+      }),
     );
   }
 
+  /* =======================================================
+     GET COUNTIES / REGIONS
+     ======================================================= */
+
   /**
-   * GET /regions
+   * GET /api/v1/regions
+   *
+   * Returns the Kenyan counties.
    */
   regions(): Observable<string[]> {
     return this.http
@@ -193,73 +382,116 @@ export class FarmerService {
         headers: apiHeaders(),
       })
       .pipe(
-        map((r) => (Array.isArray(r.data) ? r.data.filter(Boolean) : [])),
+        map((response) => (Array.isArray(response.data) ? response.data.filter(Boolean) : [])),
+
         map((list) => (list.length ? list : KENYA_COUNTIES)),
+
         catchError(() => of(KENYA_COUNTIES)),
       );
   }
 
+  /* =======================================================
+     CREATE FARMER
+     ======================================================= */
+
   /**
-   * POST /admin/users
+   * POST /api/v1/admin/users
+   *
+   * Then:
+   *
+   * POST /api/v1/profiles/farmers/{userId}
    */
-  create(v: FarmerFormValue): Observable<Farmer> {
-    const body = {
-      name: v.name,
-      email: v.email,
-      phone: v.phone,
-      username: v.username,
-      password: v.password,
-      region: v.region,
+  create(value: FarmerFormValue): Observable<Farmer> {
+    const userBody = {
+      name: value.name,
+
+      email: value.email,
+
+      phone: value.phone,
+
+      username: value.username,
+
+      password: value.password,
+
+      region: value.region,
+
       role: 'FARMER',
     };
 
     return this.http
-      .post<ApiEnvelope<{ id: number }>>(`${API}/admin/users`, body, {
+      .post<
+        ApiEnvelope<{
+          id: number;
+        }>
+      >(`${API}/admin/users`, userBody, {
         headers: apiHeaders(),
       })
       .pipe(
-        switchMap((r) =>
-          this.http
-            .post(`${API}/profiles/farmers/${r.data.id}`, this.profileBody(v), {
+        switchMap((response) => {
+          const userId = response.data.id;
+
+          return this.http
+            .post(`${API}/profiles/farmers/${userId}`, this.profileBody(value), {
               headers: apiHeaders(),
             })
-            .pipe(switchMap(() => this.fetchFarmer(r.data.id))),
-        ),
+            .pipe(switchMap(() => this.fetchFarmer(userId)));
+        }),
+
         map(toFarmer),
-        tap((f) => this._farmers.update((l) => [f, ...l])),
+
+        tap((farmer) => {
+          this._farmers.update((list) => [farmer, ...list]);
+        }),
       );
   }
 
+  /* =======================================================
+     UPDATE FARMER
+     ======================================================= */
+
   /**
-   * PUT /admin/users/{id}
+   * PUT /api/v1/admin/users/{id}
+   *
+   * Then:
+   *
+   * PUT /api/v1/profiles/farmers/{userId}
+   *
+   * If the farmer profile doesn't exist, we attempt
+   * POST /api/v1/profiles/farmers/{userId}.
    */
-  update(id: string, v: FarmerFormValue): Observable<Farmer> {
-    const body = {
-      name: v.name,
-      email: v.email,
-      phone: v.phone,
-      region: v.region,
+  update(id: string, value: FarmerFormValue): Observable<Farmer> {
+    const userBody = {
+      name: value.name,
+
+      email: value.email,
+
+      phone: value.phone,
+
+      region: value.region,
+
       role: 'FARMER',
     };
 
     return this.http
-      .put(`${API}/admin/users/${id}`, body, {
+      .put(`${API}/admin/users/${id}`, userBody, {
         headers: apiHeaders(),
       })
       .pipe(
         switchMap(() =>
           this.http
-            .put(`${API}/profiles/farmers/${id}`, this.profileBody(v), {
+            .put(`${API}/profiles/farmers/${id}`, this.profileBody(value), {
               headers: apiHeaders(),
             })
             .pipe(
-              catchError((e: HttpErrorResponse) =>
-                e.status === 404
-                  ? this.http.post(`${API}/profiles/farmers/${id}`, this.profileBody(v), {
-                      headers: apiHeaders(),
-                    })
-                  : throwError(() => e),
-              ),
+              catchError((error: HttpErrorResponse) => {
+                if (error.status === 404) {
+                  return this.http.post(`${API}/profiles/farmers/${id}`, this.profileBody(value), {
+                    headers: apiHeaders(),
+                  });
+                }
+
+                return throwError(() => error);
+              }),
             ),
         ),
 
@@ -267,66 +499,118 @@ export class FarmerService {
 
         map(toFarmer),
 
-        tap((f) => this.patchLocal(f)),
+        tap((farmer) => {
+          this.patchLocal(farmer);
+        }),
       );
   }
 
+  /* =======================================================
+     APPROVE / REJECT / SUSPEND / REINSTATE
+     ======================================================= */
+
   /**
-   * Approve / reject / suspend / reinstate
+   * Farmer administration actions.
+   *
+   * Approve:
+   * POST /admin/farmers/{id}/approve
+   *
+   * Reject:
+   * POST /admin/farmers/{id}/reject
+   *
+   * Suspend:
+   * PUT /admin/farmers/{userId}/suspend
+   *
+   * Reinstate:
+   * PUT /admin/farmers/{userId}/unsuspend
    */
   applyAction(id: string, action: FarmerAction, reason = ''): Observable<Farmer> {
     const params = {
       reason,
     };
 
-    let call: Observable<unknown>;
+    let request: Observable<unknown>;
 
     switch (action) {
+      /* -----------------------------------------------
+         APPROVE
+         ----------------------------------------------- */
+
       case 'approve':
-        call = this.http.post(`${API}/admin/farmers/${id}/approve`, null, {
+        request = this.http.post(`${API}/admin/farmers/${id}/approve`, null, {
           headers: apiHeaders(),
         });
+
         break;
+
+      /* -----------------------------------------------
+         REJECT
+         ----------------------------------------------- */
 
       case 'reject':
-        call = this.http.post(`${API}/admin/farmers/${id}/reject`, null, {
+        request = this.http.post(`${API}/admin/farmers/${id}/reject`, null, {
           headers: apiHeaders(),
+
           params,
         });
+
         break;
+
+      /* -----------------------------------------------
+         SUSPEND
+         ----------------------------------------------- */
 
       case 'suspend':
-        call = this.http.put(`${API}/admin/farmers/${id}/suspend`, null, {
+        request = this.http.put(`${API}/admin/farmers/${id}/suspend`, null, {
           headers: apiHeaders(),
+
           params,
         });
+
         break;
 
+      /* -----------------------------------------------
+         REINSTATE
+         ----------------------------------------------- */
+
       case 'reinstate':
-        call = this.http.put(`${API}/admin/farmers/${id}/unsuspend`, null, {
+        request = this.http.put(`${API}/admin/farmers/${id}/unsuspend`, null, {
           headers: apiHeaders(),
         });
+
         break;
     }
 
-    return call.pipe(
+    return request.pipe(
       switchMap(() => this.fetchFarmer(id)),
 
       map(toFarmer),
 
-      tap((f) => this.patchLocal(f)),
+      tap((farmer) => {
+        this.patchLocal(farmer);
+      }),
     );
   }
 
-  private profileBody(v: FarmerFormValue) {
+  /* =======================================================
+     PROFILE BODY
+     ======================================================= */
+
+  private profileBody(value: FarmerFormValue) {
     return {
-      farmName: v.farmName,
-      location: v.location,
-      farmDetails: v.farmDetails,
+      farmName: value.farmName,
+
+      location: value.location,
+
+      farmDetails: value.farmDetails,
     };
   }
 
-  private patchLocal(f: Farmer) {
-    this._farmers.update((l) => l.map((x) => (x.id === f.id ? f : x)));
+  /* =======================================================
+     UPDATE LOCAL FARMER
+     ======================================================= */
+
+  private patchLocal(farmer: Farmer): void {
+    this._farmers.update((list) => list.map((item) => (item.id === farmer.id ? farmer : item)));
   }
 }

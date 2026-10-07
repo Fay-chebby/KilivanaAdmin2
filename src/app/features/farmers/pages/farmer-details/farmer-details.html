@@ -32,7 +32,7 @@
           <h1>{{ f.name }}</h1>
           <div class="head-actions">
             <a class="btn ghost" routerLink="/farmers">← Back</a>
-            <a class="btn plain" [routerLink]="['/farmers', f.id, 'edit']">Edit</a>
+            <!-- <a class="btn plain" [routerLink]="['/farmers', f.id, 'edit']">Edit</a> -->
             @switch (f.status) {
               @case ('pending') {
                 <button type="button" class="btn reject" (click)="ask('reject')">Reject</button>
@@ -118,28 +118,42 @@
                 @if (f.profile; as p) {
                   <div class="card">
                     <h3 class="label">Farm profile</h3>
+
                     <ul class="list">
                       <li>
-                        <span>Farm name</span><strong>{{ p.farmName }}</strong>
+                        <span>Farm name</span>
+                        <strong>{{ p.farmName }}</strong>
                       </li>
+
                       <li>
-                        <span>Location</span><strong>{{ p.location }}</strong>
+                        <span>Location</span>
+                        <strong>{{ p.location }}</strong>
                       </li>
                     </ul>
+
                     @if (p.farmDetails) {
                       <h3 class="label sub">About the farm</h3>
-                      <p class="text">{{ p.farmDetails }}</p>
+                      <p class="text">
+                        {{ p.farmDetails }}
+                      </p>
                     }
+
                     @if (p.verificationInfo) {
                       <h3 class="label sub">Verification notes</h3>
-                      <p class="text">{{ p.verificationInfo }}</p>
+
+                      <p class="text">
+                        {{ p.verificationInfo }}
+                      </p>
                     }
-                    @if (p.images.length) {
+
+                    @if (f.profileImages.length) {
                       <h3 class="label sub">Photos</h3>
+
                       <div class="imgs">
-                        @for (img of p.images; track img.id) {
+                        @for (img of f.profileImages; track img.id) {
                           <figure>
                             <img [src]="img.url" [alt]="p.farmName + ' photo'" loading="lazy" />
+
                             @if (img.isPrimary) {
                               <figcaption>Primary</figcaption>
                             }
@@ -151,19 +165,24 @@
                 } @else {
                   <div class="card empty">
                     <strong>No farm profile yet</strong>
-                    <span>Add the farm name and location so this farmer can be reviewed.</span>
-                    <a class="btn solid" [routerLink]="['/farmers', f.id, 'edit']"
-                      >Add farm profile</a
-                    >
+
+                    <span> Add the farm name and location so this farmer can be reviewed. </span>
+
+                    <a class="btn solid" [routerLink]="['/farmers', f.id, 'edit']">
+                      Add farm profile
+                    </a>
                   </div>
                 }
 
                 <div class="card">
                   <h3 class="label">Crops grown</h3>
+
                   @if (f.crops.length) {
                     <div class="chips">
                       @for (c of f.crops; track c) {
-                        <span class="chip">{{ c }}</span>
+                        <span class="chip">
+                          {{ c }}
+                        </span>
                       }
                     </div>
                   } @else {

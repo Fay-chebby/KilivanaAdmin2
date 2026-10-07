@@ -1,20 +1,26 @@
 <form class="card" [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <!-- ACCOUNT -->
   <h2>Account</h2>
+
   <div class="grid">
     <div class="field">
       <label for="name">Full name</label>
+
       <input
         id="name"
         formControlName="name"
         autocomplete="name"
         [attr.aria-invalid]="invalid('name')"
       />
+
       @if (invalid('name')) {
-        <small class="err">Enter the farmer's full name.</small>
+        <small class="err"> Enter the farmer's full name. </small>
       }
     </div>
+
     <div class="field">
       <label for="email">Email</label>
+
       <input
         id="email"
         type="email"
@@ -22,12 +28,15 @@
         autocomplete="email"
         [attr.aria-invalid]="invalid('email')"
       />
+
       @if (invalid('email')) {
-        <small class="err">Enter a valid email address.</small>
+        <small class="err"> Enter a valid email address. </small>
       }
     </div>
+
     <div class="field">
       <label for="phone">Phone</label>
+
       <input
         id="phone"
         type="tel"
@@ -35,38 +44,49 @@
         placeholder="+254 700 000 000"
         [attr.aria-invalid]="invalid('phone')"
       />
+
       @if (invalid('phone')) {
-        <small class="err">Enter a valid phone number.</small>
+        <small class="err"> Enter a valid phone number. </small>
       }
     </div>
+
     <div class="field">
-      <label for="region">Region</label>
+      <label for="region">County</label>
+
       <select id="region" formControlName="region" [attr.aria-invalid]="invalid('region')">
-        <option value="" disabled>Select a region</option>
+        <option value="" disabled>Select a county</option>
+
         @for (r of regionOptions(); track r) {
-          <option [value]="r">{{ r }}</option>
+          <option [value]="r">
+            {{ r }}
+          </option>
         }
       </select>
+
       @if (invalid('region')) {
-        <small class="err">Choose a region.</small>
+        <small class="err"> Choose a county. </small>
       }
     </div>
 
     @if (mode() === 'create') {
       <div class="field">
         <label for="username">Username</label>
+
         <input
           id="username"
           formControlName="username"
           autocomplete="off"
           [attr.aria-invalid]="invalid('username')"
         />
+
         @if (invalid('username')) {
-          <small class="err">At least 3 characters.</small>
+          <small class="err"> At least 3 characters. </small>
         }
       </div>
+
       <div class="field">
-        <label for="password">Temporary password</label>
+        <label for="password"> Temporary password </label>
+
         <input
           id="password"
           type="password"
@@ -74,43 +94,178 @@
           autocomplete="new-password"
           [attr.aria-invalid]="invalid('password')"
         />
+
         @if (invalid('password')) {
-          <small class="err">At least 8 characters.</small>
+          <small class="err"> At least 8 characters. </small>
         }
       </div>
     }
   </div>
 
+  <!-- FARM PROFILE -->
   <h2>Farm profile</h2>
+
   <div class="grid">
     <div class="field">
-      <label for="farmName">Farm name</label>
+      <label for="farmName"> Farm name </label>
+
       <input id="farmName" formControlName="farmName" [attr.aria-invalid]="invalid('farmName')" />
+
       @if (invalid('farmName')) {
-        <small class="err">Enter the farm name.</small>
+        <small class="err"> Enter the farm name. </small>
       }
     </div>
+
     <div class="field">
-      <label for="location">Farm location</label>
+      <label for="location"> Farm location </label>
+
       <input id="location" formControlName="location" [attr.aria-invalid]="invalid('location')" />
+
       @if (invalid('location')) {
-        <small class="err">Enter the farm location.</small>
+        <small class="err"> Enter the farm location. </small>
       }
     </div>
+
     <div class="field full">
-      <label for="farmDetails">Farm details <span class="opt">(optional)</span></label>
-      <textarea id="farmDetails" rows="3" formControlName="farmDetails"></textarea>
+      <label for="farmDetails">
+        Farm details
+        <span class="opt">(optional)</span>
+      </label>
+
+      <textarea
+        id="farmDetails"
+        rows="3"
+        formControlName="farmDetails"
+        placeholder="Describe the farm, crops, livestock, production activities, etc."
+      ></textarea>
     </div>
   </div>
 
+  <!-- FARM IMAGES -->
+  <section class="upload-section">
+    <div class="section-heading">
+      <div>
+        <h2>Farm images</h2>
+
+        <p>Upload photos of the farm, crops, livestock, buildings or other farm activities.</p>
+      </div>
+    </div>
+
+    <label class="upload-box" for="farmImages">
+      <input
+        id="farmImages"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        (change)="onFarmImagesSelected($event)"
+      />
+
+      <div class="upload-content">
+        <div class="upload-icon">📷</div>
+
+        <strong> Upload farm images </strong>
+
+        <span> PNG, JPG or WEBP · Maximum 10MB each </span>
+      </div>
+    </label>
+
+    @if (farmImagePreviews().length > 0) {
+      <div class="image-grid">
+        @for (
+          preview of farmImagePreviews();
+          track preview.file.name + preview.file.lastModified;
+          let i = $index
+        ) {
+          <div class="image-item">
+            <img [src]="preview.url" [alt]="preview.file.name" />
+
+            <button
+              type="button"
+              class="remove-image"
+              aria-label="Remove image"
+              (click)="removeFarmImage(i)"
+            >
+              ×
+            </button>
+
+            <div class="image-name">
+              {{ preview.file.name }}
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- DOCUMENTS -->
+  <section class="upload-section">
+    <div class="section-heading">
+      <div>
+        <h2>Farmer documents</h2>
+
+        <p>Upload identification and supporting documents provided during farmer registration.</p>
+      </div>
+    </div>
+
+    <label class="upload-box" for="documents">
+      <input
+        id="documents"
+        type="file"
+        accept="application/pdf,image/jpeg,image/png"
+        multiple
+        (change)="onDocumentsSelected($event)"
+      />
+
+      <div class="upload-content">
+        <div class="upload-icon">📄</div>
+
+        <strong> Upload documents </strong>
+
+        <span> PDF, PNG or JPG · Maximum 10MB each </span>
+      </div>
+    </label>
+
+    @if (documents().length > 0) {
+      <div class="document-list">
+        @for (file of documents(); track file.name + file.lastModified; let i = $index) {
+          <div class="document-item">
+            <div class="document-icon">📄</div>
+
+            <div class="document-info">
+              <strong>
+                {{ file.name }}
+              </strong>
+
+              <span>
+                {{ fileSize(file) }}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              class="remove-document"
+              aria-label="Remove document"
+              (click)="removeDocument(i)"
+            >
+              ×
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
   @if (error()) {
-    <p class="banner" role="alert">{{ error() }}</p>
+    <p class="banner" role="alert">
+      {{ error() }}
+    </p>
   }
 
   <footer>
     <button type="button" class="btn" [disabled]="saving()" (click)="cancelled.emit()">
       Cancel
     </button>
+
     <button type="submit" class="btn solid" [disabled]="saving()">
       {{ saving() ? 'Saving…' : submitLabel() }}
     </button>

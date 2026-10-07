@@ -3,7 +3,8 @@
     <div class="crumbs">AgriAdmin / Inspectors</div>
     <h1>Inspector Management</h1>
   </div>
-  <a class="btn" routerLink="/inspectors/new">+ Add Inspector</a>
+
+  <a class="btn" routerLink="/inspectors/new"> + Add Inspector </a>
 </div>
 
 <div class="stats">
@@ -14,6 +15,7 @@
     icon="user"
     tone="blue"
   />
+
   <app-stat-card
     variant="mini"
     label="Active"
@@ -21,6 +23,7 @@
     icon="check"
     tone="green"
   />
+
   <app-stat-card
     variant="mini"
     label="Suspended"
@@ -28,6 +31,7 @@
     icon="alert"
     tone="red"
   />
+
   <app-stat-card
     variant="mini"
     label="Farms awaiting visit"
@@ -45,7 +49,12 @@
     [value]="search()"
     (input)="search.set($any($event.target).value)"
   />
-  <select aria-label="Filter by status" (change)="statusFilter.set($any($event.target).value)">
+
+  <select
+    aria-label="Filter by status"
+    [value]="statusFilter()"
+    (change)="statusFilter.set($any($event.target).value)"
+  >
     <option value="all">All statuses</option>
     <option value="active">Active</option>
     <option value="on_leave">On leave</option>
@@ -68,49 +77,88 @@
         <th class="right">Actions</th>
       </tr>
     </thead>
+
     <tbody>
       @for (i of rows(); track i.id) {
         <tr>
           <td>
             <a class="person" [routerLink]="['/inspectors', i.id]">
-              <span class="avatar" [style.background]="color(i.id)">{{ initials(i.name) }}</span>
-              <span
-                ><strong>{{ i.name }}</strong
-                ><small>{{ i.code }}</small></span
-              >
+              <span class="avatar" [style.background]="color(i.id)">
+                {{ initials(i.name) }}
+              </span>
+
+              <span>
+                <strong>{{ i.name }}</strong>
+                <small>{{ i.code }}</small>
+              </span>
             </a>
           </td>
-          <td>{{ i.specialization }}</td>
-          <td>{{ i.region }}</td>
-          <td class="num" [class.warn]="service.pendingFor(i.id) > 5">
-            {{ service.pendingFor(i.id) }}
-          </td>
-          <td class="num">{{ service.completedFor(i) }}</td>
+
           <td>
-            <div class="bar"><span [style.width.%]="i.passRate"></span></div>
-            <small class="pct">{{ i.passRate }}%</small>
+            {{ i.specialization || '—' }}
           </td>
+
+          <td>
+            {{ i.region || '—' }}
+          </td>
+
+          <td class="num" [class.warn]="service.pendingFor(i.id).length > 5">
+            {{ service.pendingFor(i.id).length }}
+          </td>
+
+          <td class="num">
+            {{ service.completedFor(i).length }}
+          </td>
+
+          <td>
+            <div class="bar">
+              <span [style.width.%]="i.passRate"></span>
+            </div>
+
+            <small class="pct"> {{ i.passRate }}% </small>
+          </td>
+
           <td class="num">★ {{ i.rating || '—' }}</td>
+
           <td>
-            <span class="badge" [attr.data-status]="i.status">{{ statusLabel(i.status) }}</span>
+            <span class="badge" [attr.data-status]="i.status">
+              {{ statusLabel(i.status) }}
+            </span>
           </td>
+
           <td class="right">
             <div class="row-actions">
               <button type="button" (click)="router.navigate(['/inspectors', i.id])">View</button>
+
               <button type="button" (click)="router.navigate(['/inspectors', i.id, 'edit'])">
                 Edit
               </button>
+
               @if (i.status === 'suspended') {
                 <button type="button" (click)="reactivate(i)">Reactivate</button>
               } @else {
-                <button type="button" (click)="action.set({ type: 'suspend', inspector: i })">
+                <button
+                  type="button"
+                  (click)="
+                    action.set({
+                      type: 'suspend',
+                      inspector: i,
+                    })
+                  "
+                >
                   Suspend
                 </button>
               }
+
               <button
                 type="button"
                 class="danger"
-                (click)="action.set({ type: 'delete', inspector: i })"
+                (click)="
+                  action.set({
+                    type: 'delete',
+                    inspector: i,
+                  })
+                "
               >
                 Delete
               </button>
