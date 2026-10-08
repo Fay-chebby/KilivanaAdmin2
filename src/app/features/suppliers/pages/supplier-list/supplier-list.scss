@@ -135,16 +135,16 @@ $amber: #d97706;
     font-weight: 600;
     color: $text;
   }
-  // p {
-  //   margin: 2px 0 0;
-  //   font-size: 12px;
-  //   color: $muted;
-  // }
+  p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: $muted;
+  }
 }
 
-// .page {
-//   padding: 20px 24px;
-// }
+.page {
+  padding: 20px 24px;
+}
 .muted {
   color: $muted;
 }
@@ -312,4 +312,10 @@ tbody tr:hover {
   &.active {
     border-color: $green;
   }
+}
+
+.notice--error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
 }

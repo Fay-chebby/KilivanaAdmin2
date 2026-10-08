@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SUPPLIER_CATEGORIES, Supplier, SupplierStatus } from '../../models/supplier.model';
-import { SupplierService } from '../../services/supplier.service';
+import { SupplierService, errorMessage } from '../../services/supplier.service';
 import { StatCard, StatTone } from '../../../../shared/components/stat-card/stat-card';
 import { SupplierActionDialog } from '../../components/supplier-action-dialog/supplier-action-dialog';
 
@@ -25,6 +25,17 @@ export class SupplierList {
   category = signal('all');
   page = signal(1);
   dialog = signal<DialogState>(null);
+  busy = signal(false);
+  actionError = signal<string | null>(null);
+  readonly loading = this.svc.loading;
+  readonly loadError = this.svc.loadError;
+
+  constructor() {
+    this.svc.load();
+  }
+  reload() {
+    this.svc.load();
+  }
 
   filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -122,9 +133,24 @@ export class SupplierList {
   confirm(reason: string) {
     const d = this.dialog();
     if (!d) return;
-    if (d.type === 'delete') this.svc.delete(d.supplier.id);
-    if (d.type === 'suspend') this.svc.suspend(d.supplier.id, reason);
-    if (d.type === 'activate') this.svc.activate(d.supplier.id);
-    this.dialog.set(null);
+    this.busy.set(true);
+    this.actionError.set(null);
+    const call$ =
+      d.type === 'delete'
+        ? this.svc.delete$(d.supplier)
+        : d.type === 'suspend'
+          ? this.svc.suspend$(d.supplier, reason)
+          : this.svc.activate$(d.supplier);
+    call$.subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.dialog.set(null);
+      },
+      error: (e) => {
+        this.busy.set(false);
+        this.dialog.set(null);
+        this.actionError.set(errorMessage(e));
+      },
+    });
   }
 }

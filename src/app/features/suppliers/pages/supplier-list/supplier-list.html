@@ -4,13 +4,21 @@
   <div class="page-head">
     <div>
       <h1>Supplier Management</h1>
-      <!-- <p>{{ filtered().length }} supplier{{ filtered().length === 1 ? '' : 's' }}</p> -->
+      <p>{{ filtered().length }} supplier{{ filtered().length === 1 ? '' : 's' }}</p>
     </div>
     <a class="btn btn-primary" routerLink="add">+ Add Supplier</a>
   </div>
 
   @if (notice(); as msg) {
     <div class="notice" role="status">{{ msg }}</div>
+  }
+  @if (actionError(); as e) {
+    <div class="notice notice--error" role="alert">{{ e }}</div>
+  }
+  @if (loadError(); as e) {
+    <div class="notice notice--error" role="alert">
+      {{ e }} <button type="button" class="btn btn-sm" (click)="reload()">Retry</button>
+    </div>
   }
 
   <div class="stats">
@@ -135,7 +143,9 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="8" class="empty">No suppliers match your search.</td>
+              <td colspan="8" class="empty">
+                {{ loading() ? 'Loading suppliers…' : 'No suppliers match your search.' }}
+              </td>
             </tr>
           }
         </tbody>
@@ -176,6 +186,7 @@
         tone="danger"
         confirmLabel="Delete"
         [message]="'This will permanently remove ' + d.supplier.name + '. This cannot be undone.'"
+        [busy]="busy()"
         (confirmed)="confirm($event)"
         (cancelled)="dialog.set(null)"
       />
@@ -187,6 +198,7 @@
         confirmLabel="Suspend"
         [requireReason]="true"
         [message]="d.supplier.name + ' will be marked as suspended. Please give a reason.'"
+        [busy]="busy()"
         (confirmed)="confirm($event)"
         (cancelled)="dialog.set(null)"
       />
@@ -197,6 +209,7 @@
         tone="success"
         [confirmLabel]="d.supplier.status === 'suspended' ? 'Reinstate' : 'Activate'"
         [message]="d.supplier.name + ' will be set to active.'"
+        [busy]="busy()"
         (confirmed)="confirm($event)"
         (cancelled)="dialog.set(null)"
       />
