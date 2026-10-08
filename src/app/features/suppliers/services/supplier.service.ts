@@ -1,213 +1,211 @@
-import { Injectable, signal } from '@angular/core';
-import { Supplier, SupplierFormValue } from '../models/supplier.model';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, finalize, map, switchMap, tap, of } from 'rxjs';
+import {
+  AdminSupplierDto,
+  ApiEnvelope,
+  SUPPLIER_CATEGORIES,
+  Supplier,
+  SupplierCategory,
+  SupplierFormValue,
+  SupplierStatus,
+} from '../models/supplier.model';
 
-const STORAGE_KEY = 'agriadmin.suppliers';
+const API = '/api/v1';
 
-const SEED: Supplier[] = [
-  {
-    id: '1',
-    code: 'S-001',
-    username: 'agroinput',
-    name: 'AgroInput Ghana',
-    category: 'Fertilizers & Seeds',
-    contactPerson: 'Kofi Boateng',
-    email: 'info@agroinput.gh',
-    phone: '0244123456',
-    region: 'Greater Accra',
-    address: 'Tema Industrial Area',
-    contractEnd: '2025-12-31',
-    status: 'active',
-    suspensionReason: null,
-    productsCount: 34,
-    rating: 4.6,
-    createdAt: '2024-01-10',
-  },
-  {
-    id: '2',
-    code: 'S-002',
-    username: 'farmmech',
-    name: 'FarmMech Ltd',
-    category: 'Equipment & Machinery',
-    contactPerson: 'Ama Serwaa',
-    email: 'sales@farmmech.com',
-    phone: '0201234567',
-    region: 'Ashanti',
-    address: 'Kumasi, Suame',
-    contractEnd: '2025-06-30',
-    status: 'active',
-    suspensionReason: null,
-    productsCount: 18,
-    rating: 4.8,
-    createdAt: '2024-02-14',
-  },
-  {
-    id: '3',
-    code: 'S-003',
-    username: 'pestcontrol',
-    name: 'PestControl Pro',
-    category: 'Pesticides',
-    contactPerson: 'Yaw Mensah',
-    email: 'hello@pestcontrolpro.com',
-    phone: '0553456789',
-    region: 'Northern',
-    address: 'Tamale',
-    contractEnd: '2024-09-30',
-    status: 'suspended',
-    suspensionReason: 'Expired licence documents',
-    productsCount: 12,
-    rating: 3.2,
-    createdAt: '2024-03-02',
-  },
-  {
-    id: '4',
-    code: 'S-004',
-    username: 'seedbank',
-    name: 'SeedBank Ghana',
-    category: 'Seeds',
-    contactPerson: 'Efua Owusu',
-    email: 'contact@seedbank.gh',
-    phone: '0277654321',
-    region: 'Eastern',
-    address: 'Koforidua',
-    contractEnd: '2026-03-31',
-    status: 'active',
-    suspensionReason: null,
-    productsCount: 67,
-    rating: 4.9,
-    createdAt: '2024-03-20',
-  },
-  {
-    id: '5',
-    code: 'S-005',
-    username: 'irritech',
-    name: 'IrriTech Systems',
-    category: 'Irrigation',
-    contactPerson: 'Kwame Asante',
-    email: 'support@irritech.com',
-    phone: '0500112233',
-    region: 'Volta',
-    address: 'Ho',
-    contractEnd: null,
-    status: 'pending',
-    suspensionReason: null,
-    productsCount: 8,
-    rating: null,
-    createdAt: '2024-04-05',
-  },
-];
+export function errorMessage(err: unknown): string {
+  const e = err as {
+    status?: number;
+    error?: { message?: string; error?: { details?: string; code?: string } };
+    message?: string;
+  };
+  return (
+    e?.error?.error?.details ||
+    e?.error?.message ||
+    e?.error?.error?.code ||
+    (e?.status === 0
+      ? 'Cannot reach the server.'
+      : e?.status
+        ? `Request failed (${e.status}).`
+        : e?.message || 'Something went wrong.')
+  );
+}
+
+function toStatus(s?: string | null): SupplierStatus {
+  const v = (s ?? '').toLowerCase();
+  return v === 'active' || v === 'suspended' ? v : 'pending';
+}
+
+export function toSupplier(d: AdminSupplierDto): Supplier {
+  return {
+    id: d.userId,
+    profileId: d.profileId ?? null,
+    code: d.code || `S-${String(d.userId).padStart(3, '0')}`,
+    name: d.companyName,
+    username: d.username ?? '',
+    category: (d.category ?? 'Other') as SupplierCategory,
+    contactPerson: d.contactPerson ?? '',
+    email: d.email ?? '',
+    phone: d.phone ?? '',
+    region: d.region ?? '',
+    address: d.address ?? '',
+    contractEnd: d.contractEndDate || null,
+    status: toStatus(d.status),
+    suspensionReason: d.suspensionReason || null,
+    productsCount: d.productsCount ?? 0,
+    rating: d.rating ?? null,
+    createdAt: (d.createdAt ?? '').slice(0, 10),
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class SupplierService {
-  private readonly _suppliers = signal<Supplier[]>(this.load());
-  readonly suppliers = this._suppliers.asReadonly();
+  private readonly http = inject(HttpClient);
 
-  /** Simple feedback message shown on the list page. Swap for your ToastService if you like. */
+  private readonly _suppliers = signal<Supplier[]>([]);
+  readonly suppliers = this._suppliers.asReadonly();
+  readonly loading = signal(false);
+  readonly loadError = signal<string | null>(null);
+  /** Kenyan counties from GET /regions */
+  readonly regions = signal<string[]>([]);
+  /** Categories shown in the form; the API takes any string */
+  readonly categories: readonly string[] = SUPPLIER_CATEGORIES;
+
   readonly notice = signal<string | null>(null);
   private noticeTimer?: ReturnType<typeof setTimeout>;
 
-  getById(id: string): Supplier | undefined {
-    return this._suppliers().find((s) => s.id === id);
+  // ---------- loading ----------
+  load(): void {
+    this.loading.set(true);
+    this.loadError.set(null);
+    this.http
+      .get<ApiEnvelope<AdminSupplierDto[] | { content: AdminSupplierDto[] }>>(
+        `${API}/admin/suppliers`,
+      )
+      .pipe(
+        map((r) => (Array.isArray(r.data) ? r.data : (r.data?.content ?? []))),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (list) => this._suppliers.set(list.map(toSupplier)),
+        error: (e) => this.loadError.set(errorMessage(e)),
+      });
   }
 
-  usernameTaken(username: string, excludeId?: string): boolean {
+  loadRegions(): void {
+    if (this.regions().length) return;
+    this.http.get<ApiEnvelope<string[]>>(`${API}/regions`).subscribe({
+      next: (r) => this.regions.set(r.data ?? []),
+      error: () => undefined,
+    });
+  }
+
+  get$(id: number): Observable<Supplier> {
+    return this.http.get<ApiEnvelope<AdminSupplierDto>>(`${API}/admin/suppliers/${id}`).pipe(
+      map((r) => toSupplier(r.data)),
+      tap((s) => this.upsert(s)),
+    );
+  }
+
+  /** Only checks suppliers already loaded. The server still enforces uniqueness. */
+  usernameTaken(username: string, excludeId?: number): boolean {
     const u = username.trim().toLowerCase();
-    return this._suppliers().some(
-      (s) => s.id !== excludeId && (s.username ?? '').toLowerCase() === u,
+    return this._suppliers().some((s) => s.id !== excludeId && s.username.toLowerCase() === u);
+  }
+
+  // ---------- actions ----------
+  create$(v: SupplierFormValue): Observable<Supplier> {
+    return this.http
+      .post<ApiEnvelope<AdminSupplierDto>>(`${API}/admin/suppliers`, this.body(v, true))
+      .pipe(
+        map((r) => toSupplier(r.data)),
+        // The API starts new suppliers as pending. If the admin picked "Active", activate right away.
+        switchMap((s) =>
+          v.status === 'active' && s.status !== 'active'
+            ? this.http
+                .put(`${API}/admin/users/${s.id}/activate`, null)
+                .pipe(map(() => ({ ...s, status: 'active' as const })))
+            : of(s),
+        ),
+        tap((s) => {
+          this.upsert(s);
+          this.flash(`${s.name} registered successfully.`);
+        }),
+      );
+  }
+
+  update$(id: number, v: SupplierFormValue): Observable<Supplier> {
+    return this.http
+      .put<ApiEnvelope<AdminSupplierDto>>(`${API}/admin/suppliers/${id}`, this.body(v, false))
+      .pipe(
+        map((r) => toSupplier(r.data)),
+        tap((s) => {
+          this.upsert(s);
+          this.flash('Supplier updated successfully.');
+        }),
+      );
+  }
+
+  delete$(s: Supplier): Observable<unknown> {
+    return this.http.delete(`${API}/admin/suppliers/${s.id}`).pipe(
+      tap(() => {
+        this._suppliers.update((l) => l.filter((x) => x.id !== s.id));
+        this.flash(`${s.name} was deleted.`);
+      }),
     );
   }
 
-  create(value: SupplierFormValue): Supplier {
-    // NOTE: value.password is intentionally NOT stored. With a real backend, send it
-    // to the API over HTTPS and let the server hash it.
-    const list = this._suppliers();
-    const next =
-      list.reduce((max, s) => Math.max(max, parseInt(s.code.replace('S-', ''), 10) || 0), 0) + 1;
-    const supplier: Supplier = {
-      id: crypto.randomUUID(),
-      code: `S-${String(next).padStart(3, '0')}`,
-      name: value.name.trim(),
-      username: value.username.trim(),
-      category: value.category,
-      contactPerson: value.contactPerson.trim(),
-      email: value.email.trim(),
-      phone: value.phone.trim(),
-      region: value.region.trim(),
-      address: value.address.trim(),
-      contractEnd: value.contractEnd || null,
-      status: value.status,
-      suspensionReason: null,
-      productsCount: 0,
-      rating: null,
-      createdAt: new Date().toISOString().slice(0, 10),
+  suspend$(s: Supplier, reason: string): Observable<unknown> {
+    return this.http
+      .put(`${API}/admin/suppliers/${s.id}/suspend`, null, { params: { reason } })
+      .pipe(
+        tap(() => {
+          this.upsert({ ...s, status: 'suspended', suspensionReason: reason });
+          this.flash('Supplier suspended.');
+        }),
+      );
+  }
+
+  /** "Reinstate" (suspended) uses unsuspend. "Activate" (pending) uses the generic user activate. */
+  activate$(s: Supplier): Observable<unknown> {
+    const call$ =
+      s.status === 'suspended'
+        ? this.http.put(`${API}/admin/suppliers/${s.id}/unsuspend`, null)
+        : this.http.put(`${API}/admin/users/${s.id}/activate`, null);
+    return call$.pipe(
+      tap(() => {
+        this.upsert({ ...s, status: 'active', suspensionReason: null });
+        this.flash('Supplier is now active.');
+      }),
+    );
+  }
+
+  // ---------- internals ----------
+  /** Blank password is left out, so the API keeps the current one. */
+  private body(v: SupplierFormValue, creating: boolean) {
+    const b: Record<string, unknown> = {
+      companyName: v.name.trim(),
+      contactPerson: v.contactPerson.trim(),
+      username: v.username.trim(),
+      email: v.email.trim(),
+      phone: v.phone.trim(),
+      region: v.region,
+      address: v.address.trim(),
+      category: v.category,
     };
-    this.commit([supplier, ...list]);
-    this.flash(`${supplier.name} registered successfully.`);
-    return supplier;
+    if (v.contractEnd) b['contractEndDate'] = v.contractEnd;
+    if (creating) b['status'] = v.status;
+    if (v.password) b['password'] = v.password;
+    return b;
   }
 
-  update(id: string, value: SupplierFormValue): void {
-    this.commit(
-      this._suppliers().map((s) =>
-        s.id === id
-          ? {
-              ...s,
-              name: value.name.trim(),
-              username: value.username.trim(),
-              category: value.category,
-              contactPerson: value.contactPerson.trim(),
-              email: value.email.trim(),
-              phone: value.phone.trim(),
-              region: value.region.trim(),
-              address: value.address.trim(),
-              contractEnd: value.contractEnd || null,
-            }
-          : s,
-      ),
+  private upsert(s: Supplier): void {
+    this._suppliers.update((l) =>
+      l.some((x) => x.id === s.id) ? l.map((x) => (x.id === s.id ? s : x)) : [s, ...l],
     );
-    this.flash('Supplier updated successfully.');
   }
 
-  delete(id: string): void {
-    const name = this.getById(id)?.name ?? 'Supplier';
-    this.commit(this._suppliers().filter((s) => s.id !== id));
-    this.flash(`${name} was deleted.`);
-  }
-
-  suspend(id: string, reason: string): void {
-    this.patch(id, { status: 'suspended', suspensionReason: reason });
-    this.flash('Supplier suspended.');
-  }
-
-  /** Used for both "Reinstate" (suspended → active) and "Activate" (pending → active) */
-  activate(id: string): void {
-    this.patch(id, { status: 'active', suspensionReason: null });
-    this.flash('Supplier is now active.');
-  }
-
-  // ---- internals ----
-  private patch(id: string, changes: Partial<Supplier>): void {
-    this.commit(this._suppliers().map((s) => (s.id === id ? { ...s, ...changes } : s)));
-  }
-
-  private commit(list: Supplier[]): void {
-    this._suppliers.set(list);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    } catch {
-      /* ignore */
-    }
-  }
-
-  private load(): Supplier[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as Supplier[]) : SEED;
-    } catch {
-      return SEED;
-    }
-  }
-
-  private flash(message: string): void {
+  flash(message: string): void {
     clearTimeout(this.noticeTimer);
     this.notice.set(message);
     this.noticeTimer = setTimeout(() => this.notice.set(null), 3500);
