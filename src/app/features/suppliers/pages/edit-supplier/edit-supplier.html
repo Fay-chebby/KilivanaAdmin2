@@ -4,17 +4,21 @@
     ><span>/</span>Edit
   </div>
 
-  @if (supplier) {
+  @if (loading()) {
+    <div class="card missing"><p>Loading supplier…</p></div>
+  } @else if (supplier(); as s) {
     <div class="page-head">
       <div>
-        <h1>Edit {{ supplier.name }}</h1>
-        <p>{{ supplier.code }}</p>
+        <h1>Edit {{ s.name }}</h1>
+        <p>{{ s.code }}</p>
       </div>
     </div>
     <app-supplier-form
-      [supplier]="supplier"
+      [supplier]="s"
       [requirePassword]="false"
       submitLabel="Save Changes"
+      [saving]="saving()"
+      [error]="error()"
       (saved)="save($event)"
       (cancelled)="cancel()"
     />
