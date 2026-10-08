@@ -31,11 +31,16 @@ export class SupplierForm {
   showStatus = input(false);
   /** true when registering; false on edit (blank password = keep current one) */
   requirePassword = input(true);
+  /** Disables the submit button while the request is running */
+  saving = input(false);
+  /** Server error to show above the buttons */
+  error = input<string | null>(null);
 
   saved = output<SupplierFormValue>();
   cancelled = output<void>();
 
   readonly categories = SUPPLIER_CATEGORIES;
+  readonly regions = this.svc.regions;
   showPassword = signal(false);
 
   form = this.fb.group(
@@ -71,10 +76,17 @@ export class SupplierForm {
   );
 
   constructor() {
+    this.svc.loadRegions();
     effect(() => {
       const s = this.supplier();
       if (s) {
-        this.form.patchValue({ ...s, username: s.username ?? '', contractEnd: s.contractEnd ?? '' });
+        this.form.patchValue({
+          ...s,
+          username: s.username ?? '',
+          contractEnd: s.contractEnd ?? '',
+          password: '',
+          confirmPassword: '',
+        });
       }
     });
 

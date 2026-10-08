@@ -8,7 +8,7 @@
           id="name"
           type="text"
           formControlName="name"
-          placeholder="e.g. AgroInput kenya"
+          placeholder="e.g. AgroInput Ltd"
           [class.error]="invalid('name')"
         />
         @if (invalid('name')) {
@@ -21,6 +21,11 @@
         <select id="category" formControlName="category">
           @for (c of categories; track c) {
             <option [value]="c">{{ c }}</option>
+          }
+          @if (!categories.includes(form.controls.category.value)) {
+            <option [value]="form.controls.category.value">
+              {{ form.controls.category.value }}
+            </option>
           }
         </select>
       </div>
@@ -145,7 +150,7 @@
           id="phone"
           type="tel"
           formControlName="phone"
-          placeholder="0244123456"
+          placeholder="0712345678"
           [class.error]="invalid('phone')"
         />
         @if (invalid('phone')) {
@@ -163,13 +168,15 @@
 
       <div class="field">
         <label for="region">Region <span class="req">*</span></label>
-        <input
-          id="region"
-          type="text"
-          formControlName="region"
-          placeholder="e.g. Ashanti"
-          [class.error]="invalid('region')"
-        />
+        <select id="region" formControlName="region" [class.error]="invalid('region')">
+          <option value="" disabled>Select county</option>
+          @for (r of regions(); track r) {
+            <option [value]="r">{{ r }}</option>
+          }
+          @if (form.controls.region.value && !regions().includes(form.controls.region.value)) {
+            <option [value]="form.controls.region.value">{{ form.controls.region.value }}</option>
+          }
+        </select>
         @if (invalid('region')) {
           <small class="err">Region is required.</small>
         }
@@ -182,8 +189,16 @@
     </div>
   </section>
 
+  @if (error(); as e) {
+    <p class="server-err" role="alert">{{ e }}</p>
+  }
+
   <div class="footer">
-    <button type="button" class="btn" (click)="cancelled.emit()">Cancel</button>
-    <button type="submit" class="btn btn-primary">{{ submitLabel() }}</button>
+    <button type="button" class="btn" [disabled]="saving()" (click)="cancelled.emit()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : submitLabel() }}
+    </button>
   </div>
 </form>
