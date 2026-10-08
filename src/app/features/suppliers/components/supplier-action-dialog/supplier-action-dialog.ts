@@ -2,7 +2,6 @@ import { Component, HostListener, computed, input, output, signal } from '@angul
 
 @Component({
   selector: 'app-supplier-action-dialog',
-  standalone: true,
   templateUrl: './supplier-action-dialog.html',
   styleUrl: './supplier-action-dialog.scss',
 })
@@ -12,12 +11,15 @@ export class SupplierActionDialog {
   confirmLabel = input('Confirm');
   tone = input<'danger' | 'warning' | 'success'>('danger');
   requireReason = input(false);
+  busy = input(false);
 
   confirmed = output<string>();
   cancelled = output<void>();
 
   reason = signal('');
-  canConfirm = computed(() => !this.requireReason() || this.reason().trim().length >= 3);
+  canConfirm = computed(
+    () => !this.busy() && (!this.requireReason() || this.reason().trim().length >= 3),
+  );
 
   onReason(event: Event) {
     this.reason.set((event.target as HTMLTextAreaElement).value);
