@@ -7,6 +7,9 @@
   @if (notice(); as msg) {
     <div class="notice" role="status">{{ msg }}</div>
   }
+  @if (error(); as e) {
+    <div class="alert" role="alert">{{ e }}</div>
+  }
 
   @if (supplier(); as s) {
     <div class="page-head">
@@ -104,6 +107,7 @@
           tone="danger"
           confirmLabel="Delete"
           [message]="'This will permanently remove ' + s.name + '. This cannot be undone.'"
+          [busy]="busy()"
           (confirmed)="confirm($event)"
           (cancelled)="dialog.set(null)"
         />
@@ -115,6 +119,7 @@
           confirmLabel="Suspend"
           [requireReason]="true"
           [message]="s.name + ' will be marked as suspended. Please give a reason.'"
+          [busy]="busy()"
           (confirmed)="confirm($event)"
           (cancelled)="dialog.set(null)"
         />
@@ -125,11 +130,14 @@
           tone="success"
           [confirmLabel]="s.status === 'suspended' ? 'Reinstate' : 'Activate'"
           [message]="s.name + ' will be set to active.'"
+          [busy]="busy()"
           (confirmed)="confirm($event)"
           (cancelled)="dialog.set(null)"
         />
       }
     }
+  } @else if (loading()) {
+    <div class="card missing"><p>Loading supplier…</p></div>
   } @else {
     <div class="card missing">
       <p>Supplier not found.</p>

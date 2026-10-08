@@ -116,12 +116,20 @@ export class SupplierList {
     this.page.set(Math.min(Math.max(1, p), this.totalPages()));
   }
 
-  initials(name: string): string {
-    return name
-      .split(' ')
-      .filter(Boolean)
+  initials(name: string | null | undefined): string {
+    if (!name) {
+      return 'SU';
+    }
+
+    const words = name.trim().split(/\s+/).filter(Boolean);
+
+    if (words.length === 0) {
+      return 'SU';
+    }
+
+    return words
       .slice(0, 2)
-      .map((w) => w[0])
+      .map((w) => w.charAt(0))
       .join('')
       .toUpperCase();
   }

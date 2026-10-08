@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, finalize, map, switchMap, tap, of } from 'rxjs';
 import {
@@ -11,7 +11,11 @@ import {
   SupplierStatus,
 } from '../models/supplier.model';
 
-const API = '/api/v1';
+const API = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+
+const NGROK_HEADERS = new HttpHeaders({
+  'ngrok-skip-browser-warning': 'true',
+});
 
 export function errorMessage(err: unknown): string {
   const e = err as {
@@ -19,6 +23,7 @@ export function errorMessage(err: unknown): string {
     error?: { message?: string; error?: { details?: string; code?: string } };
     message?: string;
   };
+
   return (
     e?.error?.error?.details ||
     e?.error?.message ||
@@ -66,21 +71,23 @@ export class SupplierService {
   readonly suppliers = this._suppliers.asReadonly();
   readonly loading = signal(false);
   readonly loadError = signal<string | null>(null);
-  /** Kenyan counties from GET /regions */
+
   readonly regions = signal<string[]>([]);
-  /** Categories shown in the form; the API takes any string */
   readonly categories: readonly string[] = SUPPLIER_CATEGORIES;
 
   readonly notice = signal<string | null>(null);
   private noticeTimer?: ReturnType<typeof setTimeout>;
 
   // ---------- loading ----------
+
   load(): void {
     this.loading.set(true);
     this.loadError.set(null);
+
     this.http
       .get<ApiEnvelope<AdminSupplierDto[] | { content: AdminSupplierDto[] }>>(
         `${API}/admin/suppliers`,
+        { headers: NGROK_HEADERS },
       )
       .pipe(
         map((r) => (Array.isArray(r.data) ? r.data : (r.data?.content ?? []))),
@@ -94,39 +101,57 @@ export class SupplierService {
 
   loadRegions(): void {
     if (this.regions().length) return;
-    this.http.get<ApiEnvelope<string[]>>(`${API}/regions`).subscribe({
-      next: (r) => this.regions.set(r.data ?? []),
-      error: () => undefined,
-    });
+
+    this.http
+      .get<ApiEnvelope<string[]>>(`${API}/regions`, {
+        headers: NGROK_HEADERS,
+      })
+      .subscribe({
+        next: (r) => this.regions.set(r.data ?? []),
+        error: () => undefined,
+      });
   }
 
   get$(id: number): Observable<Supplier> {
-    return this.http.get<ApiEnvelope<AdminSupplierDto>>(`${API}/admin/suppliers/${id}`).pipe(
-      map((r) => toSupplier(r.data)),
-      tap((s) => this.upsert(s)),
-    );
+    return this.http
+      .get<
+        ApiEnvelope<AdminSupplierDto>
+      >(`${API}/admin/suppliers/${id}`, { headers: NGROK_HEADERS })
+      .pipe(
+        map((r) => toSupplier(r.data)),
+        tap((s) => this.upsert(s)),
+      );
   }
 
-  /** Only checks suppliers already loaded. The server still enforces uniqueness. */
   usernameTaken(username: string, excludeId?: number): boolean {
     const u = username.trim().toLowerCase();
+
     return this._suppliers().some((s) => s.id !== excludeId && s.username.toLowerCase() === u);
   }
 
   // ---------- actions ----------
+
   create$(v: SupplierFormValue): Observable<Supplier> {
     return this.http
-      .post<ApiEnvelope<AdminSupplierDto>>(`${API}/admin/suppliers`, this.body(v, true))
+      .post<
+        ApiEnvelope<AdminSupplierDto>
+      >(`${API}/admin/suppliers`, this.body(v, true), { headers: NGROK_HEADERS })
       .pipe(
         map((r) => toSupplier(r.data)),
-        // The API starts new suppliers as pending. If the admin picked "Active", activate right away.
+
         switchMap((s) =>
           v.status === 'active' && s.status !== 'active'
             ? this.http
-                .put(`${API}/admin/users/${s.id}/activate`, null)
-                .pipe(map(() => ({ ...s, status: 'active' as const })))
+                .put(`${API}/admin/users/${s.id}/activate`, null, { headers: NGROK_HEADERS })
+                .pipe(
+                  map(() => ({
+                    ...s,
+                    status: 'active' as const,
+                  })),
+                )
             : of(s),
         ),
+
         tap((s) => {
           this.upsert(s);
           this.flash(`${s.name} registered successfully.`);
@@ -136,7 +161,9 @@ export class SupplierService {
 
   update$(id: number, v: SupplierFormValue): Observable<Supplier> {
     return this.http
-      .put<ApiEnvelope<AdminSupplierDto>>(`${API}/admin/suppliers/${id}`, this.body(v, false))
+      .put<
+        ApiEnvelope<AdminSupplierDto>
+      >(`${API}/admin/suppliers/${id}`, this.body(v, false), { headers: NGROK_HEADERS })
       .pipe(
         map((r) => toSupplier(r.data)),
         tap((s) => {
@@ -147,41 +174,61 @@ export class SupplierService {
   }
 
   delete$(s: Supplier): Observable<unknown> {
-    return this.http.delete(`${API}/admin/suppliers/${s.id}`).pipe(
-      tap(() => {
-        this._suppliers.update((l) => l.filter((x) => x.id !== s.id));
-        this.flash(`${s.name} was deleted.`);
-      }),
-    );
+    return this.http
+      .delete(`${API}/admin/suppliers/${s.id}`, {
+        headers: NGROK_HEADERS,
+      })
+      .pipe(
+        tap(() => {
+          this._suppliers.update((l) => l.filter((x) => x.id !== s.id));
+
+          this.flash(`${s.name} was deleted.`);
+        }),
+      );
   }
 
   suspend$(s: Supplier, reason: string): Observable<unknown> {
     return this.http
-      .put(`${API}/admin/suppliers/${s.id}/suspend`, null, { params: { reason } })
+      .put(`${API}/admin/suppliers/${s.id}/suspend`, null, {
+        headers: NGROK_HEADERS,
+        params: { reason },
+      })
       .pipe(
         tap(() => {
-          this.upsert({ ...s, status: 'suspended', suspensionReason: reason });
+          this.upsert({
+            ...s,
+            status: 'suspended',
+            suspensionReason: reason,
+          });
+
           this.flash('Supplier suspended.');
         }),
       );
   }
 
-  /** "Reinstate" (suspended) uses unsuspend. "Activate" (pending) uses the generic user activate. */
   activate$(s: Supplier): Observable<unknown> {
     const call$ =
       s.status === 'suspended'
-        ? this.http.put(`${API}/admin/suppliers/${s.id}/unsuspend`, null)
-        : this.http.put(`${API}/admin/users/${s.id}/activate`, null);
+        ? this.http.put(`${API}/admin/suppliers/${s.id}/unsuspend`, null, {
+            headers: NGROK_HEADERS,
+          })
+        : this.http.put(`${API}/admin/users/${s.id}/activate`, null, { headers: NGROK_HEADERS });
+
     return call$.pipe(
       tap(() => {
-        this.upsert({ ...s, status: 'active', suspensionReason: null });
+        this.upsert({
+          ...s,
+          status: 'active',
+          suspensionReason: null,
+        });
+
         this.flash('Supplier is now active.');
       }),
     );
   }
 
   // ---------- internals ----------
-  /** Blank password is left out, so the API keeps the current one. */
+
   private body(v: SupplierFormValue, creating: boolean) {
     const b: Record<string, unknown> = {
       companyName: v.name.trim(),
@@ -193,9 +240,19 @@ export class SupplierService {
       address: v.address.trim(),
       category: v.category,
     };
-    if (v.contractEnd) b['contractEndDate'] = v.contractEnd;
-    if (creating) b['status'] = v.status;
-    if (v.password) b['password'] = v.password;
+
+    if (v.contractEnd) {
+      b['contractEndDate'] = v.contractEnd;
+    }
+
+    if (creating) {
+      b['status'] = v.status;
+    }
+
+    if (v.password) {
+      b['password'] = v.password;
+    }
+
     return b;
   }
 
@@ -207,7 +264,9 @@ export class SupplierService {
 
   flash(message: string): void {
     clearTimeout(this.noticeTimer);
+
     this.notice.set(message);
+
     this.noticeTimer = setTimeout(() => this.notice.set(null), 3500);
   }
 }

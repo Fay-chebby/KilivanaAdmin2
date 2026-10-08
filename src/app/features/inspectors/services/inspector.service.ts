@@ -115,25 +115,21 @@ export class InspectorService {
   // =========================================================
   // GET INSPECTOR
   // =========================================================
+  // =========================================================
+  // GET INSPECTOR FROM LOCAL STATE
+  // =========================================================
 
   getById(id: number): Inspector | undefined {
     return this._inspectors().find((inspector) => inspector.id === id);
   }
-
   getInspector(id: number): Observable<Inspector> {
-    const cached = this.getById(id);
-
-    if (cached) {
-      return of(cached);
-    }
-
     return forkJoin({
       user: this.getUser(id),
-      profile: this.getProfile(id),
-      inspections: this.getInspectorInspections(id),
+      profile: this.getProfile(id).pipe(catchError(() => of(null))),
+      inspections: this.getInspectorInspections(id).pipe(catchError(() => of(null))),
     }).pipe(
       map(({ user, profile, inspections }) =>
-        this.mapInspector(user.data, profile.data, inspections.data ?? []),
+        this.mapInspector(user.data, profile?.data ?? null, inspections?.data ?? []),
       ),
 
       tap((inspector) => {
@@ -669,7 +665,7 @@ export class InspectorService {
 
       inspectorDetails: profile?.inspectorDetails ?? '',
 
-      status: this.toFrontendStatus(profile?.status ?? user.status),
+      status: this.toFrontendStatus(user.status),
 
       suspendReason: undefined,
 
