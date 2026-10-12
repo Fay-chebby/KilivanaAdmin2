@@ -1,1 +1,37 @@
-<p>export-button works!</p>
+<button
+  type="button"
+  class="trigger"
+  [disabled]="loading()"
+  [attr.aria-expanded]="open()"
+  aria-haspopup="menu"
+  (click)="open.set(!open())"
+>
+  @if (loading()) {
+    <span class="spin" aria-hidden="true"></span> Exporting…
+  } @else {
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+    </svg>
+    {{ label() }}
+  }
+</button>
+
+@if (open()) {
+  <ul class="menu" role="menu" [class.end]="align() === 'end'">
+    @for (f of formats(); track f) {
+      <li>
+        <button type="button" role="menuitem" (click)="pick(f)">{{ names[f] }}</button>
+      </li>
+    }
+  </ul>
+}
