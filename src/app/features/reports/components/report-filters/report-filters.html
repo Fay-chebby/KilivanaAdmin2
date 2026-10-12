@@ -1,1 +1,29 @@
-<p>report-filters works!</p>
+<div class="filters">
+  <select
+    aria-label="Date range"
+    [value]="range().preset"
+    (change)="onPreset($any($event.target).value)"
+  >
+    @for (p of presets; track p.value) {
+      <option [value]="p.value" [selected]="p.value === range().preset">{{ p.label }}</option>
+    }
+  </select>
+
+  @if (range().preset === 'custom') {
+    <input
+      type="date"
+      aria-label="From"
+      [value]="range().from"
+      [max]="range().to"
+      (change)="onDate('from', $any($event.target).value)"
+    />
+    <span class="to">to</span>
+    <input
+      type="date"
+      aria-label="To"
+      [value]="range().to"
+      [min]="range().from"
+      (change)="onDate('to', $any($event.target).value)"
+    />
+  }
+</div>

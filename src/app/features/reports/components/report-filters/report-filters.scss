@@ -1,0 +1,25 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+select,
+input[type='date'] {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 13px;
+  &:focus-visible {
+    outline: 2px solid #16a34a;
+    outline-offset: 1px;
+  }
+}
+.to {
+  color: #94a3b8;
+  font-size: 13px;
+}
