@@ -1,1 +1,59 @@
-<p>reports-dashboard works!</p>
+<section class="reports">
+  <header class="head">
+    <div>
+      <p class="crumbs">AgriAdmin / Reports</p>
+      <h1>Reports &amp; analytics</h1>
+    </div>
+    <div class="tools">
+      <app-report-filters [range]="range()" (rangeChange)="range.set($event)" />
+      <app-export-button label="Export all" align="end" [loading]="exporting() === 'overview'"
+        (exportRequested)="onExport('overview', $event)" />
+    </div>
+  </header>
+
+  <div class="kpis">
+    @if (overview(); as o) {
+      @for (k of o.kpis; track k.label) {
+        <article class="kpi" [class.loading]="loading()">
+          <span class="kpi-label">{{ k.label }}</span>
+          <strong class="kpi-value">{{ kpiValue(k) }}</strong>
+          <span class="delta" [class.good]="isGood(k)" [class.bad]="!isGood(k)">
+            {{ k.change > 0 ? '+' : '' }}{{ k.change }}% vs previous period
+          </span>
+        </article>
+      }
+    } @else {
+      @for (s of skeleton; track s) { <article class="kpi skeleton"></article> }
+    }
+  </div>
+
+  <div class="charts">
+    <article class="panel" [class.loading]="loading()">
+      <h2>Sales trend</h2>
+      @if (overview(); as o) {
+        <app-report-chart [data]="o.salesTrend" type="line" valueType="currency" ariaLabel="Sales trend line chart" />
+      } @else { <div class="chart-skeleton"></div> }
+    </article>
+
+    <article class="panel" [class.loading]="loading()">
+      <h2>Orders</h2>
+      @if (overview(); as o) {
+        <app-report-chart [data]="o.orders" type="bar" color="#22c55e" ariaLabel="Orders bar chart" />
+      } @else { <div class="chart-skeleton"></div> }
+    </article>
+  </div>
+
+  <div class="cards">
+    @for (r of reports; track r.id) {
+      <article class="card">
+        <span class="icon" [style.background]="r.tint" aria-hidden="true">{{ r.icon }}</span>
+        <h3>{{ r.title }}</h3>
+        <p>{{ r.description }}</p>
+        <footer>
+          <app-export-button [loading]="exporting() === r.id" (exportRequested)="onExport(r.id, $event)" />
+          @if (r.route) { <a class="view" [routerLink]="r.route">View report</a> }
+        </footer>
+      </article>
+    }
+  </div>
+</section>
