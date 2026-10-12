@@ -1,0 +1,45 @@
+<div class="chart" (mouseleave)="hover.set(null)">
+  <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" role="img" [attr.aria-label]="ariaLabel()">
+    <defs>
+      <linearGradient [attr.id]="uid" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" [attr.stop-color]="color()" stop-opacity="0.22" />
+        <stop offset="1" [attr.stop-color]="color()" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+
+    @for (t of ticks(); track t.value) {
+      <line class="grid" [attr.x1]="left" [attr.x2]="right" [attr.y1]="t.y" [attr.y2]="t.y" />
+      <text class="tick" [attr.x]="left - 8" [attr.y]="t.y + 3.5" text-anchor="end">{{ axis(t.value) }}</text>
+    }
+
+    @if (type() === 'line') {
+      <path [attr.d]="areaPath()" [attr.fill]="'url(#' + uid + ')'" />
+      <path class="line" [attr.d]="linePath()" [attr.stroke]="color()" />
+      @if (active(); as a) {
+        <line class="guide" [attr.x1]="a.x" [attr.x2]="a.x" [attr.y1]="a.y" [attr.y2]="baseline" />
+        <circle [attr.cx]="a.x" [attr.cy]="a.y" r="5" class="dot" [attr.stroke]="color()" />
+      }
+    } @else {
+      @for (p of points(); track p.i) {
+        <rect class="bar" [class.dim]="hover() !== null && hover() !== p.i"
+          [attr.x]="p.x - barW() / 2" [attr.y]="p.y" [attr.width]="barW()" [attr.height]="p.h"
+          [attr.fill]="color()" rx="5" />
+      }
+    }
+
+    @for (p of points(); track p.i) {
+      @if (p.i % labelEvery() === 0) {
+        <text class="tick" [attr.x]="p.x" [attr.y]="H - 8" text-anchor="middle">{{ p.label }}</text>
+      }
+      <rect class="hit" [attr.x]="left + band() * p.i" [attr.y]="0" [attr.width]="band()" [attr.height]="baseline"
+        (mouseenter)="hover.set(p.i)" />
+    }
+  </svg>
+
+  @if (active(); as a) {
+    <div class="tip" [style.left.%]="(a.x / W) * 100" [style.top.%]="(a.y / H) * 100">
+      <span>{{ a.label }}</span>
+      <strong>{{ full(a.value) }}</strong>
+    </div>
+  }
+</div>
