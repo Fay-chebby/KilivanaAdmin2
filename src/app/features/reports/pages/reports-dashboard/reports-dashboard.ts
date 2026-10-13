@@ -43,7 +43,7 @@ export class ReportsDashboard {
   kpiValue(k: Kpi) {
     switch (k.format) {
       case 'currency':
-        return `GH₵ ${Math.round(k.value).toLocaleString('en')}`;
+        return `KSH ${Math.round(k.value).toLocaleString('en')}`;
       case 'percent':
         return `${k.value.toFixed(1)}%`;
       default:
