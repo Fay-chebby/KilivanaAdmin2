@@ -1,22 +1,10 @@
 export type ProductStatus = 'pending' | 'active' | 'rejected' | 'suspended';
 export type VerificationStatus = 'unassigned' | 'assigned' | 'in_review' | 'approved' | 'rejected';
-export type Grade = 'Grade A' | 'Grade B' | 'Grade C' | 'Export' | 'Organic';
 export type Unit = 'kg' | 'bag' | 'crate' | 'litre' | 'tray' | 'bunch' | 'piece';
 export type SellerType = 'farmer' | 'supplier';
+export type Grade = 'GRADE_A' | 'GRADE_B' | 'GRADE_C' | 'EXPORT' | 'ORGANIC';
 export type Tone = 'green' | 'amber' | 'red' | 'grey' | 'blue';
 
-export const CATEGORIES = [
-  'Cereals & Grains',
-  'Fruits',
-  'Vegetables',
-  'Coffee & Tea',
-  'Legumes & Pulses',
-  'Nuts & Seeds',
-  'Roots & Tubers',
-  'Dairy & Eggs',
-  'Flowers',
-];
-export const GRADES: Grade[] = ['Grade A', 'Grade B', 'Grade C', 'Export', 'Organic'];
 export const UNITS: { value: Unit; label: string }[] = [
   { value: 'kg', label: 'Kilogram (kg)' },
   { value: 'bag', label: 'Bag' },
@@ -26,6 +14,16 @@ export const UNITS: { value: Unit; label: string }[] = [
   { value: 'bunch', label: 'Bunch' },
   { value: 'piece', label: 'Piece' },
 ];
+
+export const GRADES: { value: Grade; label: string }[] = [
+  { value: 'GRADE_A', label: 'Grade A' },
+  { value: 'GRADE_B', label: 'Grade B' },
+  { value: 'GRADE_C', label: 'Grade C' },
+  { value: 'EXPORT', label: 'Export' },
+  { value: 'ORGANIC', label: 'Organic' },
+];
+export const gradeLabel = (g: string | null | undefined) =>
+  GRADES.find((x) => x.value === g)?.label ?? '—';
 
 export const PRODUCT_STATUS_META: Record<ProductStatus, { label: string; tone: Tone }> = {
   active: { label: 'Active', tone: 'green' },
@@ -44,12 +42,18 @@ export const VERIFY_META: Record<VerificationStatus, { label: string; tone: Tone
     rejected: { label: 'Failed', tone: 'red', step: 4 },
   };
 
+/**
+ * id is "p-12" for a product photo and "e-7" for an inspector's on-site photo,
+ * because the backend numbers them separately.
+ * `file` is only set for a photo picked in the form that has not been uploaded yet.
+ */
 export interface ProductImage {
   id: string;
   url: string;
   caption: string;
-  uploadedBy: 'farmer' | 'inspector'; // 'farmer' = the seller (farmer or supplier)
+  uploadedBy: 'farmer' | 'inspector';
   uploadedAt: string;
+  file?: File;
 }
 
 export interface ChecklistItem {
@@ -68,10 +72,10 @@ export const DEFAULT_CHECKLIST: ChecklistItem[] = [
 
 export interface ProductVerification {
   status: VerificationStatus;
+  inspectionId: string | null;
   inspectorId: string | null;
   inspectorName: string | null;
   assignedAt: string | null;
-  dueDate: string | null;
   notes: string;
   checklist: ChecklistItem[];
   verifiedQty: number | null;
@@ -80,47 +84,51 @@ export interface ProductVerification {
 
 export interface Product {
   id: string;
-  code: string; // P-001
+  code: string; // P-012, made from the id
   name: string;
   category: string;
+  categoryId: number | null;
   description: string;
+  sellerId: string;
   sellerName: string;
   sellerType: SellerType;
   sellerPhone: string;
-  county: string;
-  farmId: string | null;
-  priceKes: number; // price per unit, in Kenyan shillings
-  unit: Unit;
+  county: string; // the seller's county
+  priceKes: number;
+  unit: string;
   stock: number;
+  soldQty: number;
   minOrder: number;
   lowStockAt: number;
-  quality: Grade;
-  harvestDate: string;
+  grade: Grade | null;
+  harvestDate: string | null;
+  farmId: string | null;
+  farmName: string | null;
+  farmCertified: boolean;
   status: ProductStatus;
-  suspendReason?: string;
+  statusReason: string;
   images: ProductImage[];
   verification: ProductVerification;
   verifiedAt: string | null;
   createdAt: string;
 }
 
+/** What the add and edit form hands to the service */
 export interface ProductPayload {
+  sellerId: string;
+  categoryId: number | null;
   name: string;
-  category: string;
   description: string;
-  sellerName: string;
-  sellerType: SellerType;
-  sellerPhone: string;
-  county: string;
-  farmId: string | null;
+  unit: string;
   priceKes: number;
-  unit: Unit;
   stock: number;
   minOrder: number;
   lowStockAt: number;
-  quality: Grade;
+  grade: Grade;
   harvestDate: string;
-  sellerImages: ProductImage[];
+  farmId: string | null;
+  keptImageIds: string[]; // photos already on the server that stay
+  newFiles: File[]; // photos to upload
 }
 
 /** Can customers see and buy this product right now? */
