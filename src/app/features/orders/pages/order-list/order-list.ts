@@ -221,7 +221,7 @@ export class OrderList implements OnInit {
     }
   }
 
-  protected assign(agentId: string): void {
+  protected assign(agentId: number): void {
     const order = this.toAssign();
 
     if (!order || !agentId) {

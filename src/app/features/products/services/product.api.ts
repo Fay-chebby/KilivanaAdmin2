@@ -25,13 +25,18 @@ export class ProductApi {
 
   private readonly base = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
+  /**
+   * Applied to every request made through call().
+   * Do not manually set Content-Type for FormData.
+   */
   private readonly headers = new HttpHeaders({
     'ngrok-skip-browser-warning': 'true',
+    Accept: 'application/json',
   });
 
   /**
    * Central API request handler.
-   * Supports JSON requests and FormData uploads.
+   * Supports JSON requests, query parameters and FormData uploads.
    */
   private async call<T>(method: string, path: string, body?: unknown, params?: Params): Promise<T> {
     let httpParams = new HttpParams();
@@ -60,7 +65,7 @@ export class ProductApi {
       if (error instanceof HttpErrorResponse) {
         console.error('Kilivana API request failed', {
           method,
-          url: `${this.base}${path}`,
+          url: error.url,
           params,
           status: error.status,
           statusText: error.statusText,
@@ -80,9 +85,7 @@ export class ProductApi {
   // =========================================================
 
   /**
-   * Loads the first page of products from the admin endpoint.
-   * Pagination can be extended after the endpoint is confirmed
-   * to work correctly.
+   * Loads a page of admin products.
    */
   async listAllProducts(
     page = 0,
@@ -109,9 +112,8 @@ export class ProductApi {
       const status =
         error instanceof HttpErrorResponse ? error.status : (error as { status?: number })?.status;
 
-      // Use the public endpoint only when the admin endpoint
-      // is unavailable or access is denied.
-      // Never hide an HTTP 500 backend failure.
+      // Fall back only if the admin endpoint is unavailable
+      // or access is denied. Do not hide HTTP 500 errors.
       if (![403, 404, 405].includes(status ?? 0)) {
         throw error;
       }
@@ -239,13 +241,12 @@ export class ProductApi {
         (farm): farm is FarmDto =>
           !!farm && typeof farm === 'object' && typeof (farm as FarmDto).id === 'number',
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
-        'Could not load farms. Farm selection will be empty until the API is fixed.',
+        'Could not load farms. Farm selection will be empty until the API is available.',
         error,
       );
 
-      // Keep the rest of the product page usable.
       return [];
     }
   }
@@ -266,6 +267,7 @@ export class ProductApi {
 
     if (data && typeof data === 'object') {
       const result = data as Partial<PageDto<InspectionDto>>;
+
       return result.content ?? [];
     }
 

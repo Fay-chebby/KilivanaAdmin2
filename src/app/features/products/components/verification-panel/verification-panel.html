@@ -1,8 +1,11 @@
 @let p = product();
+
 <section class="card">
   <header>
     <h2>Verification</h2>
-    <span class="badge" [attr.data-tone]="meta().tone">{{ meta().label }}</span>
+    <span class="badge" [attr.data-tone]="meta().tone">
+      {{ meta().label }}
+    </span>
   </header>
 
   <ol class="steps" [attr.data-result]="v().status">
@@ -18,17 +21,9 @@
     @case ('unassigned') {
       <div class="state">
         <p>
-          Customers can't see this product yet. Assign an inspector to visit the seller and confirm
-          the product really exists and matches the listing.
+          Customers can't see this product yet. An inspector needs to visit the seller and confirm
+          that the product exists and matches the listing.
         </p>
-        <button
-          type="button"
-          class="btn"
-          [disabled]="service.busy()"
-          (click)="showAssign.set(true)"
-        >
-          Assign verifier
-        </button>
       </div>
     }
 
@@ -36,21 +31,14 @@
       <div class="who">
         <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
         <div>
-          <strong>{{ v().inspectorName }}</strong
-          ><small>Assigned {{ v().assignedAt }}</small>
+          <strong>{{ v().inspectorName }}</strong>
+          <small>Assigned {{ v().assignedAt }}</small>
         </div>
       </div>
+
       <div class="row">
         <button type="button" class="btn" [disabled]="service.busy()" (click)="start()">
           Start on-site check
-        </button>
-        <button
-          type="button"
-          class="btn ghost"
-          [disabled]="service.busy()"
-          (click)="showAssign.set(true)"
-        >
-          Assign someone else
         </button>
       </div>
     }
@@ -59,34 +47,28 @@
       <div class="who">
         <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
         <div>
-          <strong>{{ v().inspectorName }}</strong
-          ><small>Assigned {{ v().assignedAt }}</small>
+          <strong>{{ v().inspectorName }}</strong>
+          <small>Assigned {{ v().assignedAt }}</small>
         </div>
-        <button
-          type="button"
-          class="btn ghost sm"
-          [disabled]="service.busy()"
-          (click)="showAssign.set(true)"
-        >
-          Assign someone else
-        </button>
       </div>
 
       <h3>
         Checklist <span>{{ checked() }}/{{ v().checklist.length }}</span>
       </h3>
+
       <ul class="check">
         @for (c of v().checklist; track c.key) {
           <li>
-            <label
-              ><input type="checkbox" [checked]="c.checked" (change)="toggle(c.key)" />
-              {{ c.label }}</label
-            >
+            <label>
+              <input type="checkbox" [checked]="c.checked" (change)="toggle(c.key)" />
+              {{ c.label }}
+            </label>
           </li>
         }
       </ul>
 
       <h3>What the inspector found</h3>
+
       <div class="found">
         <div class="field">
           <label for="vq">Quantity counted ({{ p.unit }})</label>
@@ -97,20 +79,21 @@
             [value]="qty()"
             (input)="draftQty.set(+$any($event.target).value)"
           />
-          <small [class.warn]="qty() < p.stock"
-            >Listed: {{ p.stock }} {{ p.unit }}.
+          <small [class.warn]="qty() < p.stock">
+            Listed: {{ p.stock }} {{ p.unit }}.
             {{
               qty() < p.stock
                 ? 'Stock will be lowered to what was counted.'
                 : 'Stock stays as listed.'
-            }}</small
-          >
+            }}
+          </small>
         </div>
+
         <div class="field">
           <label for="vg">Quality grade confirmed</label>
-          <select id="vg" (change)="draftGrade.set($any($event.target).value)">
+          <select id="vg" [value]="grade()" (change)="draftGrade.set($any($event.target).value)">
             @for (g of grades; track g.value) {
-              <option [value]="g.value" [selected]="g.value === grade()">{{ g.label }}</option>
+              <option [value]="g.value">{{ g.label }}</option>
             }
           </select>
           <small>Listed as {{ p.grade ?? 'not set' }}.</small>
@@ -120,6 +103,7 @@
       <h3>
         On-site photos <span>{{ photos().length }}/10</span>
       </h3>
+
       <label
         class="drop"
         [class.over]="dragging()"
@@ -137,11 +121,13 @@
         <strong>Add photos of the product on site</strong>
         <span>Use the camera or choose files. Up to 5 MB each.</span>
       </label>
+
       @if (photos().length) {
         <ul class="thumbs">
           @for (ph of photos(); track ph.id) {
             <li>
-              <img [src]="ph.url" [alt]="ph.caption" /><button
+              <img [src]="ph.url" [alt]="ph.caption" />
+              <button
                 type="button"
                 (click)="removePhoto(ph.id)"
                 [attr.aria-label]="'Remove ' + ph.caption"
@@ -165,6 +151,7 @@
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
       }
+
       <div class="row end">
         <button
           type="button"
@@ -174,6 +161,7 @@
         >
           Fail verification
         </button>
+
         <button type="button" class="btn" [disabled]="service.busy()" (click)="decide('approved')">
           {{ service.busy() ? 'Saving…' : 'Approve and publish' }}
         </button>
@@ -184,13 +172,17 @@
       <div class="who">
         <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
         <div>
-          <strong>{{ v().inspectorName }}</strong
-          ><small>{{ meta().label }}{{ v().decidedAt ? ' on ' + v().decidedAt : '' }}</small>
+          <strong>{{ v().inspectorName }}</strong>
+          <small> {{ meta().label }}{{ v().decidedAt ? ' on ' + v().decidedAt : '' }} </small>
         </div>
       </div>
+
       @if (v().notes) {
-        <blockquote [attr.data-tone]="meta().tone">{{ v().notes }}</blockquote>
+        <blockquote [attr.data-tone]="meta().tone">
+          {{ v().notes }}
+        </blockquote>
       }
+
       <p class="sum">
         @if (v().checklist.length) {
           {{ checked() }} of {{ v().checklist.length }} checks passed
@@ -199,34 +191,12 @@
           · {{ v().verifiedQty }} {{ p.unit }} counted on site
         }
       </p>
+
       <div class="row">
         <button type="button" class="btn ghost" [disabled]="service.busy()" (click)="reopen()">
           Reopen check
-        </button>
-        <button
-          type="button"
-          class="btn ghost"
-          [disabled]="service.busy()"
-          (click)="showAssign.set(true)"
-        >
-          Assign a new verifier
         </button>
       </div>
     }
   }
 </section>
-
-@if (showAssign()) {
-  <app-assign-inspector-dialog
-    [county]="p.county"
-    [candidates]="service.inspectorCandidates()"
-    [askDueDate]="false"
-    [description]="
-      'Pick who will visit the seller' +
-      (p.county ? ' in ' + p.county : '') +
-      ' and confirm the product exists before it goes on sale.'
-    "
-    (assigned)="assign($event)"
-    (cancelled)="showAssign.set(false)"
-  />
-}
