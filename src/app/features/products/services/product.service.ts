@@ -1,447 +1,600 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+
 import {
+  CategoryDto,
+  FarmDto,
+  ImageDto,
+  InspectionDto,
+  InspectionRequestDto,
+  ProductDto,
+  ProductRequestDto,
+  UserDto,
+} from '../models/productsapi.model';
+import {
+  ChecklistItem,
   DEFAULT_CHECKLIST,
+  GRADES,
   Grade,
   Product,
   ProductImage,
   ProductPayload,
+  ProductStatus,
   ProductVerification,
-  visibility,
+  SellerType,
+  VerificationStatus,
   stockState,
+  visibility,
 } from '../models/product.model';
+import { ProductApi } from './product.api';
+const API_URL = 'https://either-juvenile-progeny.ngrok-free.dev';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const abs = (u: string) =>
+  /^(https?:|data:)/i.test(u) ? u : API_URL + (u.startsWith('/') ? '' : '/') + u;
+const day = (iso?: string | null) => (iso ? iso.slice(0, 10) : '');
+const STATUSES: ProductStatus[] = ['pending', 'active', 'rejected', 'suspended'];
+const COUNT_RE = /\n?\[Counted: ([\d.,]+)[^\]]*\]\s*$/;
+const num = (v: unknown, fallback: number) =>
+  typeof v === 'number' && isFinite(v)
+    ? v
+    : typeof v === 'string' && v !== '' && isFinite(+v)
+      ? +v
+      : fallback;
 
-/** Soft produce-style picture so demo products have photos */
-function pic(i: number): string {
-  const bg = [
-    ['#fde9c9', '#fff6e6'],
-    ['#d9efd5', '#f1f9ee'],
-    ['#f6d8d3', '#fdf0ee'],
-    ['#d8e6f3', '#eff5fb'],
-  ][i % 4];
-  const c = ['#c8832b', '#2f8f4e', '#c0432f', '#3b76b8'][i % 4];
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='${bg[0]}'/><stop offset='1' stop-color='${bg[1]}'/></linearGradient></defs><rect width='400' height='300' fill='url(#g)'/><ellipse cx='200' cy='235' rx='140' ry='22' fill='#000' opacity='.07'/><path d='M80 150 Q200 70 320 150 L300 235 Q200 260 100 235Z' fill='${c}'/><circle cx='150' cy='155' r='24' fill='#fff' opacity='.25'/><circle cx='215' cy='140' r='20' fill='#fff' opacity='.2'/><circle cx='265' cy='170' r='22' fill='#fff' opacity='.22'/></svg>`;
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+function errMsg(e: unknown): string {
+  const x = e as {
+    status?: number;
+    message?: string;
+    error?: { message?: string; error?: { details?: string } };
+  };
+  if (x?.status === 0)
+    return 'Cannot reach the server. Check the ngrok address and that the backend is running.';
+  if (x?.status === 401) return 'Your session has expired. Please sign in again.';
+  if (x?.status === 403)
+    return 'The server refused this action for your account (403). The backend may still restrict it to the product owner.';
+  return x?.error?.message || x?.error?.error?.details || x?.message || 'Something went wrong.';
 }
-const im = (i: number, caption: string, by: 'farmer' | 'inspector' = 'farmer'): ProductImage => ({
-  id: crypto.randomUUID(),
-  url: pic(i),
-  caption,
-  uploadedBy: by,
-  uploadedAt: '2026-09-18',
-});
 
-const fresh = (): ProductVerification => ({
-  status: 'unassigned',
-  inspectorId: null,
-  inspectorName: null,
-  assignedAt: null,
-  dueDate: null,
-  notes: '',
-  checklist: DEFAULT_CHECKLIST.map((c) => ({ ...c })),
-  verifiedQty: null,
-  decidedAt: null,
-});
-const allOk = (qty: number, by: string, id: string, notes: string): ProductVerification => ({
-  ...fresh(),
-  status: 'approved',
-  inspectorId: id,
-  inspectorName: by,
-  assignedAt: '2026-09-01',
-  dueDate: '2026-09-08',
-  notes,
-  checklist: DEFAULT_CHECKLIST.map((c) => ({ ...c, checked: true })),
-  verifiedQty: qty,
-  decidedAt: '2026-09-07',
-});
-
+/**
+ * Products as the admin portal sees them, built from the Kilivana backend:
+ *  admin products + sellers + categories + farms + inspections.
+ * Verification is an Inspection with targetType PRODUCT.
+ */
 @Injectable({ providedIn: 'root' })
 export class ProductService {
-  private readonly _products = signal<Product[]>([
-    {
-      id: 'p1',
-      code: 'P-001',
-      name: 'Kamau Estate Black Tea (CTC)',
-      category: 'Coffee & Tea',
-      description: 'Black CTC tea from the Limuru highlands, picked and processed within 24 hours.',
-      sellerName: 'Wanjiru Kamau',
-      sellerType: 'farmer',
-      sellerPhone: '0712345001',
-      county: 'Kiambu',
-      farmId: 'f1',
-      priceKes: 450,
-      unit: 'kg',
-      stock: 1800,
-      minOrder: 5,
-      lowStockAt: 200,
-      quality: 'Grade A',
-      harvestDate: '2026-09-10',
-      status: 'active',
-      createdAt: '2026-08-28',
-      verifiedAt: '2026-09-07',
-      images: [
-        im(1, 'Tea packed in sacks'),
-        im(0, 'Drying floor'),
-        im(1, 'Inspector: stock count', 'inspector'),
-      ],
-      verification: allOk(
-        1800,
-        'Dr. Wambui Njoroge',
-        '1',
-        'Stock counted and quality sampled. All good.',
-      ),
-    },
-    {
-      id: 'p2',
-      code: 'P-002',
-      name: 'Dried Maize',
-      category: 'Cereals & Grains',
-      description: 'Sun-dried white maize, shelled and sorted. Moisture below 13.5%.',
-      sellerName: 'Kiprono Cheruiyot',
-      sellerType: 'farmer',
-      sellerPhone: '0722345002',
-      county: 'Uasin Gishu',
-      farmId: 'f2',
-      priceKes: 60,
-      unit: 'kg',
-      stock: 12000,
-      minOrder: 90,
-      lowStockAt: 1000,
-      quality: 'Grade B',
-      harvestDate: '2026-08-30',
-      status: 'active',
-      createdAt: '2026-09-01',
-      verifiedAt: '2026-09-09',
-      images: [im(0, 'Maize in the store'), im(2, 'Bagged maize')],
-      verification: allOk(12000, 'Brian Kiprop', '2', 'Store visited. Quantity confirmed.'),
-    },
-    {
-      id: 'p3',
-      code: 'P-003',
-      name: 'Hass Avocados',
-      category: 'Fruits',
-      description: 'Export-quality Hass avocados, graded by size and picked at the right maturity.',
-      sellerName: 'Wanjiru Kamau',
-      sellerType: 'farmer',
-      sellerPhone: '0712345001',
-      county: 'Kiambu',
-      farmId: 'f1',
-      priceKes: 85,
-      unit: 'kg',
-      stock: 2200,
-      minOrder: 20,
-      lowStockAt: 300,
-      quality: 'Export',
-      harvestDate: '2026-09-20',
-      status: 'active',
-      createdAt: '2026-09-12',
-      verifiedAt: '2026-09-18',
-      images: [
-        im(1, 'Avocados in crates'),
-        im(2, 'Orchard rows'),
-        im(1, 'Inspector: sample check', 'inspector'),
-      ],
-      verification: allOk(2200, 'Dr. Wambui Njoroge', '1', 'Fruit sampled from five crates.'),
-    },
-    {
-      id: 'p4',
-      code: 'P-004',
-      name: 'Macadamia Nuts (in shell)',
-      category: 'Nuts & Seeds',
-      description: 'Dried in-shell macadamia from smallholder members.',
-      sellerName: 'Meru Nut Growers Co-op',
-      sellerType: 'supplier',
-      sellerPhone: '0733345007',
-      county: 'Meru',
-      farmId: null,
-      priceKes: 140,
-      unit: 'kg',
-      stock: 0,
-      minOrder: 25,
-      lowStockAt: 200,
-      quality: 'Export',
-      harvestDate: '2026-07-22',
-      status: 'active',
-      createdAt: '2026-07-30',
-      verifiedAt: '2026-08-05',
-      images: [im(0, 'Nuts drying')],
-      verification: allOk(3000, 'Faith Achieng', '3', 'Warehouse stock verified.'),
-    },
-    {
-      id: 'p5',
-      code: 'P-005',
-      name: 'Fresh Tomatoes',
-      category: 'Vegetables',
-      description: 'Vine-ripened tomatoes in 60 kg crates.',
-      sellerName: 'Njeri Mwangi',
-      sellerType: 'farmer',
-      sellerPhone: '0744345008',
-      county: 'Kiambu',
-      farmId: null,
-      priceKes: 3200,
-      unit: 'crate',
-      stock: 40,
-      minOrder: 2,
-      lowStockAt: 10,
-      quality: 'Grade B',
-      harvestDate: '2026-09-25',
-      status: 'suspended',
-      suspendReason: 'Two buyers reported damaged fruit on delivery.',
-      createdAt: '2026-09-02',
-      verifiedAt: '2026-09-05',
-      images: [im(2, 'Tomato crates')],
-      verification: allOk(40, 'Faith Achieng', '3', 'Fresh stock confirmed.'),
-    },
-    {
-      id: 'p6',
-      code: 'P-006',
-      name: 'Mwea Pishori Rice',
-      category: 'Cereals & Grains',
-      description: 'Aromatic Pishori rice from the Mwea irrigation scheme, milled and graded.',
-      sellerName: 'Mwea Rice Growers',
-      sellerType: 'supplier',
-      sellerPhone: '0755345009',
-      county: 'Kirinyaga',
-      farmId: null,
-      priceKes: 180,
-      unit: 'kg',
-      stock: 3500,
-      minOrder: 10,
-      lowStockAt: 300,
-      quality: 'Grade A',
-      harvestDate: '2026-09-15',
-      status: 'pending',
-      createdAt: '2026-09-29',
-      verifiedAt: null,
-      images: [im(3, 'Rice in 50 kg sacks'), im(3, 'Mill warehouse')],
-      verification: fresh(),
-    },
-    {
-      id: 'p7',
-      code: 'P-007',
-      name: 'Rosecoco Beans',
-      category: 'Legumes & Pulses',
-      description: 'Dry rosecoco beans, hand-sorted and free from stones.',
-      sellerName: 'Mutua Musyoka',
-      sellerType: 'farmer',
-      sellerPhone: '0720345006',
-      county: 'Kitui',
-      farmId: 'f6',
-      priceKes: 150,
-      unit: 'kg',
-      stock: 900,
-      minOrder: 10,
-      lowStockAt: 100,
-      quality: 'Grade B',
-      harvestDate: '2026-09-05',
-      status: 'pending',
-      createdAt: '2026-09-27',
-      verifiedAt: null,
-      images: [im(2, 'Beans in sacks'), im(0, 'Drying yard')],
-      verification: {
-        ...fresh(),
-        status: 'in_review',
-        inspectorId: '2',
-        inspectorName: 'Brian Kiprop',
-        assignedAt: '2026-09-28',
-        dueDate: '2026-10-03',
-        checklist: DEFAULT_CHECKLIST.map((c, i) => ({ ...c, checked: i < 2 })),
-      },
-    },
-    {
-      id: 'p8',
-      code: 'P-008',
-      name: 'Sweet Potatoes',
-      category: 'Roots & Tubers',
-      description: 'Orange-fleshed sweet potatoes, freshly dug.',
-      sellerName: 'Achieng Otieno',
-      sellerType: 'farmer',
-      sellerPhone: '0733345003',
-      county: 'Kisumu',
-      farmId: 'f3',
-      priceKes: 45,
-      unit: 'kg',
-      stock: 5000,
-      minOrder: 20,
-      lowStockAt: 500,
-      quality: 'Grade C',
-      harvestDate: '2026-09-14',
-      status: 'rejected',
-      createdAt: '2026-09-16',
-      verifiedAt: null,
-      images: [im(1, 'Sweet potato heap')],
-      verification: {
-        ...fresh(),
-        status: 'rejected',
-        inspectorId: '3',
-        inspectorName: 'Faith Achieng',
-        assignedAt: '2026-09-18',
-        dueDate: '2026-09-25',
-        notes:
-          'Only about 600 kg found on site against 5,000 kg listed. Correct the quantity and resubmit.',
-        checklist: DEFAULT_CHECKLIST.map((c, i) => ({ ...c, checked: i !== 1 })),
-        verifiedQty: 600,
-        decidedAt: '2026-09-24',
-      },
-    },
+  private readonly api = inject(ProductApi);
+
+  private readonly dtos = signal<ProductDto[]>([]);
+  private readonly serverStats = signal<Record<string, unknown> | null>(null);
+  private readonly farmers = signal<UserDto[]>([]);
+  private readonly suppliers = signal<UserDto[]>([]);
+  private readonly inspectorUsers = signal<UserDto[]>([]);
+  private readonly cats = signal<CategoryDto[]>([]);
+  private readonly farmList = signal<FarmDto[]>([]);
+  private readonly inspections = signal<InspectionDto[]>([]);
+  private readonly evidence = signal<Record<number, ImageDto[]>>({});
+  /** The backend has no field for the checklist, so it lives here until the decision is made */
+  private readonly checklists = signal<Record<string, ChecklistItem[]>>({});
+
+  readonly loading = signal(false);
+  readonly loaded = signal(false);
+  readonly busy = signal(false);
+  readonly error = signal<string | null>(null);
+  readonly warning = signal<string | null>(null);
+  private loadPromise: Promise<void> | null = null;
+
+  readonly categories = this.cats.asReadonly();
+  readonly grades = GRADES;
+
+  readonly farmOptions = computed(() =>
+    this.farmList().map((f) => ({
+      id: String(f.id),
+      name: f.name,
+      county: f.county ?? '',
+      ownerId: f.farmerId !== undefined ? String(f.farmerId) : '',
+    })),
+  );
+
+  readonly sellerOptions = computed(() => [
+    ...this.farmers().map((u) => this.seller(u, 'farmer')),
+    ...this.suppliers().map((u) => this.seller(u, 'supplier')),
   ]);
 
-  readonly products = this._products.asReadonly();
+  readonly inspectorCandidates = computed(() =>
+    this.inspectorUsers()
+      .filter((u) => (u.status ?? '').toUpperCase() === 'ACTIVE')
+      .map((u) => ({
+        id: String(u.id),
+        name: u.name,
+        region: u.region ?? '',
+        detail: u.region || 'No county on file',
+        pending: this.inspections().filter(
+          (i) =>
+            i.inspectorId === u.id &&
+            ['ASSIGNED', 'PENDING', 'IN_PROGRESS'].includes((i.status ?? '').toUpperCase()),
+        ).length,
+      })),
+  );
 
+  readonly products = computed<Product[]>(() => {
+    const sellers = new Map(this.sellerOptions().map((s) => [Number(s.id), s]));
+    const cats = new Map(this.cats().map((c) => [c.id, c.name]));
+    const inspectors = new Map(this.inspectorUsers().map((u) => [u.id, u.name]));
+    const latest = new Map<number, InspectionDto>();
+    for (const i of this.inspections()) {
+      if ((i.targetType ?? '').toUpperCase() !== 'PRODUCT') continue;
+      const cur = latest.get(i.targetId);
+      if (!cur || i.id > cur.id) latest.set(i.targetId, i);
+    }
+    const ev = this.evidence();
+    const lists = this.checklists();
+
+    return this.dtos().map((d) => {
+      const s = sellers.get(d.sellerId);
+      const insp = latest.get(d.id);
+      const status = this.status(d.status);
+      const id = String(d.id);
+      const verification = this.verificationOf(
+        status,
+        insp,
+        inspectors,
+        lists[id],
+        d.verifiedQty ?? null,
+      );
+      const photos: ProductImage[] = [...(d.images ?? [])]
+        .sort(
+          (a, b) =>
+            Number(!!b.isPrimary) - Number(!!a.isPrimary) ||
+            (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+        )
+        .map((i, n) => ({
+          id: `p-${i.id}`,
+          url: abs(i.url),
+          caption: `Product photo ${n + 1}`,
+          uploadedBy: 'farmer' as const,
+          uploadedAt: day(i.createdAt),
+        }));
+      const onSite: ProductImage[] = insp
+        ? (ev[insp.id] ?? []).map((i, n) => ({
+            id: `e-${i.id}`,
+            url: abs(i.url),
+            caption: `On-site photo ${n + 1}`,
+            uploadedBy: 'inspector' as const,
+            uploadedAt: day(i.createdAt),
+          }))
+        : [];
+      const listed = d.stockQty + (d.soldQty ?? 0);
+      const grade = GRADES.find((g) => g.value === d.qualityGrade)?.value ?? null;
+      return {
+        id,
+        code: `P-${id.padStart(3, '0')}`,
+        name: d.name,
+        category:
+          d.categoryName ??
+          (d.categoryId !== null ? (cats.get(d.categoryId) ?? 'Uncategorised') : 'Uncategorised'),
+        categoryId: d.categoryId,
+        description: d.description,
+        sellerId: String(d.sellerId),
+        sellerName: d.sellerName ?? s?.name ?? `Seller #${d.sellerId}`,
+        sellerType: (d.sellerType ?? '').toLowerCase() === 'supplier' ? 'supplier' : 'farmer',
+        sellerPhone: d.sellerPhone ?? s?.phone ?? '',
+        county: d.sellerCounty ?? s?.county ?? '',
+        priceKes: Number(d.price),
+        unit: d.unit,
+        stock: d.stockQty,
+        soldQty: d.soldQty ?? 0,
+        minOrder: d.minimumOrderQty,
+        lowStockAt: d.lowStockThreshold ?? Math.max(1, Math.ceil(listed * 0.1)),
+        grade,
+        harvestDate: d.harvestDate ? day(d.harvestDate) : null,
+        farmId: d.farmId != null ? String(d.farmId) : null,
+        farmName: d.farmName ?? null,
+        farmCertified: !!d.farmCertified,
+        status,
+        statusReason: d.statusReason ?? '',
+        images: [...photos, ...onSite],
+        verification,
+        verifiedAt: d.verifiedAt
+          ? day(d.verifiedAt)
+          : verification.status === 'approved'
+            ? day(insp?.inspectedAt ?? insp?.updatedAt) || null
+            : null,
+        createdAt: day(d.createdAt),
+      };
+    });
+  });
+
+  /** Uses the server's own totals when it sends them, and works them out here otherwise */
   readonly stats = computed(() => {
-    const l = this._products();
+    const l = this.products();
     const live = l.filter((p) => visibility(p).live);
-    return {
+    const local = {
       total: l.length,
       live: live.length,
       liveValue: live.reduce((a, p) => a + p.priceKes * p.stock, 0),
       pending: l.filter((p) => p.status === 'pending').length,
       restock: l.filter((p) => p.status === 'active' && stockState(p) !== 'ok').length,
     };
+    const s = this.serverStats();
+    if (!s) return local;
+    return {
+      total: num(s['total'], local.total),
+      live: num(s['live'], local.live),
+      liveValue: num(s['liveStockValue'], local.liveValue),
+      pending: num(s['pending'], local.pending),
+      restock: num(s['needsRestock'], local.restock),
+    };
   });
 
   getById(id: string) {
-    return this._products().find((p) => p.id === id);
+    return this.products().find((p) => p.id === id);
   }
 
-  private patch(id: string, fn: (p: Product) => Product) {
-    this._products.update((l) => l.map((p) => (p.id === id ? fn(p) : p)));
-  }
-  private patchV(id: string, fn: (v: ProductVerification) => Partial<ProductVerification>) {
-    this.patch(id, (p) => ({ ...p, verification: { ...p.verification, ...fn(p.verification) } }));
+  // ---------------- loading ----------------
+  ensureLoaded(): Promise<void> {
+    return (this.loadPromise ??= this.load());
   }
 
-  /** New products always start as pending: customers can't see them until verified */
-  create(payload: ProductPayload): Product {
-    const { sellerImages, ...rest } = payload;
-    const p: Product = {
-      ...rest,
-      id: crypto.randomUUID(),
-      code: `P-${String(this._products().length + 1).padStart(3, '0')}`,
-      status: 'pending',
-      images: sellerImages,
-      verification: fresh(),
-      verifiedAt: null,
-      createdAt: today(),
+  /** Reads everything again. `silent` skips the loading bar (used after an action). */
+  async load(silent = false): Promise<void> {
+    if (!silent) this.loading.set(true);
+    this.error.set(null);
+    const [p, st, f, s, i, c, n, fm] = await Promise.allSettled([
+      this.api.listAllProducts(),
+      this.api.getStats(),
+      this.api.listUsers('FARMER'),
+      this.api.listUsers('SUPPLIER'),
+      this.api.listUsers('INSPECTOR'),
+      this.api.listCategories(),
+      this.api.listInspections(),
+      this.api.listFarms(),
+    ]);
+    const missed: string[] = [];
+    if (p.status === 'rejected') {
+      this.error.set(errMsg(p.reason));
+      this.loadPromise = null;
+    } else {
+      this.dtos.set(p.value.items ?? []);
+      this.loaded.set(true);
+      if (p.value.fallback)
+        missed.push(
+          'the admin product list (showing the public list, which may hide pending and rejected products)',
+        );
+    }
+    if (st.status === 'fulfilled') this.serverStats.set(st.value ?? null);
+    else this.serverStats.set(null);
+    const take = <T>(r: PromiseSettledResult<T[]>, label: string, set: (v: T[]) => void) => {
+      if (r.status === 'fulfilled') set(r.value ?? []);
+      else missed.push(label);
     };
-    this._products.update((l) => [...l, p]);
-    return p;
+    take(f, 'farmers', (v) => this.farmers.set(v));
+    take(s, 'suppliers', (v) => this.suppliers.set(v));
+    take(i, 'inspectors', (v) => this.inspectorUsers.set(v));
+    take(c, 'categories', (v) => this.cats.set(v));
+    take(n, 'inspections', (v) => this.inspections.set(v));
+    take(fm, 'farms', (v) => this.farmList.set(v));
+    this.warning.set(
+      missed.length ? `Some details could not be loaded: ${missed.join(', ')}.` : null,
+    );
+    this.loading.set(false);
   }
 
-  update(id: string, payload: ProductPayload) {
-    const { sellerImages, ...rest } = payload;
-    this.patch(id, (p) => ({
-      ...p,
-      ...rest,
-      images: [...sellerImages, ...p.images.filter((i) => i.uploadedBy === 'inspector')],
-    }));
+  /** Fetches the on-site photos of a product's latest inspection */
+  async loadEvidence(productId: string) {
+    const insp = this.latestInspection(Number(productId));
+    if (!insp) return;
+    try {
+      const imgs = await this.api.listEvidence(insp.id);
+      this.evidence.update((m) => ({ ...m, [insp.id]: imgs ?? [] }));
+    } catch {
+      /* photos are optional, the page still works without them */
+    }
   }
 
-  remove(id: string) {
-    this._products.update((l) => l.filter((p) => p.id !== id));
+  // ---------------- products ----------------
+  async create(p: ProductPayload): Promise<Product | null> {
+    const created = await this.run(() => this.api.createProduct(this.toRequest(p), p.newFiles));
+    if (!created) return null;
+    await this.load(true);
+    return this.getById(String(created.id)) ?? null;
   }
 
+  async update(id: string, p: ProductPayload): Promise<boolean> {
+    const current = this.getById(id);
+    if (!current) return false;
+    const ok = await this.run(async () => {
+      await this.api.updateProduct(Number(id), this.toRequest(p));
+      const keep = new Set(p.keptImageIds);
+      for (const img of current.images.filter(
+        (i) => i.uploadedBy === 'farmer' && !keep.has(i.id),
+      )) {
+        await this.api.deleteProductImage(Number(id), Number(img.id.slice(2)));
+      }
+      for (const f of p.newFiles) await this.api.uploadProductImage(Number(id), f);
+      return true;
+    });
+    if (ok) await this.load(true);
+    return !!ok;
+  }
+
+  async remove(id: string): Promise<boolean> {
+    const ok = await this.run(() => this.api.deleteProduct(Number(id)).then(() => true));
+    if (ok) await this.load(true);
+    return !!ok;
+  }
+
+  private async changeStatus(
+    id: string,
+    status: ProductStatus,
+    reason?: string,
+    extra: Record<string, unknown> = {},
+  ): Promise<boolean> {
+    const ok = await this.run(() =>
+      this.api.setProductStatus(Number(id), status, reason, extra).then(() => true),
+    );
+    if (ok) await this.load(true);
+    return !!ok;
+  }
   suspend(id: string, reason: string) {
-    this.patch(id, (p) => ({ ...p, status: 'suspended', suspendReason: reason }));
+    return this.changeStatus(id, 'suspended', reason);
   }
   reactivate(id: string) {
-    this.patch(id, (p) => ({ ...p, status: 'active', suspendReason: undefined }));
+    return this.changeStatus(id, 'active', 'Reactivated by an admin');
   }
-
-  /** Sends a rejected or live product back through verification and hides it from customers */
+  /** Back to pending: a new inspection is needed before it can go live again */
   resubmit(id: string) {
-    this.patch(id, (p) => ({
-      ...p,
-      status: 'pending',
-      verifiedAt: null,
-      suspendReason: undefined,
-      verification: fresh(),
+    return this.changeStatus(id, 'pending', 'Sent back for verification');
+  }
+
+  // ---------------- verification (inspections) ----------------
+  async assign(productId: string, inspectorId: string): Promise<boolean> {
+    const ok = await this.run(async () => {
+      await this.api.createInspection({
+        inspectorId: Number(inspectorId),
+        targetType: 'PRODUCT',
+        targetId: Number(productId),
+        status: 'ASSIGNED',
+      });
+      if (this.getById(productId)?.status !== 'pending')
+        await this.api.setProductStatus(Number(productId), 'pending', 'Sent for verification');
+      return true;
+    });
+    if (ok) await this.load(true);
+    return !!ok;
+  }
+
+  async startCheck(productId: string): Promise<boolean> {
+    const insp = this.latestInspection(Number(productId));
+    if (!insp) return false;
+    const ok = await this.run(() =>
+      this.api.setInspectionStatus(insp.id, 'IN_PROGRESS').then(() => true),
+    );
+    if (ok) await this.load(true);
+    return !!ok;
+  }
+
+  toggleCheck(productId: string, key: string) {
+    const cur = this.checklists()[productId] ?? DEFAULT_CHECKLIST.map((c) => ({ ...c }));
+    this.checklists.update((m) => ({
+      ...m,
+      [productId]: cur.map((c) => (c.key === key ? { ...c, checked: !c.checked } : c)),
     }));
   }
 
-  // ----- verification workflow -----
-  assign(id: string, inspector: { id: string; name: string }, dueDate: string) {
-    this.patch(id, (p) => ({
-      ...p,
-      status: 'pending',
-      verification: {
-        ...fresh(),
-        status: 'assigned',
-        inspectorId: inspector.id,
-        inspectorName: inspector.name,
-        assignedAt: today(),
-        dueDate,
-      },
-    }));
+  async addInspectorPhotos(productId: string, files: File[]): Promise<boolean> {
+    const insp = this.latestInspection(Number(productId));
+    if (!insp) return false;
+    const ok = await this.run(async () => {
+      for (const f of files) await this.api.uploadEvidence(insp.id, f);
+      return true;
+    });
+    await this.loadEvidence(productId);
+    return !!ok;
   }
-  startCheck(id: string) {
-    this.patchV(id, () => ({ status: 'in_review' }));
-  }
-  toggleCheck(id: string, key: string) {
-    this.patchV(id, (v) => ({
-      checklist: v.checklist.map((c) => (c.key === key ? { ...c, checked: !c.checked } : c)),
-    }));
-  }
-  addInspectorPhotos(id: string, photos: { url: string; name: string }[]) {
-    const imgs: ProductImage[] = photos.map((p) => ({
-      id: crypto.randomUUID(),
-      url: p.url,
-      caption: p.name,
-      uploadedBy: 'inspector',
-      uploadedAt: today(),
-    }));
-    this.patch(id, (p) => ({ ...p, images: [...p.images, ...imgs] }));
-  }
-  removeImage(id: string, imageId: string) {
-    this.patch(id, (p) => ({ ...p, images: p.images.filter((i) => i.id !== imageId) }));
+
+  async removeImage(productId: string, imageId: string): Promise<boolean> {
+    const n = Number(imageId.slice(2));
+    const insp = this.latestInspection(Number(productId));
+    const ok = await this.run(async () => {
+      if (imageId.startsWith('e-') && insp) await this.api.deleteEvidence(insp.id, n);
+      else await this.api.deleteProductImage(Number(productId), n);
+      return true;
+    });
+    if (ok) {
+      await this.load(true);
+      await this.loadEvidence(productId);
+    }
+    return !!ok;
   }
 
   /**
-   * Approve: product goes live, stock is capped at what the inspector actually counted,
-   * and the grade becomes the one the inspector confirmed.
+   * Saves the inspector's decision:
+   *  1. completes the inspection (the counted quantity goes into its notes, because inspections have no field for it)
+   *  2. sets the product to active or rejected, with the reason, and sends the counted quantity along
+   *  3. when approving, lowers stock to what was counted and applies the grade the inspector confirmed
    */
-  decide(
-    id: string,
+  async decide(
+    productId: string,
     result: 'approved' | 'rejected',
     d: { notes: string; qty: number; grade: Grade },
-  ) {
-    this.patch(id, (p) =>
-      result === 'approved'
-        ? {
-            ...p,
-            status: 'active',
-            verifiedAt: today(),
-            stock: Math.min(p.stock, d.qty),
-            quality: d.grade,
-            verification: {
-              ...p.verification,
-              status: 'approved',
-              notes: d.notes,
-              verifiedQty: d.qty,
-              decidedAt: today(),
-            },
-          }
-        : {
-            ...p,
-            status: 'rejected',
-            verifiedAt: null,
-            verification: {
-              ...p.verification,
-              status: 'rejected',
-              notes: d.notes,
-              verifiedQty: d.qty,
-              decidedAt: today(),
-            },
-          },
-    );
+  ): Promise<boolean> {
+    const p = this.getById(productId);
+    const insp = this.latestInspection(Number(productId));
+    if (!p || !insp) {
+      this.error.set('There is no inspection for this product yet.');
+      return false;
+    }
+    const body: InspectionRequestDto = {
+      inspectorId: insp.inspectorId,
+      targetType: 'PRODUCT',
+      targetId: Number(productId),
+      status: 'COMPLETED',
+      notes: `${d.notes}\n[Counted: ${d.qty} ${p.unit}]`.trim(),
+    };
+    const extra = { verifiedQty: d.qty, lastInspectionId: insp.id, inspectionId: insp.id };
+    const ok = await this.run(async () => {
+      await this.api.submitInspectionResult(
+        insp.id,
+        result === 'approved' ? 'APPROVED' : 'REJECTED',
+        body,
+      );
+      await this.api.setInspectionStatus(insp.id, 'COMPLETED').catch(() => undefined);
+      await this.api.setProductStatus(
+        Number(productId),
+        result === 'approved' ? 'active' : 'rejected',
+        d.notes || (result === 'approved' ? 'Verified on site' : 'Failed verification'),
+        extra,
+      );
+      return true;
+    });
+    if (!ok) return false;
+    if (result === 'approved' && (d.qty < p.stock || d.grade !== p.grade)) {
+      try {
+        await this.api.updateProduct(Number(productId), {
+          ...this.requestFrom(p),
+          stockQty: Math.min(p.stock, d.qty),
+          qualityGrade: d.grade,
+        });
+      } catch {
+        this.warning.set(
+          'The product is approved, but its stock and grade could not be updated to what the inspector found. Please edit the product by hand.',
+        );
+      }
+    }
+    await this.load(true);
+    await this.loadEvidence(productId);
+    return true;
   }
-  reopen(id: string) {
-    this.patch(id, (p) => ({
-      ...p,
-      status: 'pending',
-      verifiedAt: null,
-      verification: { ...p.verification, status: 'in_review', decidedAt: null },
-    }));
+
+  async reopen(productId: string): Promise<boolean> {
+    const insp = this.latestInspection(Number(productId));
+    if (!insp) return false;
+    const ok = await this.run(async () => {
+      await this.api.setInspectionStatus(insp.id, 'IN_PROGRESS');
+      await this.api.setProductStatus(Number(productId), 'pending', 'Verification reopened');
+      return true;
+    });
+    if (ok) await this.load(true);
+    return !!ok;
+  }
+
+  // ---------------- helpers ----------------
+  private async run<T>(fn: () => Promise<T>): Promise<T | null> {
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      return await fn();
+    } catch (e) {
+      this.error.set(errMsg(e));
+      return null;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private seller(u: UserDto, type: SellerType) {
+    return { id: String(u.id), name: u.name, phone: u.phone ?? '', county: u.region ?? '', type };
+  }
+
+  private status(s: string): ProductStatus {
+    const v = (s ?? '').toLowerCase() as ProductStatus;
+    return STATUSES.includes(v) ? v : 'pending';
+  }
+
+  private latestInspection(productId: number): InspectionDto | undefined {
+    let best: InspectionDto | undefined;
+    for (const i of this.inspections()) {
+      if (
+        (i.targetType ?? '').toUpperCase() === 'PRODUCT' &&
+        i.targetId === productId &&
+        (!best || i.id > best.id)
+      )
+        best = i;
+    }
+    return best;
+  }
+
+  private toRequest(p: ProductPayload): ProductRequestDto {
+    const s = this.sellerOptions().find((x) => x.id === p.sellerId);
+    return {
+      sellerId: Number(p.sellerId),
+      sellerType: s?.type ?? 'farmer',
+      categoryId: p.categoryId,
+      name: p.name.trim(),
+      description: p.description.trim(),
+      unit: p.unit,
+      price: p.priceKes,
+      stockQty: p.stock,
+      minimumOrderQty: p.minOrder,
+      qualityGrade: p.grade,
+      harvestDate: p.harvestDate || null,
+      lowStockThreshold: p.lowStockAt,
+      farmId: p.farmId ? Number(p.farmId) : null,
+    };
+  }
+
+  private requestFrom(p: Product): ProductRequestDto {
+    return {
+      sellerId: Number(p.sellerId),
+      sellerType: p.sellerType,
+      categoryId: p.categoryId,
+      name: p.name,
+      description: p.description,
+      unit: p.unit,
+      price: p.priceKes,
+      stockQty: p.stock,
+      minimumOrderQty: p.minOrder,
+      qualityGrade: p.grade ?? 'GRADE_A',
+      harvestDate: p.harvestDate,
+      lowStockThreshold: p.lowStockAt,
+      farmId: p.farmId ? Number(p.farmId) : null,
+    };
+  }
+
+  /** Turns the latest inspection into the status the verification panel understands */
+  private verificationOf(
+    status: ProductStatus,
+    insp: InspectionDto | undefined,
+    names: Map<number, string>,
+    local: ChecklistItem[] | undefined,
+    serverQty: number | null,
+  ): ProductVerification {
+    let v: VerificationStatus = 'unassigned';
+    if (insp) {
+      const s = (insp.status ?? '').toUpperCase();
+      const r = (insp.result ?? '').toUpperCase();
+      if (s === 'ASSIGNED' || s === 'PENDING') v = 'assigned';
+      else if (s === 'IN_PROGRESS') v = 'in_review';
+      else if (s === 'COMPLETED')
+        v =
+          r === 'APPROVED'
+            ? 'approved'
+            : r === 'REJECTED' || r === 'CHANGES_REQUIRED'
+              ? 'rejected'
+              : status === 'active'
+                ? 'approved'
+                : 'rejected';
+      // sent back for verification: the old result no longer counts
+      if (status === 'pending' && (v === 'approved' || v === 'rejected')) v = 'unassigned';
+    } else if (status === 'active') v = 'approved';
+    const raw = insp?.notes ?? '';
+    const m = COUNT_RE.exec(raw);
+    return {
+      status: v,
+      inspectionId: insp ? String(insp.id) : null,
+      inspectorId: insp ? String(insp.inspectorId) : null,
+      inspectorName: insp
+        ? (names.get(insp.inspectorId) ?? `Inspector #${insp.inspectorId}`)
+        : null,
+      assignedAt: insp ? day(insp.createdAt) || null : null,
+      notes: raw.replace(COUNT_RE, '').trim(),
+      checklist:
+        local ??
+        (v === 'assigned' || v === 'in_review' ? DEFAULT_CHECKLIST.map((c) => ({ ...c })) : []),
+      verifiedQty: serverQty ?? (m ? Number(m[1].replace(/,/g, '')) : null),
+      decidedAt:
+        v === 'approved' || v === 'rejected'
+          ? day(insp?.inspectedAt ?? insp?.updatedAt) || null
+          : null,
+    };
   }
 }
