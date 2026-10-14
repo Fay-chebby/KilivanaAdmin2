@@ -1,5 +1,5 @@
 <nav class="crumbs" aria-label="Breadcrumb">
-  <a routerLink="/">Dashboard</a> / <span>Products</span>
+  <a routerLink="/">AgriAdmin</a> / <span>Products</span>
 </nav>
 <div class="head">
   <h1>Product Catalog</h1>
@@ -18,6 +18,13 @@
     <a class="btn" routerLink="/products/new">+ Add Product</a>
   </div>
 </div>
+
+<!-- <app-api-banner
+  [loading]="service.loading()"
+  [error]="service.error()"
+  [warning]="service.warning()"
+  (retry)="service.load()"
+/> -->
 
 <div class="stats">
   <app-stat-card
@@ -62,7 +69,7 @@
   />
   <select aria-label="Filter by category" (change)="category.set($any($event.target).value)">
     <option value="">All categories</option>
-    @for (c of categories; track c) {
+    @for (c of categoryNames(); track c) {
       <option [value]="c">{{ c }}</option>
     }
   </select>
@@ -72,16 +79,20 @@
     (change)="status.set($any($event.target).value)"
   >
     <option value="">All statuses</option>
-    @for (s of statuses; track s) {
-      <option [value]="s" [selected]="status() === s">
-        {{ meta[s].label }}
-      </option>
+    @for (s of statusOptions; track s) {
+      <option [value]="s" [selected]="status() === s">{{ meta[s].label }}</option>
     }
   </select>
 </div>
 
 @if (rows().length === 0) {
-  <div class="card empty">No products match your filters. Clear them or add a new product.</div>
+  <div class="card empty">
+    {{
+      service.loaded()
+        ? 'No products match your filters. Clear them or add a new product.'
+        : 'Waiting for the server…'
+    }}
+  </div>
 } @else if (view() === 'table') {
   <div class="card table-wrap">
     <table>
@@ -115,7 +126,8 @@
             <td>
               {{ p.sellerName
               }}<small class="sub"
-                >{{ p.county }} · {{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}</small
+                >{{ p.county || 'No county' }} ·
+                {{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}</small
               >
             </td>
             <td class="num">
@@ -131,7 +143,7 @@
               }
             </td>
             <td>
-              <span class="grade">{{ p.quality }}</span>
+              <span class="grade">{{ grade(p.grade) }}</span>
             </td>
             <td>
               <span class="badge" [attr.data-tone]="meta[p.status].tone">{{
@@ -139,6 +151,9 @@
               }}</span>
               @if (p.status === 'pending' && p.verification.inspectorName) {
                 <small class="sub">{{ p.verification.inspectorName }}</small>
+              }
+              @if ((p.status === 'suspended' || p.status === 'rejected') && p.statusReason) {
+                <small class="sub reason" [title]="p.statusReason">{{ p.statusReason }}</small>
               }
             </td>
             <td class="r">
@@ -193,11 +208,11 @@
           <h3>
             <a [routerLink]="['/products', p.id]">{{ p.name }}</a>
           </h3>
-          <p>{{ p.sellerName }} · {{ p.county }}</p>
+          <p>{{ p.sellerName }}{{ p.county ? ' · ' + p.county : '' }}</p>
           <div class="price">
             <strong>{{ p.priceKes | currencyKsh }}</strong
             ><span>/ {{ p.unit }}</span
-            ><span class="grade">{{ p.quality }}</span>
+            ><span class="grade">{{ grade(p.grade) }}</span>
           </div>
           <div class="foot">
             <span [attr.data-stock]="stock(p)">{{ num(p.stock) }} {{ p.unit }}</span>
@@ -220,7 +235,7 @@
   @if (a.type === 'delete') {
     <app-confirm-modal
       title="Delete product?"
-      [message]="'This removes ' + a.product.name + ' and its verification record.'"
+      [message]="'This removes ' + a.product.name + ' and its photos.'"
       confirmLabel="Delete product"
       [danger]="true"
       (confirmed)="confirm($event)"

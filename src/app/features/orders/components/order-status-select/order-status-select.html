@@ -1,7 +1,7 @@
 <div class="status-select">
   <select
     [value]="status()"
-    [attr.aria-label]="'Change order status'"
+    aria-label="Filter orders by status"
     (change)="changeStatus($event)"
     class="status-select__control"
     [class.status-placed]="status() === 'placed'"

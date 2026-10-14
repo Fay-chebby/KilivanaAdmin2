@@ -26,7 +26,7 @@ import {
   visibility,
 } from '../models/product.model';
 import { ProductApi } from './product.api';
-const API_URL = 'https://either-juvenile-progeny.ngrok-free.dev';
+const API_URL = '  https://either-juvenile-progeny.ngrok-free.dev';
 
 const abs = (u: string) =>
   /^(https?:|data:)/i.test(u) ? u : API_URL + (u.startsWith('/') ? '' : '/') + u;
@@ -231,7 +231,17 @@ export class ProductService {
 
   // ---------------- loading ----------------
   ensureLoaded(): Promise<void> {
-    return (this.loadPromise ??= this.load());
+    if (this.loaded()) {
+      return Promise.resolve();
+    }
+
+    if (!this.loadPromise) {
+      this.loadPromise = this.load().finally(() => {
+        this.loadPromise = null;
+      });
+    }
+
+    return this.loadPromise;
   }
 
   /** Reads everything again. `silent` skips the loading bar (used after an action). */

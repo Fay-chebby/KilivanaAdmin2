@@ -1,8 +1,8 @@
 export interface PickedImage {
+  file: File;
   url: string;
   name: string;
 }
-
 /**
  * Validates and reads image files as data URLs.
  * Real API: upload the File objects as multipart FormData and use the returned URLs instead.
@@ -33,10 +33,18 @@ export async function readImageFiles(
       (f) =>
         new Promise<PickedImage>((res) => {
           const r = new FileReader();
-          r.onload = () => res({ url: r.result as string, name: f.name });
+
+          r.onload = () =>
+            res({
+              file: f,
+              url: r.result as string,
+              name: f.name,
+            });
+
           r.readAsDataURL(f);
         }),
     ),
   );
+
   return { items, error };
 }

@@ -4,6 +4,11 @@
     <span>{{ p.code }}</span>
   </nav>
   <a class="back" routerLink="/products">← Back to products</a>
+  <!-- <app-api-banner
+    [error]="service.error()"
+    [warning]="service.warning()"
+    (retry)="service.load()"
+  /> -->
 
   <div class="head">
     <div>
@@ -24,10 +29,19 @@
     <div class="actions">
       <a class="btn ghost" [routerLink]="['/products', p.id, 'edit']">Edit</a>
       @if (p.status === 'active') {
-        <button type="button" class="btn ghost" (click)="modal.set('suspend')">Suspend</button>
+        <button
+          type="button"
+          class="btn ghost"
+          [disabled]="service.busy()"
+          (click)="modal.set('suspend')"
+        >
+          Suspend
+        </button>
       }
       @if (p.status === 'suspended') {
-        <button type="button" class="btn ghost" (click)="reactivate()">Reactivate</button>
+        <button type="button" class="btn ghost" [disabled]="service.busy()" (click)="reactivate()">
+          Reactivate
+        </button>
       }
       @if (p.status === 'active' || p.status === 'rejected' || p.status === 'suspended') {
         <button type="button" class="btn ghost" (click)="modal.set('resubmit')">
@@ -38,8 +52,11 @@
     </div>
   </div>
 
-  @if (p.status === 'suspended' && p.suspendReason) {
-    <div class="alert" role="status"><strong>Suspended:</strong> {{ p.suspendReason }}</div>
+  @if ((p.status === 'suspended' || p.status === 'rejected') && p.statusReason) {
+    <div class="alert" role="status">
+      <strong>{{ p.status === 'suspended' ? 'Suspended' : 'Rejected' }}:</strong>
+      {{ p.statusReason }}
+    </div>
   }
   @if (p.status === 'pending') {
     <div class="alert info" role="status">
@@ -80,9 +97,14 @@
               ><span>/ {{ p.unit }}</span>
             </div>
             <div class="meta">
-              <span class="grade">{{ p.quality }}</span
+              <span class="grade">{{ grade(p.grade) }}</span
               ><span>{{ num(p.stock) }} {{ p.unit }} available</span>
             </div>
+            @if (p.farmName) {
+              <span class="vtag farm"
+                >{{ p.farmCertified ? '✓ Certified farm: ' : 'From ' }}{{ p.farmName }}</span
+              >
+            }
             @if (p.verifiedAt) {
               <span class="vtag">✓ Verified by AgriAdmin</span>
             }
@@ -105,9 +127,13 @@
           <dt>Minimum order</dt>
           <dd>{{ p.minOrder }} {{ p.unit }}</dd>
           <dt>Low stock alert</dt>
-          <dd>{{ p.lowStockAt }} {{ p.unit }}</dd>
+          <dd>at {{ p.lowStockAt }} {{ p.unit }} or less</dd>
+          <dt>Quality grade</dt>
+          <dd>{{ grade(p.grade) }}</dd>
           <dt>Harvested</dt>
-          <dd>{{ p.harvestDate }}</dd>
+          <dd>{{ p.harvestDate || 'Not set' }}</dd>
+          <dt>Sold so far</dt>
+          <dd>{{ num(p.soldQty) }} {{ p.unit }}</dd>
         </dl>
       </div>
 
@@ -121,13 +147,13 @@
             <a [href]="'tel:' + p.sellerPhone">{{ p.sellerPhone }}</a>
           </dd>
           <dt>Stock location</dt>
-          <dd>{{ p.county }} County</dd>
-          @if (farm(); as f) {
+          <dd>{{ p.county ? p.county + ' County' : 'Not set' }}</dd>
+          @if (p.farmName) {
             <dt>Source farm</dt>
             <dd>
-              <a [routerLink]="['/farms', f.id]">{{ f.name }}</a>
-              <span class="badge" [attr.data-tone]="f.certified ? 'green' : 'amber'">{{
-                f.certified ? 'Certified' : 'Not certified'
+              {{ p.farmName }}
+              <span class="badge" [attr.data-tone]="p.farmCertified ? 'green' : 'amber'">{{
+                p.farmCertified ? 'Certified' : 'Not certified'
               }}</span>
             </dd>
           }
@@ -156,7 +182,7 @@
     @case ('delete') {
       <app-confirm-modal
         title="Delete product?"
-        message="This removes the product and its verification record."
+        message="This removes the product and its photos."
         confirmLabel="Delete product"
         [danger]="true"
         (confirmed)="confirm($event)"

@@ -61,6 +61,10 @@ export interface ChecklistItem {
   label: string;
   checked: boolean;
 }
+export interface PickedImage {
+  file: File;
+  // Keep your other existing properties
+}
 
 export const DEFAULT_CHECKLIST: ChecklistItem[] = [
   { key: 'exists', label: "Product physically exists at the seller's location", checked: false },

@@ -400,3 +400,10 @@ tbody tr:hover {
     color: $muted;
   }
 }
+
+.reason {
+  max-width: 190px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

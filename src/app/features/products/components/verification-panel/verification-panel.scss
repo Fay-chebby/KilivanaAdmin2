@@ -52,6 +52,10 @@ h2 {
     color: #1d4ed8;
   }
 }
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .btn {
   display: inline-flex;
   align-items: center;

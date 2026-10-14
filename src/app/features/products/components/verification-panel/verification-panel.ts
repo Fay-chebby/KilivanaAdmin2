@@ -4,7 +4,7 @@ import {
   AssignInspectorDialog,
   Assignment,
 } from '../../../farms-crops/components/assign-inspector-dialog/assign-inspector-dialog';
-import { GRADES, Grade, Product, VERIFY_META } from '../../models/product.model';
+import { GRADES, Grade, Product, VERIFY_META, PickedImage } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 
 const MAX_PHOTOS = 10;
@@ -16,16 +16,16 @@ const MAX_PHOTOS = 10;
   styleUrl: './verification-panel.scss',
 })
 export class VerificationPanel {
-  private readonly service = inject(ProductService);
+  protected readonly service = inject(ProductService);
 
   readonly product = input.required<Product>();
 
   protected readonly steps = ['Submitted', 'Verifier assigned', 'On-site check', 'Decision'];
   protected readonly grades = GRADES;
+  protected readonly draftGrade = signal<Grade | null>(null);
   protected readonly showAssign = signal(false);
   protected readonly draftNotes = signal<string | null>(null);
   protected readonly draftQty = signal<number | null>(null);
-  protected readonly draftGrade = signal<Grade | null>(null);
   protected readonly error = signal('');
   protected readonly dragging = signal(false);
 
@@ -35,45 +35,47 @@ export class VerificationPanel {
   protected readonly qty = computed(
     () => this.draftQty() ?? this.v().verifiedQty ?? this.product().stock,
   );
-  protected readonly grade = computed(() => this.draftGrade() ?? this.product().quality);
+  protected readonly grade = computed<Grade>(
+    () => this.draftGrade() ?? this.product().grade ?? 'GRADE_A',
+  );
   protected readonly photos = computed(() =>
     this.product().images.filter((i) => i.uploadedBy === 'inspector'),
   );
   protected readonly checked = computed(() => this.v().checklist.filter((c) => c.checked).length);
-  protected readonly allChecked = computed(() => this.checked() === this.v().checklist.length);
-  protected readonly overdue = computed(() => {
-    const v = this.v();
-    return (
-      !!v.dueDate &&
-      ['assigned', 'in_review'].includes(v.status) &&
-      v.dueDate < new Date().toISOString().slice(0, 10)
-    );
-  });
+  protected readonly allChecked = computed(
+    () => this.v().checklist.length > 0 && this.checked() === this.v().checklist.length,
+  );
 
-  protected assign(a: Assignment) {
-    this.service.assign(this.product().id, { id: a.id, name: a.name }, a.dueDate);
-    this.showAssign.set(false);
-    this.draftNotes.set(null);
-    this.draftQty.set(null);
-    this.draftGrade.set(null);
+  protected async assign(a: Assignment) {
+    if (await this.service.assign(this.product().id, a.id)) {
+      this.showAssign.set(false);
+      this.draftNotes.set(null);
+      this.draftQty.set(null);
+      this.draftGrade.set(null);
+    }
   }
   protected start() {
-    this.service.startCheck(this.product().id);
+    return this.service.startCheck(this.product().id);
   }
   protected toggle(key: string) {
     this.service.toggleCheck(this.product().id, key);
   }
   protected removePhoto(id: string) {
-    this.service.removeImage(this.product().id, id);
+    return this.service.removeImage(this.product().id, id);
   }
   protected reopen() {
-    this.service.reopen(this.product().id);
+    this.draftNotes.set(null);
+    return this.service.reopen(this.product().id);
   }
 
   protected async addPhotos(files: FileList | null) {
     const { items, error } = await readImageFiles(files, MAX_PHOTOS - this.photos().length);
     this.error.set(error);
-    if (items.length) this.service.addInspectorPhotos(this.product().id, items);
+    if (items.length)
+      await this.service.addInspectorPhotos(
+        this.product().id,
+        items.map((i) => i.file),
+      );
   }
   protected onPick(e: Event) {
     const el = e.target as HTMLInputElement;
@@ -90,7 +92,7 @@ export class VerificationPanel {
     this.dragging.set(on);
   }
 
-  protected decide(result: 'approved' | 'rejected') {
+  protected async decide(result: 'approved' | 'rejected') {
     const notes = this.notes().trim();
     if (result === 'approved') {
       if (!this.allChecked()) {
@@ -110,7 +112,7 @@ export class VerificationPanel {
       return;
     }
     this.error.set('');
-    this.service.decide(this.product().id, result, {
+    await this.service.decide(this.product().id, result, {
       notes,
       qty: Math.max(0, this.qty()),
       grade: this.grade(),

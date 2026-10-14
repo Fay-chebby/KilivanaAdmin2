@@ -3,12 +3,13 @@ import { Router, RouterLink } from '@angular/router';
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
 import { CurrencyKshPipe } from '../../../../shared/pipes/currency-kes-pipe';
 import { ConfirmModal } from '../../../inspectors/components/confirm-modal/confirm-modal';
+// import { ApiBanner } from '../../components/api-banner/api-banner';
 import {
-  CATEGORIES,
   PRODUCT_STATUS_META,
   Product,
   ProductStatus,
   coverOf,
+  gradeLabel,
   stockState,
   visibility,
 } from '../../models/product.model';
@@ -29,17 +30,25 @@ export class ProductList {
   protected readonly search = signal('');
   protected readonly category = signal('');
   protected readonly status = signal<'' | ProductStatus>('');
-  protected readonly statuses = Object.keys(PRODUCT_STATUS_META) as ProductStatus[];
-
   protected readonly view = signal<'table' | 'grid'>('table');
   protected readonly action = signal<Action | null>(null);
 
   protected readonly stats = this.service.stats;
-  protected readonly categories = CATEGORIES;
   protected readonly meta = PRODUCT_STATUS_META;
+  protected readonly statusOptions: ProductStatus[] = [
+    'active',
+    'pending',
+    'rejected',
+    'suspended',
+  ];
   protected readonly cover = coverOf;
+  protected readonly grade = gradeLabel;
   protected readonly stock = stockState;
   protected readonly vis = visibility;
+
+  protected readonly categoryNames = computed(() =>
+    [...new Set(this.service.categories().map((c) => c.name))].sort(),
+  );
 
   protected readonly rows = computed(() => {
     const q = this.search().toLowerCase().trim();
@@ -53,8 +62,13 @@ export class ProductList {
             [p.name, p.code, p.sellerName, p.county, p.category].some((v) =>
               v.toLowerCase().includes(q),
             )),
-      );
+      )
+      .sort((a, b) => Number(b.id) - Number(a.id));
   });
+
+  constructor() {
+    this.service.ensureLoaded();
+  }
 
   protected num(n: number) {
     return n.toLocaleString('en-KE');
@@ -71,11 +85,11 @@ export class ProductList {
     return s.total ? Math.round((s.live / s.total) * 100) : 0;
   }
 
-  protected confirm(reason: string) {
+  protected async confirm(reason: string) {
     const a = this.action();
-    if (!a) return;
-    if (a.type === 'delete') this.service.remove(a.product.id);
-    else this.service.suspend(a.product.id, reason);
     this.action.set(null);
+    if (!a) return;
+    if (a.type === 'delete') await this.service.remove(a.product.id);
+    else await this.service.suspend(a.product.id, reason);
   }
 }

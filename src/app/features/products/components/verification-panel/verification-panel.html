@@ -21,7 +21,14 @@
           Customers can't see this product yet. Assign an inspector to visit the seller and confirm
           the product really exists and matches the listing.
         </p>
-        <button type="button" class="btn" (click)="showAssign.set(true)">Assign verifier</button>
+        <button
+          type="button"
+          class="btn"
+          [disabled]="service.busy()"
+          (click)="showAssign.set(true)"
+        >
+          Assign verifier
+        </button>
       </div>
     }
 
@@ -29,18 +36,22 @@
       <div class="who">
         <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
         <div>
-          <strong>{{ v().inspectorName }}</strong>
-          <small
-            >Assigned {{ v().assignedAt }} · due
-            <span [class.late]="overdue()"
-              >{{ v().dueDate }}{{ overdue() ? ' (overdue)' : '' }}</span
-            ></small
-          >
+          <strong>{{ v().inspectorName }}</strong
+          ><small>Assigned {{ v().assignedAt }}</small>
         </div>
       </div>
       <div class="row">
-        <button type="button" class="btn" (click)="start()">Start on-site check</button>
-        <button type="button" class="btn ghost" (click)="showAssign.set(true)">Reassign</button>
+        <button type="button" class="btn" [disabled]="service.busy()" (click)="start()">
+          Start on-site check
+        </button>
+        <button
+          type="button"
+          class="btn ghost"
+          [disabled]="service.busy()"
+          (click)="showAssign.set(true)"
+        >
+          Assign someone else
+        </button>
       </div>
     }
 
@@ -48,15 +59,17 @@
       <div class="who">
         <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
         <div>
-          <strong>{{ v().inspectorName }}</strong>
-          <small
-            >Due
-            <span [class.late]="overdue()"
-              >{{ v().dueDate }}{{ overdue() ? ' (overdue)' : '' }}</span
-            ></small
-          >
+          <strong>{{ v().inspectorName }}</strong
+          ><small>Assigned {{ v().assignedAt }}</small>
         </div>
-        <button type="button" class="btn ghost sm" (click)="showAssign.set(true)">Reassign</button>
+        <button
+          type="button"
+          class="btn ghost sm"
+          [disabled]="service.busy()"
+          (click)="showAssign.set(true)"
+        >
+          Assign someone else
+        </button>
       </div>
 
       <h3>
@@ -88,7 +101,7 @@
             >Listed: {{ p.stock }} {{ p.unit }}.
             {{
               qty() < p.stock
-                ? 'Stock will be reduced to what was counted.'
+                ? 'Stock will be lowered to what was counted.'
                 : 'Stock stays as listed.'
             }}</small
           >
@@ -96,11 +109,11 @@
         <div class="field">
           <label for="vg">Quality grade confirmed</label>
           <select id="vg" (change)="draftGrade.set($any($event.target).value)">
-            @for (g of grades; track g) {
-              <option [value]="g" [selected]="g === grade()">{{ g }}</option>
+            @for (g of grades; track g.value) {
+              <option [value]="g.value" [selected]="g.value === grade()">{{ g.label }}</option>
             }
           </select>
-          <small>Listed as {{ p.quality }}.</small>
+          <small>Listed as {{ p.grade ?? 'not set' }}.</small>
         </div>
       </div>
 
@@ -153,10 +166,17 @@
         <p class="error" role="alert">{{ error() }}</p>
       }
       <div class="row end">
-        <button type="button" class="btn danger" (click)="decide('rejected')">
+        <button
+          type="button"
+          class="btn danger"
+          [disabled]="service.busy()"
+          (click)="decide('rejected')"
+        >
           Fail verification
         </button>
-        <button type="button" class="btn" (click)="decide('approved')">Approve and publish</button>
+        <button type="button" class="btn" [disabled]="service.busy()" (click)="decide('approved')">
+          {{ service.busy() ? 'Saving…' : 'Approve and publish' }}
+        </button>
       </div>
     }
 
@@ -165,21 +185,30 @@
         <span class="avatar">{{ v().inspectorName?.charAt(0) }}</span>
         <div>
           <strong>{{ v().inspectorName }}</strong
-          ><small>{{ meta().label }} on {{ v().decidedAt }}</small>
+          ><small>{{ meta().label }}{{ v().decidedAt ? ' on ' + v().decidedAt : '' }}</small>
         </div>
       </div>
       @if (v().notes) {
         <blockquote [attr.data-tone]="meta().tone">{{ v().notes }}</blockquote>
       }
       <p class="sum">
-        {{ checked() }} of {{ v().checklist.length }} checks passed
+        @if (v().checklist.length) {
+          {{ checked() }} of {{ v().checklist.length }} checks passed
+        }
         @if (v().verifiedQty !== null) {
           · {{ v().verifiedQty }} {{ p.unit }} counted on site
         }
       </p>
       <div class="row">
-        <button type="button" class="btn ghost" (click)="reopen()">Reopen check</button>
-        <button type="button" class="btn ghost" (click)="showAssign.set(true)">
+        <button type="button" class="btn ghost" [disabled]="service.busy()" (click)="reopen()">
+          Reopen check
+        </button>
+        <button
+          type="button"
+          class="btn ghost"
+          [disabled]="service.busy()"
+          (click)="showAssign.set(true)"
+        >
           Assign a new verifier
         </button>
       </div>
@@ -190,10 +219,11 @@
 @if (showAssign()) {
   <app-assign-inspector-dialog
     [county]="p.county"
-    [currentId]="v().inspectorId"
+    [candidates]="service.inspectorCandidates()"
+    [askDueDate]="false"
     [description]="
-      'Pick who will visit the seller in ' +
-      p.county +
+      'Pick who will visit the seller' +
+      (p.county ? ' in ' + p.county : '') +
       ' and confirm the product exists before it goes on sale.'
     "
     (assigned)="assign($event)"

@@ -9,6 +9,8 @@
   <div class="tools">
     <button type="button" class="btn ghost" (click)="refresh()">Refresh</button>
 
+    <button type="button" class="btn ghost" (click)="clearFilters()">Clear filters</button>
+
     <button type="button" class="btn ghost" (click)="exportCsv()">Export CSV</button>
   </div>
 </div>
@@ -26,7 +28,7 @@
   <app-stat-card label="Cancelled" [value]="'' + stats().cancelled" icon="ban" tone="red" />
 </div>
 
-<!-- Filters -->
+<!-- Search and filters -->
 <div class="filters">
   <input
     type="search"
@@ -36,10 +38,7 @@
     (input)="setSearch($any($event.target).value)"
   />
 
-  <app-order-status-select
-    [status]="status()"
-    (changed)="setStatus($event)"
-  ></app-order-status-select>
+  <app-order-status-select [status]="status()" (changed)="setStatus($event)" />
 </div>
 
 <!-- Loading -->
@@ -81,65 +80,44 @@
       <tbody>
         @for (o of rows(); track o.id) {
           <tr>
-            <!-- Order ID -->
             <td>
               <a class="code" [routerLink]="['/orders', o.id]">
                 {{ o.code }}
               </a>
             </td>
 
-            <!-- Buyer -->
             <td>
-              <strong> Buyer #{{ o.buyerId }} </strong>
+              <strong>Buyer #{{ o.buyerId }}</strong>
             </td>
 
-            <!-- Product -->
-            <td>
-              {{ productSummary(o) }}
-            </td>
+            <td>{{ productSummary(o) }}</td>
 
-            <!-- Quantity -->
+            <td class="mono">{{ qtySummary(o) }}</td>
+
+            <td class="mono">{{ o.subtotal | currencyKsh }}</td>
+
+            <td class="mono">{{ o.deliveryFee | currencyKsh }}</td>
+
             <td class="mono">
-              {{ qtySummary(o) }}
+              <strong>{{ o.total | currencyKsh }}</strong>
             </td>
 
-            <!-- Subtotal -->
-            <td class="mono">
-              {{ o.subtotal | currencyKsh }}
-            </td>
-
-            <!-- Delivery fee -->
-            <td class="mono">
-              {{ o.deliveryFee | currencyKsh }}
-            </td>
-
-            <!-- Total -->
-            <td class="mono">
-              <strong>
-                {{ o.total | currencyKsh }}
-              </strong>
-            </td>
-
-            <!-- Order status -->
             <td>
               <span class="badge" [attr.data-tone]="meta[o.status]?.tone">
                 {{ meta[o.status]?.label ?? formatStatus(o.status) }}
               </span>
             </td>
 
-            <!-- Payment -->
             <td>
               <span class="badge flat" [attr.data-tone]="getPaymentStatusClass(o.paymentStatus)">
                 {{ formatPaymentStatus(o.paymentStatus) }}
               </span>
             </td>
 
-            <!-- Date -->
             <td class="mono muted">
               {{ formatDate(o.createdAt) }}
             </td>
 
-            <!-- Actions -->
             <td class="r">
               <div class="acts">
                 <button type="button" (click)="router.navigate(['/orders', o.id])">View</button>
@@ -149,7 +127,7 @@
         } @empty {
           <tr>
             <td colspan="11" class="empty">
-              No orders match your search. Clear the filters to see all orders.
+              No orders match your search or selected status. Try clearing the filters.
             </td>
           </tr>
         }
@@ -158,13 +136,7 @@
 
     <!-- Pagination -->
     <div class="foot">
-      <span>
-        Showing
-        {{ from() }}–{{ to() }}
-        of
-        {{ filtered().length }}
-        orders
-      </span>
+      <span> Showing {{ from() }}–{{ to() }} of {{ filtered().length }} orders </span>
 
       @if (pageCount() > 1) {
         <nav class="pager" aria-label="Pagination">
@@ -202,6 +174,7 @@
   </div>
 }
 
+<!-- Assign driver dialog -->
 @if (toAssign(); as o) {
   <app-assign-driver-dialog
     [order]="o"

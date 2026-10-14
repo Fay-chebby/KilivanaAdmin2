@@ -14,10 +14,14 @@ export class AddProduct {
   private readonly service = inject(ProductService);
   private readonly router = inject(Router);
 
-  protected save(p: ProductPayload) {
-    const created = this.service.create(p);
-    this.router.navigate(['/products', created.id]); // open it so a verifier can be assigned
+  protected async save(p: ProductPayload) {
+    const created = await this.service.create(p);
+
+    if (created) {
+      await this.router.navigate(['/products', created.id]);
+    }
   }
+
   protected cancel() {
     this.router.navigate(['/products']);
   }
