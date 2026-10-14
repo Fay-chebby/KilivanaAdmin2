@@ -40,28 +40,27 @@ export class OrderService {
   readonly stats = computed(() => {
     const orders = this.orders();
 
+    const count = (...statuses: string[]) =>
+      orders.filter((order) => statuses.includes(String(order.status ?? '').toUpperCase())).length;
+
     return {
       totalOrders: this.totalElements(),
+      placed: count('PLACED'),
+      confirmed: count('CONFIRMED'),
+      processing: count('PROCESSING', 'IN_TRANSIT'),
+      delivered: count('DELIVERED', 'COMPLETED'),
+      completed: count('COMPLETED'),
+      disputed: count('DISPUTED'),
+      cancelled: count('CANCELLED'),
 
-      placed: orders.filter((order) => order.status === 'PLACED').length,
+      paid: orders.filter((order) => String(order.paymentStatus ?? '').toUpperCase() === 'PAID')
+        .length,
 
-      confirmed: orders.filter((order) => order.status === 'CONFIRMED').length,
+      pendingPayment: orders.filter(
+        (order) => String(order.paymentStatus ?? '').toUpperCase() === 'PENDING',
+      ).length,
 
-      inTransit: orders.filter((order) => order.status === 'IN_TRANSIT').length,
-
-      delivered: orders.filter((order) => order.status === 'DELIVERED').length,
-
-      completed: orders.filter((order) => order.status === 'COMPLETED').length,
-
-      disputed: orders.filter((order) => order.status === 'DISPUTED').length,
-
-      cancelled: orders.filter((order) => order.status === 'CANCELLED').length,
-
-      paid: orders.filter((order) => order.paymentStatus === 'paid').length,
-
-      pendingPayment: orders.filter((order) => order.paymentStatus === 'pending').length,
-
-      revenue: orders.reduce((total, order) => total + Number(order.total || 0), 0),
+      revenue: orders.reduce((total, order) => total + Number(order.total ?? 0), 0),
     };
   });
 
@@ -223,18 +222,24 @@ export class OrderService {
     });
   }
 
+  // =========================================================
+  // ASSIGN DRIVER
+  // =========================================================
+
   assignDriver(orderId: number, driverId: number) {
+    const params = new HttpParams().set('driverId', driverId);
+
     return this.http.post<ApiResponse<Order>>(
       `${this.API_BASE_URL}/admin/orders/${orderId}/assign`,
-      { driverId },
+      null,
       {
+        params,
         headers: {
           'ngrok-skip-browser-warning': 'true',
         },
       },
     );
   }
-
   // =========================================================
   // REFRESH
   // =========================================================

@@ -6,70 +6,110 @@
     aria-labelledby="ad-title"
     (click)="$event.stopPropagation()"
   >
-    <h3 id="ad-title">Assign a driver</h3>
-
-    <p>
-      {{ order().code }}
-      · {{ order().items.length }}
-      {{ order().items.length === 1 ? 'item' : 'items' }}
-      · Buyer #{{ order().buyerId }}
-    </p>
-
-    <div class="order-info">
+    <!-- Modal header -->
+    <div class="modal-header">
       <div>
-        <span>Delivery address</span>
-        <strong>#{{ order().addressId }}</strong>
+        <h3 id="ad-title">Assign a driver</h3>
+        <p class="subtitle">Select a driver to handle this order's delivery.</p>
       </div>
 
-      <div>
-        <span>Order total</span>
-        <strong> KSh {{ order().total.toLocaleString('en-KE') }} </strong>
+      <button type="button" class="close-btn" aria-label="Close dialog" (click)="cancel()">
+        &times;
+      </button>
+    </div>
+
+    <!-- Order information -->
+    <div class="order-summary">
+      <div class="order-heading">
+        <span class="label">Order reference</span>
+        <strong>{{ order().code }}</strong>
+      </div>
+
+      <div class="order-tags">
+        <span class="tag">
+          {{ order().items.length }}
+          {{ order().items.length === 1 ? 'item' : 'items' }}
+        </span>
+
+        <span class="tag"> Buyer #{{ order().buyerId }} </span>
+      </div>
+
+      <div class="order-info">
+        <div class="info-item">
+          <span>Delivery address ID</span>
+          <strong>#{{ order().addressId }}</strong>
+        </div>
+
+        <div class="info-item">
+          <span>Order total</span>
+          <strong> KSh {{ order().total.toLocaleString('en-KE') }} </strong>
+        </div>
       </div>
     </div>
 
-    <div class="list" role="radiogroup" aria-label="Drivers">
-      @for (o of options(); track o.a.id) {
-        <label class="opt" [class.on]="selected() === o.a.id">
-          <input
-            type="radio"
-            name="driver"
-            [checked]="selected() === o.a.id"
-            (change)="selectDriver(o.a.id)"
-          />
+    <!-- Driver selection -->
+    <div class="driver-section">
+      <div class="section-heading">
+        <div>
+          <h4>Available drivers</h4>
+          <p>Choose one driver for this order.</p>
+        </div>
 
-          <span class="who">
-            <strong>
-              {{ o.a.name }}
-            </strong>
+        <span class="driver-count">
+          {{ options().length }}
+          {{ options().length === 1 ? 'driver' : 'drivers' }}
+        </span>
+      </div>
 
-            <small> {{ o.a.vehicle }} · {{ o.a.plate }} </small>
+      @if (options().length > 0) {
+        <div class="list" role="radiogroup" aria-label="Available drivers">
+          @for (o of options(); track o.id) {
+            <label class="opt" [class.on]="selected() === o.id">
+              <input
+                type="radio"
+                name="driver"
+                [checked]="selected() === o.id"
+                (change)="selectDriver(o.id)"
+              />
 
-            <small>
-              {{ o.a.phone }}
-            </small>
-          </span>
-
-          <span class="meta">
-            @if (selected() === o.a.id) {
-              <span class="near">Selected</span>
-            }
-          </span>
-        </label>
+              <span class="who">
+                <strong>{{ o.driver.fullName }}</strong>
+                <small>{{ o.driver.code }}</small>
+                <small>{{ o.driver.phone }}</small>
+                <small>
+                  {{ o.driver.vehicle.plateNumber || 'Vehicle details unavailable' }}
+                  · {{ o.driver.vehicle.type }}
+                </small>
+              </span>
+            </label>
+          }
+        </div>
+      } @else {
+        <div class="empty" role="status">
+          <span class="empty-icon" aria-hidden="true">!</span>
+          <strong>No drivers available</strong>
+          <p>
+            No drivers with valid IDs were found. Check that the driver list has loaded and that
+            each driver has a valid numeric ID.
+          </p>
+        </div>
       }
     </div>
 
-    @if (options().length === 0) {
-      <p class="empty">No drivers are currently available.</p>
-    }
+    <!-- Delivery note -->
+    <div class="note">
+      <span class="note-icon" aria-hidden="true">i</span>
+      <p>
+        After assignment, ensure the driver can access the pickup and delivery details in the
+        Logistics section.
+      </p>
+    </div>
 
-    <p class="note">
-      The driver gets a pickup code and a delivery code for this order in Logistics.
-    </p>
-
+    <!-- Modal actions -->
     <div class="actions">
       <button type="button" class="btn ghost" (click)="cancel()">Cancel</button>
 
-      <button type="button" class="btn" [disabled]="!selected()" (click)="confirm()">
+      <button type="button" class="btn" [disabled]="selected() === null" (click)="confirm()">
         Assign driver
       </button>
     </div>

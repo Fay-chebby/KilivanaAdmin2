@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -17,96 +17,139 @@ import {
 
 type Params = Record<string, string | number | boolean>;
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class ProductApi {
   private readonly http = inject(HttpClient);
 
-  private readonly base =
-    'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+  private readonly base = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
   private readonly headers = new HttpHeaders({
     'ngrok-skip-browser-warning': 'true',
   });
 
-  private async call<T>(
-    method: string,
-    path: string,
-    body?: unknown,
-    params?: Params,
-  ): Promise<T> {
-    const res = await firstValueFrom(
-      this.http.request<ApiEnvelope<T>>(
-        method,
-        `${this.base}${path}`,
-        {
-          body,
-          params,
-          headers: this.headers,
-        },
-      ),
-    );
+  /**
+   * Central API request handler.
+   * Supports JSON requests and FormData uploads.
+   */
+  private async call<T>(method: string, path: string, body?: unknown, params?: Params): Promise<T> {
+    let httpParams = new HttpParams();
 
-    if (res?.success === false) {
-      throw new Error(res.message || 'API request failed');
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        httpParams = httpParams.set(key, String(value));
+      });
     }
 
-    return res.data;
-  }
-
-  // Products
-
-  async listAllProducts(): Promise<{
-    items: ProductDto[];
-    fallback: boolean;
-  }> {
     try {
-      const items: ProductDto[] = [];
+      const response = await firstValueFrom(
+        this.http.request<ApiEnvelope<T>>(method, `${this.base}${path}`, {
+          body,
+          params: httpParams,
+          headers: this.headers,
+        }),
+      );
 
-      for (let page = 0; page < 100; page++) {
-        const res = await this.call<PageDto<ProductDto>>(
-          'GET',
-          '/admin/products',
-          undefined,
-          { page, size: 200 },
-        );
-
-        items.push(...(res?.content ?? []));
-
-        if (!res || res.last || !res.content?.length) {
-          break;
-        }
+      if (response?.success === false) {
+        throw new Error(response.message || 'The API request failed.');
       }
 
-      return { items, fallback: false };
-    } catch (error) {
-      const status = (error as { status?: number }).status;
-
-      if ([403, 404, 405].includes(status ?? 0)) {
-        return {
-          items: await this.call<ProductDto[]>('GET', '/products'),
-          fallback: true,
-        };
+      return response.data;
+    } catch (error: unknown) {
+      if (error instanceof HttpErrorResponse) {
+        console.error('Kilivana API request failed', {
+          method,
+          url: `${this.base}${path}`,
+          params,
+          status: error.status,
+          statusText: error.statusText,
+          response: error.error,
+          requestBody: body instanceof FormData ? '[FormData]' : body,
+        });
+      } else {
+        console.error('Kilivana API error:', error);
       }
 
       throw error;
     }
   }
 
-  getStats() {
-    return this.call<Record<string, unknown>>(
-      'GET',
-      '/admin/products/stats',
-    );
+  // =========================================================
+  // PRODUCTS
+  // =========================================================
+
+  /**
+   * Loads the first page of products from the admin endpoint.
+   * Pagination can be extended after the endpoint is confirmed
+   * to work correctly.
+   */
+  async listAllProducts(
+    page = 0,
+    size = 20,
+  ): Promise<{
+    items: ProductDto[];
+    fallback: boolean;
+    totalElements: number;
+    totalPages: number;
+  }> {
+    try {
+      const data = await this.call<PageDto<ProductDto>>('GET', '/admin/products', undefined, {
+        page,
+        size,
+      });
+
+      return {
+        items: data?.content ?? [],
+        fallback: false,
+        totalElements: data?.totalElements ?? 0,
+        totalPages: data?.totalPages ?? 0,
+      };
+    } catch (error: unknown) {
+      const status =
+        error instanceof HttpErrorResponse ? error.status : (error as { status?: number })?.status;
+
+      // Use the public endpoint only when the admin endpoint
+      // is unavailable or access is denied.
+      // Never hide an HTTP 500 backend failure.
+      if (![403, 404, 405].includes(status ?? 0)) {
+        throw error;
+      }
+
+      const publicData = await this.call<unknown>('GET', '/products');
+
+      if (Array.isArray(publicData)) {
+        return {
+          items: publicData as ProductDto[],
+          fallback: true,
+          totalElements: publicData.length,
+          totalPages: 1,
+        };
+      }
+
+      const pageData = publicData as Partial<PageDto<ProductDto>> | null;
+
+      return {
+        items: pageData?.content ?? [],
+        fallback: true,
+        totalElements: pageData?.totalElements ?? 0,
+        totalPages: pageData?.totalPages ?? 0,
+      };
+    }
   }
 
-  createProduct(req: ProductRequestDto, files: File[]) {
-    if (!files.length) {
+  getStats(): Promise<Record<string, unknown>> {
+    return this.call<Record<string, unknown>>('GET', '/admin/products/stats');
+  }
+
+  createProduct(req: ProductRequestDto, files: File[] = []): Promise<ProductDto> {
+    if (files.length === 0) {
       return this.call<ProductDto>('POST', '/products', req);
     }
 
-    const fd = new FormData();
+    const formData = new FormData();
 
-    fd.append(
+    formData.append(
       'product',
       new Blob([JSON.stringify(req)], {
         type: 'application/json',
@@ -114,25 +157,18 @@ export class ProductApi {
     );
 
     files.forEach((file) => {
-      fd.append('images', file, file.name);
+      formData.append('images', file, file.name);
     });
 
-    return this.call<ProductDto>('POST', '/products', fd);
+    return this.call<ProductDto>('POST', '/products', formData);
   }
 
-  updateProduct(id: number, req: ProductRequestDto) {
-    return this.call<ProductDto>(
-      'PUT',
-      `/products/${id}`,
-      req,
-    );
+  updateProduct(id: number, req: ProductRequestDto): Promise<ProductDto> {
+    return this.call<ProductDto>('PUT', `/products/${id}`, req);
   }
 
-  deleteProduct(id: number) {
-    return this.call<unknown>(
-      'DELETE',
-      `/products/${id}`,
-    );
+  deleteProduct(id: number): Promise<unknown> {
+    return this.call<unknown>('DELETE', `/products/${id}`);
   }
 
   setProductStatus(
@@ -140,144 +176,133 @@ export class ProductApi {
     status: string,
     reason?: string,
     extra: Record<string, unknown> = {},
-  ) {
+  ): Promise<unknown> {
     const body: Record<string, unknown> = {
-      status,
       ...extra,
+      status,
     };
 
-    if (reason) {
-      body['reason'] = reason;
-      body['statusReason'] = reason;
+    if (reason?.trim()) {
+      body['reason'] = reason.trim();
+      body['statusReason'] = reason.trim();
     }
 
-    return this.call<unknown>(
-      'PATCH',
-      `/admin/products/${id}/status`,
-      body,
-    );
+    return this.call<unknown>('PATCH', `/admin/products/${id}/status`, body);
   }
 
-  uploadProductImage(
-    id: number,
-    file: File,
-    isPrimary = false,
-  ) {
-    const fd = new FormData();
-    fd.append('image', file, file.name);
+  uploadProductImage(id: number, file: File, isPrimary = false): Promise<ImageDto> {
+    const formData = new FormData();
 
-    return this.call<ImageDto>(
-      'POST',
-      `/products/${id}/images`,
-      fd,
-      { isPrimary },
-    );
+    formData.append('image', file, file.name);
+
+    return this.call<ImageDto>('POST', `/products/${id}/images`, formData, { isPrimary });
   }
 
-  deleteProductImage(productId: number, imageId: number) {
-    return this.call<unknown>(
-      'DELETE',
-      `/products/${productId}/images/${imageId}`,
-    );
+  deleteProductImage(productId: number, imageId: number): Promise<unknown> {
+    return this.call<unknown>('DELETE', `/products/${productId}/images/${imageId}`);
   }
 
-  // Reference data
+  // =========================================================
+  // REFERENCE DATA
+  // =========================================================
 
-  listUsers(role: 'FARMER' | 'SUPPLIER' | 'INSPECTOR') {
-    return this.call<UserDto[]>(
-      'GET',
-      `/admin/users/role/${role}`,
-    );
+  listUsers(role: 'FARMER' | 'SUPPLIER' | 'INSPECTOR'): Promise<UserDto[]> {
+    return this.call<UserDto[]>('GET', `/admin/users/role/${role}`);
   }
 
-  listCategories() {
-    return this.call<CategoryDto[]>(
-      'GET',
-      '/categories/active',
-    );
+  listCategories(): Promise<CategoryDto[]> {
+    return this.call<CategoryDto[]>('GET', '/categories/active');
   }
 
   async listFarms(): Promise<FarmDto[]> {
-    const data = await this.call<unknown>(
-      'GET',
-      '/admin/farms',
-      undefined,
-      { page: 0, size: 500 },
-    );
+    try {
+      const data = await this.call<unknown>('GET', '/admin/farms', undefined, {
+        page: 0,
+        size: 20,
+      });
 
-    const rows = Array.isArray(data)
-      ? data
-      : (
-          (data as Record<string, unknown>)?.['content'] ??
-          (data as Record<string, unknown>)?.['farms'] ??
-          []
-        );
+      let rows: unknown[] = [];
 
-    return (rows as FarmDto[]).filter(
-      (farm) => farm && typeof farm.id === 'number',
-    );
+      if (Array.isArray(data)) {
+        rows = data;
+      } else if (data && typeof data === 'object') {
+        const result = data as Record<string, unknown>;
+
+        if (Array.isArray(result['content'])) {
+          rows = result['content'];
+        } else if (Array.isArray(result['farms'])) {
+          rows = result['farms'];
+        }
+      }
+
+      return rows.filter(
+        (farm): farm is FarmDto =>
+          !!farm && typeof farm === 'object' && typeof (farm as FarmDto).id === 'number',
+      );
+    } catch (error) {
+      console.error(
+        'Could not load farms. Farm selection will be empty until the API is fixed.',
+        error,
+      );
+
+      // Keep the rest of the product page usable.
+      return [];
+    }
   }
 
-  // Inspections
+  // =========================================================
+  // INSPECTIONS
+  // =========================================================
 
-  listInspections() {
-    return this.call<InspectionDto[]>(
-      'GET',
-      '/admin/inspections',
-      undefined,
-      { page: 0, size: 1000 },
-    );
+  async listInspections(): Promise<InspectionDto[]> {
+    const data = await this.call<unknown>('GET', '/admin/inspections', undefined, {
+      page: 0,
+      size: 100,
+    });
+
+    if (Array.isArray(data)) {
+      return data as InspectionDto[];
+    }
+
+    if (data && typeof data === 'object') {
+      const result = data as Partial<PageDto<InspectionDto>>;
+      return result.content ?? [];
+    }
+
+    return [];
   }
 
-  createInspection(req: InspectionRequestDto) {
-    return this.call<InspectionDto>(
-      'POST',
-      '/admin/inspections',
-      req,
-    );
+  createInspection(req: InspectionRequestDto): Promise<InspectionDto> {
+    return this.call<InspectionDto>('POST', '/admin/inspections', req);
   }
 
-  setInspectionStatus(id: number, status: string) {
-    return this.call<InspectionDto>(
-      'PUT',
-      `/admin/inspections/${id}/status`,
-      undefined,
-      { status },
-    );
+  setInspectionStatus(id: number, status: string): Promise<InspectionDto> {
+    return this.call<InspectionDto>('PUT', `/admin/inspections/${id}/status`, undefined, {
+      status,
+    });
   }
 
   submitInspectionResult(
     id: number,
     result: string,
     req: InspectionRequestDto,
-  ) {
-    return this.call<InspectionDto>(
-      'POST',
-      `/admin/inspections/${id}/result`,
-      req,
-      { result },
-    );
+  ): Promise<InspectionDto> {
+    return this.call<InspectionDto>('POST', `/admin/inspections/${id}/result`, req, { result });
   }
 
-  listEvidence(id: number) {
-    return this.call<ImageDto[]>(
-      'GET',
-      `/admin/inspections/${id}/evidence/images`,
-    );
+  listEvidence(id: number): Promise<ImageDto[]> {
+    return this.call<ImageDto[]>('GET', `/admin/inspections/${id}/evidence/images`);
   }
 
-  uploadEvidence(id: number, file: File) {
-    const fd = new FormData();
-    fd.append('image', file, file.name);
+  uploadEvidence(id: number, file: File): Promise<ImageDto[]> {
+    const formData = new FormData();
 
-    return this.call<ImageDto[]>(
-      'POST',
-      `/admin/inspections/${id}/evidence/images`,
-      fd,
-    );
+    formData.append('image', file, file.name);
+
+    return this.call<ImageDto[]>('POST', `/admin/inspections/${id}/evidence/images`, formData);
   }
 
-  deleteEvidence(inspectionId: number, imageId: number) {
+  deleteEvidence(inspectionId: number, imageId: number): Promise<unknown> {
     return this.call<unknown>(
       'DELETE',
       `/admin/inspections/${inspectionId}/evidence/images/${imageId}`,

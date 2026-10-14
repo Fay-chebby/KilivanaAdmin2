@@ -1,82 +1,48 @@
-<div class="pipeline-wrapper">
-  @if (!driverAssigned() && !isCancelled() && !isDisputed()) {
-    <div class="driver-assignment">
-      <div class="driver-assignment-info">
-        <strong>Driver not assigned</strong>
-        <p>Assign a driver before dispatching this order.</p>
-      </div>
-
-      <button
-        type="button"
-        class="assign-driver-btn"
-        [disabled]="busy()"
-        (click)="requestDriverAssignment()"
-      >
-        + Assign Driver
-      </button>
-    </div>
-  } @else if (driverAssigned()) {
-    <div class="driver-assignment assigned">
-      <div>
-        <strong>Driver assigned</strong>
-        <p>This order has a driver assigned.</p>
-      </div>
-    </div>
-  }
-
-  <div class="pipeline">
-    @if (isCancelled()) {
-      <div class="terminal-status cancelled" role="status">✕ Order cancelled</div>
-    } @else if (isDisputed()) {
-      <div class="terminal-status disputed" role="status">! Order disputed</div>
-    } @else {
-      @for (step of steps; track step; let i = $index) {
-        <button
-          type="button"
-          class="pipeline-step"
-          [class.completed]="i < currentIndex()"
-          [class.current]="i === currentIndex()"
-          [disabled]="!canSelectStatus(step)"
-          [attr.aria-current]="i === currentIndex() ? 'step' : null"
-          (click)="changeStatus(step)"
-        >
-          <span class="step-number">
-            @if (i < currentIndex()) {
-              ✓
-            } @else {
-              {{ i + 1 }}
-            }
-          </span>
-
-          <span class="step-label">
-            @switch (step) {
-              @case ('PLACED') {
-                Placed
-              }
-              @case ('CONFIRMED') {
-                Confirmed
-              }
-              @case ('IN_TRANSIT') {
-                In Transit
-              }
-              @case ('DELIVERED') {
-                Delivered
-              }
-              @case ('COMPLETED') {
-                Completed
-              }
-            }
-          </span>
-        </button>
-
-        @if (i < steps.length - 1) {
-          <span class="pipeline-connector" [class.completed]="i < currentIndex()"></span>
+<div class="pipeline" [class.cancelled]="isCancelled()" [class.disputed]="isDisputed()">
+  @for (step of steps; track step; let i = $index) {
+    <button
+      type="button"
+      class="pipeline-step"
+      [class.completed]="i < currentIndex()"
+      [class.current]="i === currentIndex()"
+      [class.upcoming]="i > currentIndex()"
+      [class.has-driver]="step === 'IN_TRANSIT' && driverAssigned()"
+      [disabled]="!canSelectStatus(step)"
+      (click)="changeStatus(step)"
+    >
+      <span class="step-icon">
+        @if (i < currentIndex()) {
+          <span class="check">✓</span>
+        } @else if (step === 'IN_TRANSIT' && driverAssigned()) {
+          <span class="check">✓</span>
+        } @else {
+          <span class="step-number">{{ i + 1 }}</span>
         }
-      }
-    }
-  </div>
+      </span>
 
-  @if (!driverAssigned() && currentIndex() < steps.indexOf('IN_TRANSIT')) {
-    <p class="pipeline-hint">Assign a driver before moving this order into transit.</p>
+      <span class="step-label">
+        {{ step.replace('_', ' ') }}
+      </span>
+    </button>
+
+    @if (i < steps.length - 1) {
+      <span class="pipeline-connector" [class.completed]="i < currentIndex()"></span>
+    }
   }
 </div>
+
+@if (!driverAssigned() && !isCancelled() && !isDisputed()) {
+  <button
+    type="button"
+    class="assign-driver-btn"
+    [disabled]="busy()"
+    (click)="requestDriverAssignment()"
+  >
+    Assign driver
+  </button>
+} @else if (driverAssigned()) {
+  <div class="driver-assigned">
+    <span class="driver-check">✓</span>
+    Driver assigned successfully
+  </div>
+}

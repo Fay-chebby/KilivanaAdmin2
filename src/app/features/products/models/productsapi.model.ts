@@ -12,8 +12,28 @@ export interface PageDto<T> {
   totalElements: number;
   totalPages: number;
   number: number;
+  size: number;
+  numberOfElements: number;
+  first: boolean;
   last: boolean;
-  empty?: boolean;
+  empty: boolean;
+  pageable?: {
+    pageNumber: number;
+    pageSize: number;
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+    sort?: {
+      sorted: boolean;
+      empty: boolean;
+      unsorted: boolean;
+    };
+  };
+  sort?: {
+    sorted: boolean;
+    empty: boolean;
+    unsorted: boolean;
+  };
 }
 
 export interface ProductImageDto {
