@@ -10,6 +10,7 @@ export interface Assignment {
 
 @Component({
   selector: 'app-assign-inspector-dialog',
+  standalone: true,
   templateUrl: './assign-inspector-dialog.html',
   styleUrl: './assign-inspector-dialog.scss',
 })
@@ -17,39 +18,39 @@ export class AssignInspectorDialog {
   protected readonly inspectors = inject(InspectorService);
 
   readonly county = input.required<string>();
-
   readonly currentId = input<string | null>(null);
-
   readonly description = input<string | null>(null);
 
   readonly assigned = output<Assignment>();
-
   readonly cancelled = output<void>();
 
   protected readonly selected = signal<string | null>(null);
 
-  protected readonly minDate = new Date().toISOString().slice(0, 10);
+  protected readonly minDate = new Date().toLocaleDateString('en-CA');
 
   protected readonly due = signal(new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10));
 
   /**
-   * Active inspectors only.
-   * Inspectors from the same county come first,
-   * followed by inspectors with fewer pending visits.
+   * Active inspectors are listed first by:
+   * 1. Same county
+   * 2. Fewest pending visits
    */
-  protected readonly options = computed(() =>
-    this.inspectors
+  protected readonly options = computed(() => {
+    const county = this.county().trim().toLowerCase();
+    const currentId = this.currentId();
+
+    return this.inspectors
       .inspectors()
-      .filter((i) => i.status === 'active' && String(i.id) !== String(this.currentId()))
-      .map((i) => ({
-        i,
-
-        near: i.region.toLowerCase() === this.county().toLowerCase(),
-
-        pending: this.inspectors.pendingFor(i.id).length,
+      .filter(
+        (inspector) => inspector.status === 'active' && String(inspector.id) !== String(currentId),
+      )
+      .map((inspector) => ({
+        i: inspector,
+        near: inspector.region?.trim().toLowerCase() === county,
+        pending: this.inspectors.pendingFor(inspector.id).length,
       }))
-      .sort((a, b) => Number(b.near) - Number(a.near) || a.pending - b.pending),
-  );
+      .sort((a, b) => Number(b.near) - Number(a.near) || a.pending - b.pending);
+  });
 
   protected toString(value: number | string): string {
     return String(value);
@@ -61,21 +62,22 @@ export class AssignInspectorDialog {
 
   protected confirm(): void {
     const selectedId = this.selected();
+    const dueDate = this.due();
 
-    if (!selectedId) {
+    if (!selectedId || !dueDate || dueDate < this.minDate) {
       return;
     }
 
-    const s = this.options().find((o) => String(o.i.id) === selectedId);
+    const inspector = this.options().find((option) => String(option.i.id) === selectedId);
 
-    if (!s || !this.due()) {
+    if (!inspector) {
       return;
     }
 
     this.assigned.emit({
-      id: String(s.i.id),
-      name: s.i.name,
-      dueDate: this.due(),
+      id: String(inspector.i.id),
+      name: inspector.i.name,
+      dueDate,
     });
   }
 

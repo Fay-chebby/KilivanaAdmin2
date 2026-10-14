@@ -4,7 +4,7 @@ import { FarmList } from './pages/farm-list/farm-list';
 
 import { CropList } from './pages/crop-list/crop-list';
 
-import { AddFarm } from './pages/add-farm/add-farm';
+// import { AddFarm } from './pages/add-farm/add-farm';
 
 import { FarmDetails } from './pages/farm-details/farm-details';
 
@@ -15,7 +15,7 @@ export const FARM_ROUTES: Routes = [
 
   { path: 'crops', component: CropList, title: 'Crops' },
 
-  { path: 'new', component: AddFarm, title: 'Add Farm' },
+  // { path: 'new', component: AddFarm, title: 'Add Farm' },
 
   { path: ':id/edit', component: EditFarm, title: 'Edit Farm' },
 

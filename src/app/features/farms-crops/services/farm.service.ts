@@ -1,6 +1,9 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
+
+import { InspectionRequest, InspectionResponse } from '../models/inspection.model';
+
 import {
   ApiCrop,
   ApiCropSummary,
@@ -176,5 +179,88 @@ export class FarmService {
 
   private patchFarm(f: Farm) {
     this.farms.update((l) => l.map((x) => (x.id === f.id ? f : x)));
+  }
+  //inspections
+
+  // INSPECTIONS
+
+  private readonly inspectionUrl = `${API}/admin/inspections`;
+
+  /**
+   * GET /admin/inspections/target/{targetType}/{targetId}
+   * Find the inspection associated with a farm.
+   */
+  getFarmInspection(farmId: number): Observable<InspectionResponse> {
+    return this.http
+      .get<ApiEnvelope<InspectionResponse>>(`${this.inspectionUrl}/target/FARM/${farmId}`)
+      .pipe(map((response) => response.data));
+  }
+
+  /**
+   * POST /admin/inspections
+   * Create an inspection and assign an inspector.
+   */
+  assignInspector(request: InspectionRequest): Observable<InspectionResponse> {
+    return this.http
+      .post<ApiEnvelope<InspectionResponse>>(this.inspectionUrl, request)
+      .pipe(map((response) => response.data));
+  }
+
+  /**
+   * PUT /admin/inspections/{id}/status
+   */
+  updateInspectionStatus(inspectionId: number, status: string): Observable<InspectionResponse> {
+    return this.http
+      .put<
+        ApiEnvelope<InspectionResponse>
+      >(`${this.inspectionUrl}/${inspectionId}/status`, { status })
+      .pipe(map((response) => response.data));
+  }
+
+  /**
+   * POST /admin/inspections/{id}/result
+   */
+  submitInspectionResult(
+    inspectionId: number,
+    result: string,
+    notes: string,
+  ): Observable<InspectionResponse> {
+    return this.http
+      .post<
+        ApiEnvelope<InspectionResponse>
+      >(`${this.inspectionUrl}/${inspectionId}/result`, { result, notes })
+      .pipe(map((response) => response.data));
+  }
+
+  /**
+   * POST /admin/inspections/{id}/evidence/images
+   * Upload one actual image file.
+   */
+  uploadInspectionEvidence(inspectionId: number, file: File): Observable<unknown> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    return this.http.post(`${this.inspectionUrl}/${inspectionId}/evidence/images`, formData);
+  }
+
+  /**
+   * GET /admin/inspections/{id}/evidence/images
+   */
+  getInspectionEvidence(inspectionId: number): Observable<unknown> {
+    return this.http.get(`${this.inspectionUrl}/${inspectionId}/evidence/images`);
+  }
+
+  /**
+   * DELETE /admin/inspections/{id}/evidence/images/{imageId}
+   */
+  deleteInspectionEvidence(inspectionId: number, imageId: number): Observable<unknown> {
+    return this.http.delete(`${this.inspectionUrl}/${inspectionId}/evidence/images/${imageId}`);
+  }
+
+  /**
+   * DELETE /admin/inspections/{id}
+   */
+  deleteInspection(inspectionId: number): Observable<unknown> {
+    return this.http.delete(`${this.inspectionUrl}/${inspectionId}`);
   }
 }

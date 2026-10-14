@@ -23,14 +23,13 @@
           <input
             type="radio"
             name="inspector"
+            [value]="toString(o.i.id)"
             [checked]="selected() === toString(o.i.id)"
             (change)="select(o.i.id)"
           />
 
           <span class="who">
-            <strong>
-              {{ o.i.name }}
-            </strong>
+            <strong>{{ o.i.name }}</strong>
 
             <small>
               {{ o.i.region }}
@@ -67,7 +66,12 @@
     <div class="actions">
       <button type="button" class="btn ghost" (click)="cancel()">Cancel</button>
 
-      <button type="button" class="btn" [disabled]="!selected() || !due()" (click)="confirm()">
+      <button
+        type="button"
+        class="btn"
+        [disabled]="!selected() || !due() || due() < minDate"
+        (click)="confirm()"
+      >
         Assign inspector
       </button>
     </div>

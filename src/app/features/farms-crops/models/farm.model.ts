@@ -84,6 +84,9 @@ export interface FarmImage {
   id: number;
   url: string;
   isPrimary: boolean;
+  caption?: string;
+  uploadedBy?: 'farmer' | 'inspector';
+  uploadedAt?: string;
 }
 
 export interface Farm {
@@ -237,3 +240,85 @@ export const KENYA_COUNTIES: string[] = [
   'Wajir',
   'West Pokot',
 ];
+
+/* ---------- UI compatibility types ---------- */
+
+export type FarmStatus = 'ACTIVE' | 'FALLOW' | 'INACTIVE';
+
+export type InspectionStatus = 'unassigned' | 'assigned' | 'in_review' | 'approved' | 'rejected';
+
+export const INSPECTION_META: Record<
+  InspectionStatus,
+  { label: string; tone: Tone; step: number }
+> = {
+  unassigned: { label: 'Not assigned', tone: 'gray', step: 0 },
+  assigned: { label: 'Inspector assigned', tone: 'blue', step: 1 },
+  in_review: { label: 'In review', tone: 'amber', step: 2 },
+  approved: { label: 'Approved', tone: 'green', step: 3 },
+  rejected: { label: 'Rejected', tone: 'red', step: 3 },
+};
+
+export interface FarmPayload {
+  name: string;
+  county: string;
+  ownerName: string;
+  ownerPhone: string;
+  location: string;
+  sizeHa: number;
+  status: FarmStatus;
+  crops: string[];
+  description?: string;
+  farmerImages: FarmImage[];
+}
+
+export interface InspectionChecklistItem {
+  key: string;
+  label: string;
+  checked: boolean;
+}
+
+export interface FarmInspection {
+  status: InspectionStatus;
+  inspectorId: number | null;
+  inspectorName: string | null;
+  notes: string;
+  checklist: InspectionChecklistItem[];
+  reviewedAt: string | null;
+}
+
+export interface CropSummaryView {
+  id: number;
+  name: string;
+  farms: number;
+  counties: Set<string>;
+  hectares: number;
+}
+
+/* ---------- UI display metadata ---------- */
+
+export const FARM_STATUS_META: Record<FarmStatus, { label: string; tone: Tone }> = {
+  ACTIVE: { label: 'Active', tone: 'green' },
+  FALLOW: { label: 'Fallow', tone: 'amber' },
+  INACTIVE: { label: 'Inactive', tone: 'gray' },
+};
+
+/* ---------- Existing UI aliases ---------- */
+
+export const COUNTIES = KENYA_COUNTIES;
+
+export const CROPS = [
+  'Maize',
+  'Beans',
+  'Wheat',
+  'Rice',
+  'Potatoes',
+  'Tomatoes',
+  'Kale',
+  'Bananas',
+  'Coffee',
+  'Tea',
+] as const;
+
+export function coverOf(farm: Farm): string | null {
+  return farm.images.find((image) => image.isPrimary)?.url ?? farm.images[0]?.url ?? null;
+}

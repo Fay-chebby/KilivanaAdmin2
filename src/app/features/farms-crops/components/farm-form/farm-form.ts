@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, input, output, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+
 import { KENYA_PHONE } from '../../../../shared/utils/kenya-counties';
 import { readImageFiles } from '../../../../shared/utils/image-files';
 import { COUNTIES, CROPS, Farm, FarmImage, FarmPayload } from '../../models/farm.model';
@@ -8,6 +9,7 @@ const MAX_PHOTOS = 8;
 
 @Component({
   selector: 'app-farm-form',
+  standalone: true,
   imports: [ReactiveFormsModule],
   templateUrl: './farm-form.html',
   styleUrl: './farm-form.scss',
@@ -40,69 +42,101 @@ export class FarmForm implements OnInit {
     status: ['pending' as FarmPayload['status'], Validators.required],
   });
 
-  ngOnInit() {
+  ngOnInit(): void {
     const f = this.farm();
+
     if (!f) return;
-    this.form.patchValue(f);
-    this.crops.set([...f.crops]);
-    this.images.set(f.images.filter((i) => i.uploadedBy === 'farmer'));
+
+    this.form.patchValue({
+      name: f.name,
+      ownerName: f.farmerName ?? '',
+      ownerPhone: '',
+      county: f.county ?? '',
+      location: f.address ?? '',
+      sizeHa: f.sizeAcres ?? 0,
+      status: f.status as FarmPayload['status'],
+    });
+
+    this.crops.set([...f.cropNames]);
+
+    this.images.set(f.images.filter((image) => image.uploadedBy === 'farmer'));
   }
 
-  protected bad(c: AbstractControl) {
-    return c.invalid && (c.touched || c.dirty);
+  protected bad(control: AbstractControl): boolean {
+    return control.invalid && (control.touched || control.dirty);
   }
 
-  protected toggleCrop(c: string) {
-    this.crops.update((l) => (l.includes(c) ? l.filter((x) => x !== c) : [...l, c]));
+  protected toggleCrop(crop: string): void {
+    this.crops.update((list) =>
+      list.includes(crop) ? list.filter((item) => item !== crop) : [...list, crop],
+    );
+
     this.cropError.set(false);
   }
 
-  protected async add(files: FileList | null) {
-    const { items, error } = await readImageFiles(files, MAX_PHOTOS - this.images().length);
+  protected async add(files: FileList | null): Promise<void> {
+    const remaining = MAX_PHOTOS - this.images().length;
+
+    if (!files?.length || remaining <= 0) {
+      if (remaining <= 0) {
+        this.error.set(`You can upload a maximum of ${MAX_PHOTOS} photos.`);
+      }
+      return;
+    }
+
+    const { items, error } = await readImageFiles(files, remaining);
+
     this.error.set(error);
-    const now = new Date().toISOString().slice(0, 10);
-    this.images.update((l) => [
-      ...l,
-      ...items.map((p) => ({
-        id: crypto.randomUUID(),
-        url: p.url,
-        caption: p.name,
-        uploadedBy: 'farmer' as const,
-        uploadedAt: now,
-      })),
-    ]);
+
+    const now = new Date().toISOString();
+
+    const newImages: FarmImage[] = items.map((item) => ({
+      id: -Date.now() - Math.floor(Math.random() * 1_000_000),
+      url: item.url,
+      isPrimary: false,
+      caption: item.name,
+      uploadedBy: 'farmer',
+      uploadedAt: now,
+    }));
+
+    this.images.update((list) => [...list, ...newImages]);
   }
 
-  protected onPick(e: Event) {
-    const el = e.target as HTMLInputElement;
-    this.add(el.files);
-    el.value = '';
+  protected onPick(event: Event): void {
+    const element = event.target as HTMLInputElement;
+
+    void this.add(element.files);
+    element.value = '';
   }
 
-  protected onDrop(e: DragEvent) {
-    e.preventDefault();
+  protected onDrop(event: DragEvent): void {
+    event.preventDefault();
     this.dragging.set(false);
-    this.add(e.dataTransfer?.files ?? null);
+    void this.add(event.dataTransfer?.files ?? null);
   }
 
-  protected onDrag(e: DragEvent, on: boolean) {
-    e.preventDefault();
-    this.dragging.set(on);
+  protected onDrag(event: DragEvent, active: boolean): void {
+    event.preventDefault();
+    this.dragging.set(active);
   }
 
-  protected removeImage(id: string) {
-    this.images.update((l) => l.filter((i) => i.id !== id));
+  protected removeImage(id: number): void {
+    this.images.update((list) => list.filter((image) => image.id !== id));
   }
 
-  protected submit() {
+  protected submit(): void {
     this.cropError.set(this.crops().length === 0);
+
     if (this.form.invalid || this.crops().length === 0) {
       this.form.markAllAsTouched();
+
       document
         .querySelector('.err, .crop-err')
         ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
       return;
     }
+
     this.saved.emit({
       ...this.form.getRawValue(),
       crops: this.crops(),
