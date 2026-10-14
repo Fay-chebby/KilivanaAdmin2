@@ -1,4 +1,4 @@
-import { Component, effect, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import {
@@ -29,7 +29,7 @@ export class DriverForm {
    * true when registering a new driver.
    * false when editing an existing driver.
    */
-  requirePassword = input(true);
+  requirePassword = computed(() => !this.driver());
 
   saved = output<DriverFormValue>();
   cancelled = output<void>();
@@ -140,19 +140,25 @@ export class DriverForm {
      * Password is required during registration,
      * but optional during editing.
      */
+
     effect(() => {
       const passwordControl = this.form.controls.password;
+      const confirmPasswordControl = this.form.controls.confirmPassword;
 
-      passwordControl.setValidators(
-        this.requirePassword()
-          ? [Validators.required, Validators.minLength(8)]
-          : [Validators.minLength(8)],
-      );
+      if (this.requirePassword()) {
+        passwordControl.setValidators([Validators.required, Validators.minLength(8)]);
 
-      passwordControl.updateValueAndValidity();
+        confirmPasswordControl.setValidators([Validators.required]);
+      } else {
+        passwordControl.clearValidators();
+        confirmPasswordControl.clearValidators();
+      }
+
+      passwordControl.updateValueAndValidity({ emitEvent: false });
+      confirmPasswordControl.updateValueAndValidity({ emitEvent: false });
+      this.form.updateValueAndValidity({ emitEvent: false });
     });
   }
-
   /**
    * Check whether a field is invalid and
    * has already been interacted with.
@@ -196,18 +202,10 @@ export class DriverForm {
    * Submit the form.
    */
   submit(): void {
-    console.log('REGISTER BUTTON CLICKED');
-
     if (this.form.invalid) {
-      console.log('FORM IS INVALID');
-      console.log('Form errors:', this.form.errors);
-      console.log('Form values:', this.form.getRawValue());
-
       this.form.markAllAsTouched();
       return;
     }
-
-    console.log('FORM IS VALID');
 
     const formValue = this.form.getRawValue();
 
@@ -217,7 +215,9 @@ export class DriverForm {
       email: formValue.email,
       region: formValue.region,
       address: formValue.address,
-      password: formValue.password,
+
+      ...(this.requirePassword() ? { password: formValue.password } : {}),
+
       idType: formValue.idType,
       idNumber: formValue.idNumber,
       licenceNumber: formValue.licenceNumber,
@@ -229,11 +229,8 @@ export class DriverForm {
       vehicleMake: formValue.vehicleMake,
     };
 
-    console.log('DRIVER DATA:', value);
-
     this.saved.emit(value);
   }
-
   /**
    * Cancel the form.
    */

@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { OrderStatus, PIPELINE } from '../../models/order.model';
 
 @Component({
@@ -8,22 +8,46 @@ import { OrderStatus, PIPELINE } from '../../models/order.model';
 })
 export class OrderPipeline {
   readonly status = input.required<OrderStatus>();
+  readonly busy = input(false);
+  readonly driverAssigned = input(false);
+
+  readonly statusChange = output<OrderStatus>();
+  readonly assignDriverRequested = output<void>();
 
   protected readonly steps = PIPELINE;
 
-  protected readonly halted = computed(() => this.status() === 'cancelled');
-
-  protected readonly finished = computed(() => this.status() === 'delivered');
-
   protected readonly currentIndex = computed(() => {
-    return this.steps.indexOf(this.status());
+    const index = this.steps.indexOf(this.status() as (typeof this.steps)[number]);
+    return Math.max(0, index);
   });
 
-  protected isCompleted(index: number): boolean {
-    return !this.halted() && index < this.currentIndex();
+  protected readonly isCancelled = computed(() => this.status() === 'CANCELLED');
+
+  protected readonly isDisputed = computed(() => this.status() === 'DISPUTED');
+
+  protected canSelectStatus(step: OrderStatus): boolean {
+    if (this.busy() || step === this.status()) return false;
+
+    if (step === 'IN_TRANSIT' && !this.driverAssigned()) {
+      return false;
+    }
+
+    const targetIndex = this.steps.indexOf(step as (typeof this.steps)[number]);
+
+    return targetIndex === this.currentIndex() + 1;
   }
 
-  protected isCurrent(index: number): boolean {
-    return index === this.currentIndex();
+  protected changeStatus(step: OrderStatus): void {
+    if (this.canSelectStatus(step)) {
+      this.statusChange.emit(step);
+    }
+  }
+
+  protected requestDriverAssignment(): void {
+    console.log('Assign Driver clicked');
+
+    if (!this.busy() && !this.driverAssigned()) {
+      this.assignDriverRequested.emit();
+    }
   }
 }

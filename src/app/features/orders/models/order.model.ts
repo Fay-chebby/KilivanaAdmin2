@@ -1,16 +1,26 @@
+
+/* -----------------------------
+   Order status types
+----------------------------- */
+
 export type OrderStatus =
-  | 'placed'
-  | 'confirmed'
-  | 'processing'
-  | 'shipped'
-  | 'delivered'
-  | 'cancelled';
+  | 'PLACED'
+  | 'CONFIRMED'
+  | 'IN_TRANSIT'
+  | 'DELIVERED'
+  | 'COMPLETED'
+  | 'DISPUTED'
+  | 'CANCELLED';
 
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
 export type Tone = 'green' | 'blue' | 'amber' | 'red' | 'gray';
 
 export type PaymentMethod = 'mpesa' | 'card' | 'cash' | 'bank';
+
+/* -----------------------------
+   Order interfaces
+----------------------------- */
 
 export interface OrderItem {
   id: number;
@@ -37,6 +47,13 @@ export interface Order {
   items: OrderItem[];
   createdAt: string;
   updatedAt: string;
+
+  /*
+   * Optional driver information.
+   * Keep these optional until the backend response
+   * confirms the actual field names and structure.
+   */
+  driverId?: number | null;
 }
 
 export interface SortInfo {
@@ -80,49 +97,68 @@ export interface ApiResponse<T> {
 }
 
 /* -----------------------------
-   UI metadata
+   Order status UI metadata
 ----------------------------- */
 
-export const ORDER_STATUS_META: Record<OrderStatus, { label: string; tone: Tone }> = {
-  placed: {
+export const ORDER_STATUS_META: Record<
+  OrderStatus,
+  { label: string; tone: Tone }
+> = {
+  PLACED: {
     label: 'Placed',
     tone: 'amber',
   },
-  confirmed: {
+  CONFIRMED: {
     label: 'Confirmed',
     tone: 'blue',
   },
-  processing: {
-    label: 'Processing',
+  IN_TRANSIT: {
+    label: 'In Transit',
     tone: 'blue',
   },
-  shipped: {
-    label: 'Shipped',
-    tone: 'blue',
-  },
-  delivered: {
+  DELIVERED: {
     label: 'Delivered',
     tone: 'green',
   },
-  cancelled: {
+  COMPLETED: {
+    label: 'Completed',
+    tone: 'green',
+  },
+  DISPUTED: {
+    label: 'Disputed',
+    tone: 'red',
+  },
+  CANCELLED: {
     label: 'Cancelled',
     tone: 'red',
   },
 };
 
+/* -----------------------------
+   Status dropdown options
+----------------------------- */
+
 export const STATUS_OPTIONS: Array<{
   value: OrderStatus;
   label: string;
 }> = [
-  { value: 'placed', label: 'Placed' },
-  { value: 'confirmed', label: 'Confirmed' },
-  { value: 'processing', label: 'Processing' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'PLACED', label: 'Placed' },
+  { value: 'CONFIRMED', label: 'Confirmed' },
+  { value: 'IN_TRANSIT', label: 'In Transit' },
+  { value: 'DELIVERED', label: 'Delivered' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'DISPUTED', label: 'Disputed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
-export const PAYMENT_META: Record<PaymentStatus, { label: string; tone: Tone }> = {
+/* -----------------------------
+   Payment UI metadata
+----------------------------- */
+
+export const PAYMENT_META: Record<
+  PaymentStatus,
+  { label: string; tone: Tone }
+> = {
   pending: {
     label: 'Pending',
     tone: 'amber',
@@ -165,7 +201,9 @@ export function productSummary(order: Order): string {
     return order.items[0].productName;
   }
 
-  return `${order.items[0].productName} + ${order.items.length - 1} more`;
+  return `${order.items[0].productName} + ${
+    order.items.length - 1
+  } more`;
 }
 
 export function qtySummary(order: Order): string {
@@ -173,7 +211,12 @@ export function qtySummary(order: Order): string {
     return '0';
   }
 
-  return String(order.items.reduce((total, item) => total + Number(item.quantity || 0), 0));
+  return String(
+    order.items.reduce(
+      (total, item) => total + Number(item.quantity || 0),
+      0,
+    ),
+  );
 }
 
 /*
@@ -192,15 +235,15 @@ export function farmerPayout(order: Order): number {
 }
 
 /* -----------------------------
-   Order pipeline
+   Normal order pipeline
 ----------------------------- */
 
 export const PIPELINE: OrderStatus[] = [
-  'placed',
-  'confirmed',
-  'processing',
-  'shipped',
-  'delivered',
+  'PLACED',
+  'CONFIRMED',
+  'IN_TRANSIT',
+  'DELIVERED',
+  'COMPLETED',
 ];
 
 /* -----------------------------

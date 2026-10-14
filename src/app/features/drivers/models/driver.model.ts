@@ -88,7 +88,7 @@ export interface DriverFormValue {
   fullName: string;
   // username: string;
   /** Sent to the API only. Never stored. Empty on edit = keep current password. */
-  password: string;
+  password?: string;
   phone: string;
   email: string;
   region: string;

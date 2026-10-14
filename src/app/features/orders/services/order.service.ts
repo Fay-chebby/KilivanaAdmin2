@@ -43,17 +43,19 @@ export class OrderService {
     return {
       totalOrders: this.totalElements(),
 
-      placed: orders.filter((order) => order.status === 'placed').length,
+      placed: orders.filter((order) => order.status === 'PLACED').length,
 
-      confirmed: orders.filter((order) => order.status === 'confirmed').length,
+      confirmed: orders.filter((order) => order.status === 'CONFIRMED').length,
 
-      processing: orders.filter((order) => order.status === 'processing').length,
+      inTransit: orders.filter((order) => order.status === 'IN_TRANSIT').length,
 
-      shipped: orders.filter((order) => order.status === 'shipped').length,
+      delivered: orders.filter((order) => order.status === 'DELIVERED').length,
 
-      delivered: orders.filter((order) => order.status === 'delivered').length,
+      completed: orders.filter((order) => order.status === 'COMPLETED').length,
 
-      cancelled: orders.filter((order) => order.status === 'cancelled').length,
+      disputed: orders.filter((order) => order.status === 'DISPUTED').length,
+
+      cancelled: orders.filter((order) => order.status === 'CANCELLED').length,
 
       paid: orders.filter((order) => order.paymentStatus === 'paid').length,
 
@@ -158,40 +160,25 @@ export class OrderService {
   // =========================================================
 
   updateOrderStatus(id: number, status: OrderStatus) {
-    return this.http.put<ApiResponse<Order>>(
-      `${this.ORDERS_URL}/${id}/status`,
-      { status },
-      {
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-        },
+    return this.http.put<ApiResponse<Order>>(`${this.ORDERS_URL}/${id}/status`, null, {
+      params: new HttpParams().set('status', status),
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
       },
-    );
+    });
   }
 
   // =========================================================
   // POST ORDER STATUS
   // =========================================================
-  //
-  // Your Swagger shows BOTH:
-  //
-  // POST /api/v1/orders/{id}/status
-  // PUT  /api/v1/orders/{id}/status
-  //
-  // Keep this method separate until we confirm the exact
-  // request body expected by the POST endpoint.
-  // =========================================================
 
   postOrderStatus(id: number, status: OrderStatus) {
-    return this.http.post<ApiResponse<Order>>(
-      `${this.ORDERS_URL}/${id}/status`,
-      { status },
-      {
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-        },
+    return this.http.post<ApiResponse<Order>>(`${this.ORDERS_URL}/${id}/status`, null, {
+      params: new HttpParams().set('status', status),
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
       },
-    );
+    });
   }
 
   // =========================================================
@@ -234,6 +221,18 @@ export class OrderService {
         'ngrok-skip-browser-warning': 'true',
       },
     });
+  }
+
+  assignDriver(orderId: number, driverId: number) {
+    return this.http.post<ApiResponse<Order>>(
+      `${this.API_BASE_URL}/admin/orders/${orderId}/assign`,
+      { driverId },
+      {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
+      },
+    );
   }
 
   // =========================================================

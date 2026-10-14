@@ -72,51 +72,59 @@
        STATUS ALERTS
   ========================== -->
 
-  @if (o.status === 'cancelled') {
+  @if (o.status === 'CANCELLED') {
     <div class="alert red" role="status">
-      <strong> Cancelled: </strong>
-
+      <strong>Cancelled:</strong>
       {{ o.cancellationReason || 'No cancellation reason was provided.' }}
     </div>
   }
 
-  @if (o.status === 'placed' && o.paymentStatus === 'pending') {
+  @if (o.status === 'PLACED' && o.paymentStatus === 'pending') {
     <div class="alert amber" role="status">
-      <strong> Payment pending: </strong>
-
+      <strong>Payment pending:</strong>
       This order is currently waiting for payment.
     </div>
   }
 
-  @if (o.status === 'confirmed') {
+  @if (o.status === 'PLACED' && o.paymentStatus !== 'pending') {
     <div class="alert amber" role="status">
-      <strong> Confirmed: </strong>
-
-      This order has been confirmed and is ready for processing.
+      <strong>Order placed:</strong>
+      The order has been received and is awaiting confirmation.
     </div>
   }
 
-  @if (o.status === 'processing') {
+  @if (o.status === 'CONFIRMED') {
     <div class="alert blue" role="status">
-      <strong> Processing: </strong>
-
-      The order is currently being prepared.
+      <strong>Confirmed:</strong>
+      This order has been confirmed and is awaiting dispatch.
     </div>
   }
 
-  @if (o.status === 'shipped') {
+  @if (o.status === 'IN_TRANSIT') {
     <div class="alert blue" role="status">
-      <strong> Shipped: </strong>
-
-      This order has been dispatched.
+      <strong>In transit:</strong>
+      This order is currently being transported to the buyer.
     </div>
   }
 
-  @if (o.status === 'delivered') {
+  @if (o.status === 'DELIVERED') {
     <div class="alert green" role="status">
-      <strong> Delivered: </strong>
-
+      <strong>Delivered:</strong>
       This order has been marked as delivered.
+    </div>
+  }
+
+  @if (o.status === 'COMPLETED') {
+    <div class="alert green" role="status">
+      <strong>Completed:</strong>
+      This order has been completed successfully.
+    </div>
+  }
+
+  @if (o.status === 'DISPUTED') {
+    <div class="alert red" role="alert">
+      <strong>Disputed:</strong>
+      This order has a dispute that requires attention.
     </div>
   }
 
@@ -124,7 +132,26 @@
        ORDER PIPELINE
   ========================== -->
 
-  <app-order-pipeline [status]="o.status" />
+  @if (actionMessage(); as message) {
+    <div class="order-alert success-alert" role="status">
+      {{ message }}
+    </div>
+  }
+  <app-order-pipeline
+    [status]="o.status"
+    [busy]="updatingStatus() || assigningDriver()"
+    [driverAssigned]="driverAssigned()"
+    (statusChange)="updateOrderStatus($event)"
+    (assignDriverRequested)="openAssignDriver()"
+  />
+
+  @if (showAssignDriver()) {
+    <app-assign-driver-dialog
+      [order]="o"
+      (assigned)="handleDriverAssignment($event)"
+      (cancelled)="closeAssignDriver()"
+    />
+  }
 
   <!-- =========================
        MAIN LAYOUT

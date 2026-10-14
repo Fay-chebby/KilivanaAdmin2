@@ -115,7 +115,7 @@ interface DriverProfileImage {
 interface RegisterDriverRequest {
   fullName: string;
   username: string;
-  password: string;
+  password?: string;
   phone: string;
   email: string;
   region: string;

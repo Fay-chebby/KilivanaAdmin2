@@ -1,25 +1,82 @@
-<section class="card">
-  <h2>Order pipeline</h2>
+<div class="pipeline-wrapper">
+  @if (!driverAssigned() && !isCancelled() && !isDisputed()) {
+    <div class="driver-assignment">
+      <div class="driver-assignment-info">
+        <strong>Driver not assigned</strong>
+        <p>Assign a driver before dispatching this order.</p>
+      </div>
 
-  <ol class="steps">
-    @for (s of steps; track s; let i = $index) {
-      <li
-        [class.done]="isCompleted(i)"
-        [class.current]="isCurrent(i) && !finished() && !halted()"
-        [class.stop]="halted() && isCurrent(i)"
+      <button
+        type="button"
+        class="assign-driver-btn"
+        [disabled]="busy()"
+        (click)="requestDriverAssignment()"
       >
-        <span class="dot">
-          @if (halted() && isCurrent(i)) {
-            !
-          } @else if (isCompleted(i) || (finished() && isCurrent(i))) {
-            ✓
-          } @else {
-            {{ i + 1 }}
-          }
-        </span>
+        + Assign Driver
+      </button>
+    </div>
+  } @else if (driverAssigned()) {
+    <div class="driver-assignment assigned">
+      <div>
+        <strong>Driver assigned</strong>
+        <p>This order has a driver assigned.</p>
+      </div>
+    </div>
+  }
 
-        <span class="txt">{{ s }}</span>
-      </li>
+  <div class="pipeline">
+    @if (isCancelled()) {
+      <div class="terminal-status cancelled" role="status">✕ Order cancelled</div>
+    } @else if (isDisputed()) {
+      <div class="terminal-status disputed" role="status">! Order disputed</div>
+    } @else {
+      @for (step of steps; track step; let i = $index) {
+        <button
+          type="button"
+          class="pipeline-step"
+          [class.completed]="i < currentIndex()"
+          [class.current]="i === currentIndex()"
+          [disabled]="!canSelectStatus(step)"
+          [attr.aria-current]="i === currentIndex() ? 'step' : null"
+          (click)="changeStatus(step)"
+        >
+          <span class="step-number">
+            @if (i < currentIndex()) {
+              ✓
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+
+          <span class="step-label">
+            @switch (step) {
+              @case ('PLACED') {
+                Placed
+              }
+              @case ('CONFIRMED') {
+                Confirmed
+              }
+              @case ('IN_TRANSIT') {
+                In Transit
+              }
+              @case ('DELIVERED') {
+                Delivered
+              }
+              @case ('COMPLETED') {
+                Completed
+              }
+            }
+          </span>
+        </button>
+
+        @if (i < steps.length - 1) {
+          <span class="pipeline-connector" [class.completed]="i < currentIndex()"></span>
+        }
+      }
     }
-  </ol>
-</section>
+  </div>
+
+  @if (!driverAssigned() && currentIndex() < steps.indexOf('IN_TRANSIT')) {
+    <p class="pipeline-hint">Assign a driver before moving this order into transit.</p>
+  }
+</div>
