@@ -1,12 +1,12 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
-import { readImageFiles } from '../../../../shared/utils/image-files';
+import { Component, computed, effect, inject, input, OnDestroy, signal } from '@angular/core';
+import { ImageLoader } from '../../../../shared/service/image-loader';
 import { GRADES, Grade, Product, VERIFY_META } from '../../models/product.model';
-import { ProductService } from '../../services/product.service';
 
-const MAX_PHOTOS = 10;
+import { ProductService } from '../../services/product.service';
 
 @Component({
   selector: 'app-verification-panel',
+  standalone: true,
   imports: [],
   templateUrl: './verification-panel.html',
   styleUrl: './verification-panel.scss',
@@ -16,16 +16,17 @@ export class VerificationPanel {
 
   readonly product = input.required<Product>();
 
-  protected readonly steps = ['Submitted', 'Verifier assigned', 'On-site check', 'Decision'];
+  protected readonly steps = ['Submitted', 'Admin review', 'Verification check', 'Decision'];
 
   protected readonly grades = GRADES;
+
   protected readonly draftGrade = signal<Grade | null>(null);
   protected readonly draftNotes = signal<string | null>(null);
   protected readonly draftQty = signal<number | null>(null);
   protected readonly error = signal('');
-  protected readonly dragging = signal(false);
 
   protected readonly v = computed(() => this.product().verification);
+
   protected readonly meta = computed(() => VERIFY_META[this.v().status]);
 
   protected readonly notes = computed(() => this.draftNotes() ?? this.v().notes);
@@ -38,21 +39,29 @@ export class VerificationPanel {
     () => this.draftGrade() ?? this.product().grade ?? 'GRADE_A',
   );
 
-  protected readonly photos = computed(() =>
-    this.product().images.filter((i) => i.uploadedBy === 'inspector'),
-  );
+  /**
+   * Show the photos submitted by the farmer.
+   * No inspector photos are required.
+   */
+  protected readonly photos = computed(() => this.product().images);
 
-  protected readonly checked = computed(() => this.v().checklist.filter((c) => c.checked).length);
+  protected readonly checked = computed(
+    () => this.v().checklist.filter((item) => item.checked).length,
+  );
 
   protected readonly allChecked = computed(
     () => this.v().checklist.length > 0 && this.checked() === this.v().checklist.length,
   );
 
-  protected start() {
-    return this.service.startCheck(this.product().id);
+  /**
+   * Verification no longer starts an inspection.
+   * The admin reviews the product directly.
+   */
+  protected start(): void {
+    this.error.set('');
   }
 
-  protected toggle(key: string) {
+  protected toggle(key: string): void {
     this.service.toggleCheck(this.product().id, key);
   }
 
@@ -62,37 +71,11 @@ export class VerificationPanel {
 
   protected reopen() {
     this.draftNotes.set(null);
+    this.draftQty.set(null);
+    this.draftGrade.set(null);
+    this.error.set('');
+
     return this.service.reopen(this.product().id);
-  }
-
-  protected async addPhotos(files: FileList | null) {
-    const { items, error } = await readImageFiles(files, MAX_PHOTOS - this.photos().length);
-
-    this.error.set(error);
-
-    if (items.length) {
-      await this.service.addInspectorPhotos(
-        this.product().id,
-        items.map((i) => i.file),
-      );
-    }
-  }
-
-  protected onPick(e: Event) {
-    const el = e.target as HTMLInputElement;
-    this.addPhotos(el.files);
-    el.value = '';
-  }
-
-  protected onDrop(e: DragEvent) {
-    e.preventDefault();
-    this.dragging.set(false);
-    this.addPhotos(e.dataTransfer?.files ?? null);
-  }
-
-  protected onDrag(e: DragEvent, on: boolean) {
-    e.preventDefault();
-    this.dragging.set(on);
   }
 
   protected async decide(result: 'approved' | 'rejected') {
@@ -105,25 +88,98 @@ export class VerificationPanel {
       }
 
       if (this.photos().length === 0) {
-        this.error.set('Add at least one on-site photo before approving.');
+        this.error.set('The farmer must upload at least one product photo before approval.');
         return;
       }
 
       if (!(this.qty() > 0)) {
-        this.error.set('Enter the quantity you counted. It must be above 0.');
+        this.error.set('Enter the quantity you verified. It must be above 0.');
         return;
       }
     } else if (!notes) {
-      this.error.set('Add a note explaining why this product failed verification.');
+      this.error.set('Add a note explaining why this product is being rejected.');
       return;
     }
 
     this.error.set('');
 
-    await this.service.decide(this.product().id, result, {
+    const success = await this.service.decide(this.product().id, result, {
       notes,
       qty: Math.max(0, this.qty()),
       grade: this.grade(),
     });
+
+    if (!success) {
+      this.error.set(this.service.error() ?? 'Could not save the verification decision.');
+    }
+  }
+  protected readonly loadedPhotos = signal<Record<string, string>>({});
+
+  private readonly imageLoader = inject(ImageLoader);
+
+  private readonly currentPhotoUrls = new Map<string, string>();
+  private destroyed = false;
+
+  private readonly photosEffect = effect(() => {
+    const photos = this.photos();
+
+    // Record the current photo IDs and URLs.
+    const nextUrls = new Map(photos.map((photo) => [photo.id, photo.url.trim()]));
+
+    // Release photos that have been removed or whose URLs changed.
+    for (const [photoId, previousUrl] of this.currentPhotoUrls) {
+      if (nextUrls.get(photoId) !== previousUrl) {
+        this.imageLoader.revoke(previousUrl);
+        this.currentPhotoUrls.delete(photoId);
+
+        this.loadedPhotos.update((current) => {
+          const updated = { ...current };
+          delete updated[photoId];
+          return updated;
+        });
+      }
+    }
+
+    // Load every farmer-uploaded photo.
+    for (const photo of photos) {
+      const photoId = photo.id;
+      const url = photo.url.trim();
+
+      if (!url || this.currentPhotoUrls.get(photoId) === url) {
+        continue;
+      }
+
+      this.currentPhotoUrls.set(photoId, url);
+
+      this.imageLoader
+        .load(url)
+        .then((objectUrl) => {
+          // Ignore results for removed photos or a destroyed component.
+          if (this.destroyed || this.currentPhotoUrls.get(photoId) !== url) {
+            URL.revokeObjectURL(objectUrl);
+            return;
+          }
+
+          this.loadedPhotos.update((current) => ({
+            ...current,
+            [photoId]: objectUrl,
+          }));
+        })
+        .catch((error: unknown) => {
+          if (!this.destroyed && this.currentPhotoUrls.get(photoId) === url) {
+            console.error(`Failed to load product photo ${photoId}:`, error);
+          }
+        });
+    }
+  });
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+
+    for (const url of this.currentPhotoUrls.values()) {
+      this.imageLoader.revoke(url);
+    }
+
+    this.currentPhotoUrls.clear();
   }
 }

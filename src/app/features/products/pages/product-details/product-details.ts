@@ -102,7 +102,7 @@ export class ProductDetails implements OnDestroy {
           return;
         }
 
-        await this.service.loadEvidence(this.id);
+        // await this.service.loadEvidence(this.id);
       })
       .catch((error: unknown) => {
         console.error('Failed to load product details:', error);
