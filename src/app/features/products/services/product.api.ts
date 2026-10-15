@@ -223,31 +223,25 @@ export class ProductApi {
         size: 20,
       });
 
-      let rows: unknown[] = [];
+      console.log('Farms API response:', data);
+      console.log('Response type:', typeof data);
+      console.log('Is array:', Array.isArray(data));
 
-      if (Array.isArray(data)) {
-        rows = data;
-      } else if (data && typeof data === 'object') {
-        const result = data as Record<string, unknown>;
-
-        if (Array.isArray(result['content'])) {
-          rows = result['content'];
-        } else if (Array.isArray(result['farms'])) {
-          rows = result['farms'];
-        }
+      if (data && typeof data === 'object') {
+        console.log('Response keys:', Object.keys(data as Record<string, unknown>));
       }
 
-      return rows.filter(
-        (farm): farm is FarmDto =>
-          !!farm && typeof farm === 'object' && typeof (farm as FarmDto).id === 'number',
-      );
-    } catch (error: unknown) {
-      console.error(
-        'Could not load farms. Farm selection will be empty until the API is available.',
-        error,
-      );
-
       return [];
+    } catch (error: unknown) {
+      if (error instanceof HttpErrorResponse) {
+        console.error('HTTP status:', error.status);
+        console.error('Backend error body:', error.error);
+        console.error('Backend error details:', error.error?.error);
+      } else {
+        console.error('Unexpected error:', error);
+      }
+
+      throw error;
     }
   }
 
@@ -309,5 +303,30 @@ export class ProductApi {
       'DELETE',
       `/admin/inspections/${inspectionId}/evidence/images/${imageId}`,
     );
+  }
+
+  /**
+   * Fetches images already uploaded for a product.
+   */
+  listProductImages(productId: number): Promise<ImageDto[]> {
+    return this.call<unknown>('GET', `/products/${productId}/images`).then((response) => {
+      if (Array.isArray(response)) {
+        return response as ImageDto[];
+      }
+
+      if (response && typeof response === 'object') {
+        const result = response as Record<string, unknown>;
+
+        if (Array.isArray(result['content'])) {
+          return result['content'] as ImageDto[];
+        }
+
+        if (Array.isArray(result['images'])) {
+          return result['images'] as ImageDto[];
+        }
+      }
+
+      return [];
+    });
   }
 }

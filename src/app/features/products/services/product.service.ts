@@ -26,10 +26,23 @@ import {
   visibility,
 } from '../models/product.model';
 import { ProductApi } from './product.api';
-const API_URL = '  https://either-juvenile-progeny.ngrok-free.dev';
 
-const abs = (u: string) =>
-  /^(https?:|data:)/i.test(u) ? u : API_URL + (u.startsWith('/') ? '' : '/') + u;
+const API_URL = 'https://either-juvenile-progeny.ngrok-free.dev';
+
+const abs = (url: string | null | undefined): string => {
+  if (!url) return '';
+
+  const cleanUrl = url.trim();
+
+  // Keep absolute URLs and data URLs unchanged.
+  if (/^(https?:|data:)/i.test(cleanUrl)) {
+    return cleanUrl;
+  }
+
+  // Convert relative paths into absolute URLs.
+  return `${API_URL}${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
+};
+
 const day = (iso?: string | null) => (iso ? iso.slice(0, 10) : '');
 const STATUSES: ProductStatus[] = ['pending', 'active', 'rejected', 'suspended'];
 const COUNT_RE = /\n?\[Counted: ([\d.,]+)[^\]]*\]\s*$/;

@@ -148,4 +148,5 @@ export function stockState(p: Product): 'out' | 'low' | 'ok' {
   return p.stock <= 0 ? 'out' : p.stock <= p.lowStockAt ? 'low' : 'ok';
 }
 
-export const coverOf = (p: Product) => p.images[0]?.url ?? '';
+export const coverOf = (p: Product): string =>
+  p.images?.find((image) => image.url?.trim())?.url.trim() ?? '';
