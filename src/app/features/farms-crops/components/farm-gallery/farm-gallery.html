@@ -44,7 +44,11 @@
             (click)="index.set(i)"
             [attr.aria-label]="'Open ' + (p.caption || 'photo')"
           >
-            <img [src]="p.url" [alt]="p.caption || 'Photo'" loading="lazy" />
+            @if (imageUrl(p.url); as photoUrl) {
+              <img [src]="photoUrl" [alt]="p.caption || 'Photo'" loading="lazy" />
+            } @else {
+              <span class="photo-placeholder">Loading photo…</span>
+            }
 
             @if (p.uploadedBy) {
               <span class="tag" [attr.data-by]="p.uploadedBy">
@@ -76,7 +80,11 @@
     </button>
 
     <figure (click)="$event.stopPropagation()">
-      <img [src]="p.url" [alt]="p.caption || 'Photo'" />
+      @if (imageUrl(p.url); as photoUrl) {
+        <img [src]="photoUrl" [alt]="p.caption || 'Photo'" />
+      } @else {
+        <p class="empty">Loading photo…</p>
+      }
 
       <figcaption>
         {{ p.caption || 'Photo' }}
