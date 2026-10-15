@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
@@ -10,23 +10,30 @@ import { FarmService } from '../../services/farm.service';
 
 @Component({
   selector: 'app-farm-list',
+  standalone: true,
   imports: [RouterLink, StatCard, ConfirmModal],
   templateUrl: './farm-list.html',
   styleUrl: './farm-list.scss',
 })
-export class FarmList {
+export class FarmList implements OnInit {
   protected readonly service = inject(FarmService);
   protected readonly router = inject(Router);
 
   protected readonly search = signal('');
   protected readonly county = signal('');
   protected readonly view = signal<'table' | 'grid'>('table');
+
   protected readonly toDelete = signal<Farm | null>(null);
   protected readonly deleting = signal(false);
   protected readonly deleteError = signal<string | null>(null);
 
   protected readonly cover = coverOf;
   protected readonly farmMeta = FARM_STATUS_META;
+
+  // Load farms when the page opens.
+  ngOnInit(): void {
+    this.service.loadFarms();
+  }
 
   protected readonly stats = computed(() => {
     const farms = this.service.farms();
@@ -38,12 +45,14 @@ export class FarmList {
       inactive: farms.filter((f) => f.status.toUpperCase() === 'INACTIVE').length,
     };
   });
+
   protected readonly totalAcres = computed(() =>
     this.service
       .farms()
       .reduce((total, farm) => total + (farm.sizeAcres ?? 0), 0)
       .toFixed(1),
   );
+
   protected statusMeta(status: string) {
     const key = status.toUpperCase();
 
@@ -51,7 +60,10 @@ export class FarmList {
       return FARM_STATUS_META[key];
     }
 
-    return { label: status || 'Unknown', tone: 'gray' as const };
+    return {
+      label: status || 'Unknown',
+      tone: 'gray' as const,
+    };
   }
 
   protected readonly counties = computed(() =>
@@ -59,7 +71,7 @@ export class FarmList {
       ...new Set(
         this.service
           .farms()
-          .map((f) => f.county)
+          .map((farm) => farm.county)
           .filter((county): county is string => !!county),
       ),
     ].sort(),
@@ -68,16 +80,16 @@ export class FarmList {
   protected readonly rows = computed(() => {
     const q = this.search().toLowerCase().trim();
 
-    return this.service.farms().filter((f) => {
-      const matchesCounty = !this.county() || f.county === this.county();
+    return this.service.farms().filter((farm) => {
+      const matchesCounty = !this.county() || farm.county === this.county();
 
       const searchable = [
-        f.name,
-        f.farmerName ?? '',
-        f.county ?? '',
-        f.subCounty ?? '',
-        f.address ?? '',
-        ...f.crops.map((crop) => crop.name ?? ''),
+        farm.name,
+        farm.farmerName ?? '',
+        farm.county ?? '',
+        farm.subCounty ?? '',
+        farm.address ?? '',
+        ...farm.crops.map((crop) => crop.name ?? ''),
       ];
 
       const matchesSearch = !q || searchable.some((value) => value.toLowerCase().includes(q));
@@ -116,6 +128,7 @@ export class FarmList {
         this.deleteError.set(
           error instanceof Error ? error.message : 'Unable to delete this farm. Please try again.',
         );
+
         this.deleting.set(false);
       },
     });
