@@ -329,4 +329,32 @@ export class ProductApi {
       return [];
     });
   }
+  // test for image
+
+  // async testImageEndpoint(): Promise<void> {
+  //   const url = `${this.base}/images/45`;
+
+  //   try {
+  //     const response = await firstValueFrom(
+  //       this.http.get(url, {
+  //         headers: new HttpHeaders({
+  //           'ngrok-skip-browser-warning': 'true',
+  //         }),
+  //         responseType: 'blob',
+  //       }),
+  //     );
+
+  //     console.log('Image response type:', response.type);
+  //     console.log('Image response size:', response.size);
+
+  //     if (response.type.startsWith('image/')) {
+  //       console.log('Success: the endpoint returned image data.');
+  //     } else {
+  //       console.error('Still receiving a non-image response:', response.type);
+  //       console.log(await response.text());
+  //     }
+  //   } catch (error) {
+  //     console.error('Image endpoint test failed:', error);
+  //   }
+  // }
 }

@@ -79,11 +79,12 @@
         <p class="hint">How customers will see this product.</p>
         <div class="preview" [class.off]="!vis()?.live">
           <div class="pimg">
-            @if (cover(p)) {
-              <img [src]="cover(p)" [alt]="p.name" />
+            @if (loadedCover()) {
+              <img [src]="loadedCover()" [alt]="p.name" />
             } @else {
               <span class="ph">{{ p.name.charAt(0) }}</span>
             }
+
             @if (!vis()?.live) {
               <span class="veil"><strong>Not visible to customers</strong>{{ vis()?.reason }}</span>
             }

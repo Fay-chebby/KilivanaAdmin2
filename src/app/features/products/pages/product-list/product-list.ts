@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, effect, OnDestroy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
 import { CurrencyKshPipe } from '../../../../shared/pipes/currency-kes-pipe';
@@ -14,6 +14,7 @@ import {
   visibility,
 } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
+import { ImageLoader } from '../../../../shared/service/image-loader';
 
 type Action = { type: 'delete' | 'suspend'; product: Product };
 
@@ -23,7 +24,7 @@ type Action = { type: 'delete' | 'suspend'; product: Product };
   templateUrl: './product-list.html',
   styleUrl: './product-list.scss',
 })
-export class ProductList {
+export class ProductList implements OnDestroy {
   protected readonly service = inject(ProductService);
   protected readonly router = inject(Router);
 
@@ -45,6 +46,47 @@ export class ProductList {
   protected readonly grade = gradeLabel;
   protected readonly stock = stockState;
   protected readonly vis = visibility;
+  private readonly imageLoader = inject(ImageLoader);
+
+  protected readonly loadedCovers = signal<Record<string, string>>({});
+
+  private readonly imageUrls = new Map<string, string>();
+
+  private readonly coverEffect = effect(() => {
+    const products = this.rows();
+
+    for (const p of products) {
+      const url = this.cover(p).trim();
+
+      if (!url || this.imageUrls.has(p.id)) {
+        continue;
+      }
+
+      this.imageUrls.set(p.id, url);
+
+      this.imageLoader
+        .load(url)
+        .then((objectUrl) => {
+          this.loadedCovers.update((covers) => ({
+            ...covers,
+            [p.id]: objectUrl,
+          }));
+        })
+        .catch((error: unknown) => {
+          console.error(`Failed to load image for product ${p.id}:`, error);
+        });
+    }
+  });
+
+  ngOnDestroy(): void {
+    for (const url of this.imageUrls.values()) {
+      this.imageLoader.revoke(url);
+    }
+
+    for (const objectUrl of Object.values(this.loadedCovers())) {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
 
   protected readonly categoryNames = computed(() =>
     [...new Set(this.service.categories().map((c) => c.name))].sort(),
