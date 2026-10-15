@@ -1,7 +1,8 @@
 <section class="card">
   <header>
     <h2>Photos</h2>
-    <div class="tabs" role="tablist">
+
+    <div class="tabs" role="tablist" aria-label="Filter photos">
       <button
         type="button"
         role="tab"
@@ -11,6 +12,7 @@
       >
         All {{ images().length }}
       </button>
+
       <button
         type="button"
         role="tab"
@@ -20,6 +22,7 @@
       >
         {{ sellerLabel() }} {{ farmerCount() }}
       </button>
+
       <button
         type="button"
         role="tab"
@@ -34,14 +37,24 @@
 
   @if (visible().length) {
     <ul class="grid">
-      @for (p of visible(); track p.id; let i = $index) {
+      @for (p of visible(); track p.id ?? p.url; let i = $index) {
         <li [class.wide]="i === 0 && visible().length > 2">
-          <button type="button" (click)="index.set(i)" [attr.aria-label]="'Open ' + p.caption">
-            <img [src]="p.url" [alt]="p.caption" loading="lazy" />
-            <span class="tag" [attr.data-by]="p.uploadedBy">{{
-              p.uploadedBy === 'farmer' ? sellerLabel() : 'Inspector'
-            }}</span>
-            <span class="cap">{{ p.caption }}</span>
+          <button
+            type="button"
+            (click)="index.set(i)"
+            [attr.aria-label]="'Open ' + (p.caption || 'photo')"
+          >
+            <img [src]="p.url" [alt]="p.caption || 'Photo'" loading="lazy" />
+
+            @if (p.uploadedBy) {
+              <span class="tag" [attr.data-by]="p.uploadedBy">
+                {{ p.uploadedBy === 'farmer' ? sellerLabel() : 'Inspector' }}
+              </span>
+            }
+
+            @if (p.caption) {
+              <span class="cap">{{ p.caption }}</span>
+            }
           </button>
         </li>
       }
@@ -52,7 +65,7 @@
 </section>
 
 @if (current(); as p) {
-  <div class="lightbox" role="dialog" aria-modal="true" (click)="close()">
+  <div class="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" (click)="close()">
     <button
       type="button"
       class="nav prev"
@@ -61,18 +74,28 @@
     >
       ‹
     </button>
+
     <figure (click)="$event.stopPropagation()">
-      <img [src]="p.url" [alt]="p.caption" />
+      <img [src]="p.url" [alt]="p.caption || 'Photo'" />
+
       <figcaption>
-        {{ p.caption }} ·
-        {{
-          p.uploadedBy === 'farmer'
-            ? 'Uploaded by ' + sellerLabel().toLowerCase()
-            : 'Taken by inspector'
-        }}
-        · {{ p.uploadedAt }}
+        {{ p.caption || 'Photo' }}
+
+        @if (p.uploadedBy) {
+          ·
+          {{
+            p.uploadedBy === 'farmer'
+              ? 'Uploaded by ' + sellerLabel().toLowerCase()
+              : 'Taken by inspector'
+          }}
+        }
+
+        @if (p.uploadedAt) {
+          · {{ p.uploadedAt }}
+        }
       </figcaption>
     </figure>
+
     <button
       type="button"
       class="nav next"
@@ -81,6 +104,7 @@
     >
       ›
     </button>
+
     <button type="button" class="x" aria-label="Close" (click)="close()">×</button>
   </div>
 }

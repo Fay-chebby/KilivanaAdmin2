@@ -78,4 +78,16 @@ export class FarmDetails implements OnInit {
       },
     });
   }
+  protected statusMeta(status: string) {
+    const key = status.toUpperCase();
+
+    if (key === 'ACTIVE' || key === 'FALLOW' || key === 'INACTIVE') {
+      return FARM_STATUS_META[key];
+    }
+
+    return {
+      label: status || 'Unknown',
+      tone: 'gray' as const,
+    };
+  }
 }

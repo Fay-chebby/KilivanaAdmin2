@@ -1,5 +1,5 @@
 import { Component, HostListener, computed, input, signal } from '@angular/core';
-import { FarmImage } from '../../models/farm.model';
+import { GalleryImage } from '../../../../shared/models/gallery-image.model';
 
 type Filter = 'all' | 'farmer' | 'inspector';
 
@@ -9,7 +9,7 @@ type Filter = 'all' | 'farmer' | 'inspector';
   styleUrl: './farm-gallery.scss',
 })
 export class FarmGallery {
-  readonly images = input.required<FarmImage[]>();
+  readonly images = input.required<GalleryImage[]>();
   /** what to call the person who uploaded the non-inspector photos */
   readonly sellerLabel = input('Farmer');
 

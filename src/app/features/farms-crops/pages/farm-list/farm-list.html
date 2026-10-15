@@ -6,12 +6,15 @@
 
 <div class="head">
   <h1>Farms &amp; Crops</h1>
+
   <div class="tools">
-    <a class="btn ghost" routerLink="/farms-crops/crops">Crop overview</a>
+    <a class="btn ghost" routerLink="/farms-crops/crops"> Crop overview </a>
+
     <div class="seg" role="group" aria-label="View">
       <button type="button" [class.on]="view() === 'table'" (click)="view.set('table')">
         Table
       </button>
+
       <button type="button" [class.on]="view() === 'grid'" (click)="view.set('grid')">Grid</button>
     </div>
   </div>
@@ -25,6 +28,7 @@
     tone="green"
     delta="Farmer registrations"
   />
+
   <app-stat-card
     label="Total land"
     [value]="totalAcres() + ' acres'"
@@ -32,6 +36,7 @@
     tone="blue"
     delta="Across registered farms"
   />
+
   <app-stat-card
     label="Active farms"
     [value]="'' + stats().active"
@@ -39,6 +44,7 @@
     tone="green"
     delta="Currently active"
   />
+
   <app-stat-card
     label="Inactive farms"
     [value]="'' + stats().inactive"
@@ -64,6 +70,7 @@
     (change)="county.set($any($event.target).value)"
   >
     <option value="">All counties</option>
+
     @for (c of counties(); track c) {
       <option [value]="c">{{ c }}</option>
     }
@@ -75,6 +82,7 @@
 } @else if (service.farmsError()) {
   <div class="card empty">
     <p>{{ service.farmsError() }}</p>
+
     <button type="button" (click)="service.loadFarms()">Retry</button>
   </div>
 } @else if (rows().length === 0) {
@@ -99,6 +107,7 @@
           <th class="r">Actions</th>
         </tr>
       </thead>
+
       <tbody>
         @for (f of rows(); track f.id) {
           <tr>
@@ -107,45 +116,58 @@
                 @if (cover(f)) {
                   <img [src]="cover(f)" [alt]="f.name" />
                 } @else {
-                  <span class="ph thumb">{{ initials(f.name) }}</span>
+                  <span class="ph thumb">
+                    {{ initials(f.name) }}
+                  </span>
                 }
+
                 <span>
                   <strong>{{ f.name }}</strong>
                   <small>{{ f.images.length }} photos</small>
                 </span>
               </a>
             </td>
+
             <td>{{ f.farmerName || '—' }}</td>
+
             <td>{{ f.county || '—' }}</td>
+
             <td class="num">
               {{ f.sizeAcres == null ? '—' : f.sizeAcres + ' acres' }}
             </td>
+
             <td>
               <span class="chips">
                 @for (c of f.cropNames.slice(0, 2); track c) {
                   <span class="chip">{{ c }}</span>
                 }
+
                 @if (f.cropNames.length > 2) {
-                  <span class="chip more">+{{ f.cropNames.length - 2 }}</span>
+                  <span class="chip more"> +{{ f.cropNames.length - 2 }} </span>
                 }
+
                 @if (f.cropNames.length === 0) {
                   <span>—</span>
                 }
               </span>
             </td>
+
             <td>
-              <span class="badge" [attr.data-tone]="farmMeta[f.status.toUpperCase()].tone">
+              <span class="badge" [attr.data-tone]="statusMeta(f.status).tone">
                 {{ statusMeta(f.status).label }}
               </span>
             </td>
+
             <td class="r">
               <div class="acts">
                 <button type="button" (click)="router.navigate(['/farms-crops', f.id])">
                   View
                 </button>
+
                 <button type="button" (click)="router.navigate(['/farms-crops', f.id, 'edit'])">
                   Edit
                 </button>
+
                 <button type="button" class="del" (click)="toDelete.set(f)">Delete</button>
               </div>
             </td>
@@ -162,26 +184,34 @@
           @if (cover(f)) {
             <img [src]="cover(f)" [alt]="f.name" />
           } @else {
-            <span class="ph fill">{{ initials(f.name) }}</span>
+            <span class="ph fill">
+              {{ initials(f.name) }}
+            </span>
           }
-          <span class="badge over" [attr.data-tone]="farmMeta[f.status.toUpperCase()].tone">
+
+          <span class="badge over" [attr.data-tone]="statusMeta(f.status).tone">
             {{ statusMeta(f.status).label }}
           </span>
         </a>
 
         <div class="body">
           <h3>
-            <a [routerLink]="['/farms-crops', f.id]">{{ f.name }}</a>
+            <a [routerLink]="['/farms-crops', f.id]">
+              {{ f.name }}
+            </a>
           </h3>
+
           <p>
             {{ f.farmerName || 'Unknown farmer' }}
-            · {{ f.address || f.subCounty || f.county || 'Location unavailable' }}
+            ·
+            {{ f.address || f.subCounty || f.county || 'Location unavailable' }}
           </p>
 
           <div class="chips">
             @for (c of f.cropNames; track c) {
               <span class="chip">{{ c }}</span>
             }
+
             @if (f.cropNames.length === 0) {
               <span>No crops recorded</span>
             }
@@ -192,10 +222,12 @@
               {{ f.sizeAcres == null ? 'Size unavailable' : f.sizeAcres + ' acres' }}
               · {{ f.images.length }} photos
             </span>
+
             <span class="acts">
               <button type="button" (click)="router.navigate(['/farms-crops', f.id, 'edit'])">
                 Edit
               </button>
+
               <button type="button" class="del" (click)="toDelete.set(f)">Delete</button>
             </span>
           </div>

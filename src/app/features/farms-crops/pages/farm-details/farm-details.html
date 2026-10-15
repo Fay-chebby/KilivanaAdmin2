@@ -1,82 +1,125 @@
 @if (farm(); as f) {
   <nav class="crumbs" aria-label="Breadcrumb">
-    <a routerLink="/">AgriAdmin</a> / <a routerLink="/farms-crops">Farms &amp; Crops</a> /
-    <span>{{ f.code }}</span>
+    <a routerLink="/dashboard">Dashboard</a>
+    <span>/</span>
+    <a routerLink="/farms-crops">Farms &amp; Crops</a>
+    <span>/</span>
+    <span>{{ f.name }}</span>
   </nav>
-  <a class="back" routerLink="/farms-crops">← Back to farms</a>
+
+  <a class="back" routerLink="/farms-crops"> ← Back to farms </a>
 
   <div class="head">
     <div>
       <h1>{{ f.name }}</h1>
-      <p class="sub">{{ f.location }}, {{ f.county }} County</p>
+
+      <p class="sub">
+        {{ f.address || f.subCounty || 'Location unavailable' }},
+        {{ f.county || 'County unavailable' }}
+      </p>
+
       <div class="badges">
-        <span class="badge" [attr.data-tone]="farmMeta[f.status].tone">{{
-          farmMeta[f.status].label
-        }}</span>
-        <span class="badge" [attr.data-tone]="inspMeta[f.inspection.status].tone">{{
-          inspMeta[f.inspection.status].label
-        }}</span>
-        @if (f.certified) {
-          <span class="badge" data-tone="green">Certified</span>
-        }
+        <span class="badge" [attr.data-tone]="statusMeta(f.status).tone">
+          {{ statusMeta(f.status).label }}
+        </span>
       </div>
     </div>
+
     <div class="actions">
-      <a class="btn ghost" [routerLink]="['/farms', f.id, 'edit']">Edit</a>
+      <a class="btn ghost" [routerLink]="['/farms-crops', f.id, 'edit']"> Edit </a>
+
       <button type="button" class="btn danger" (click)="confirmDelete.set(true)">Delete</button>
     </div>
   </div>
 
   <div class="layout">
     <div class="main">
-      <app-inspection-panel [farm]="f" />
       <app-farm-gallery [images]="f.images" />
     </div>
 
     <aside class="side">
       <div class="card">
         <h2>Farm details</h2>
+
         <dl>
           <dt>Farm ID</dt>
-          <dd>{{ f.code }}</dd>
+          <dd>{{ f.id }}</dd>
+
           <dt>Size</dt>
           <dd>
-            {{ f.sizeHa }} ha <span class="soft">({{ acres(f.sizeHa) }} acres)</span>
+            @if (f.sizeAcres != null) {
+              {{ f.sizeAcres }} acres
+              <span class="soft"> ({{ acresToHectares(f.sizeAcres) }} ha) </span>
+            } @else {
+              —
+            }
           </dd>
+
           <dt>County</dt>
-          <dd>{{ f.county }}</dd>
+          <dd>{{ f.county || '—' }}</dd>
+
+          <dt>Sub-county</dt>
+          <dd>{{ f.subCounty || '—' }}</dd>
+
           <dt>Location</dt>
-          <dd>{{ f.location }}</dd>
+          <dd>{{ f.address || '—' }}</dd>
+
+          <dt>Ownership type</dt>
+          <dd>{{ f.ownershipType || '—' }}</dd>
+
           <dt>Registered</dt>
-          <dd>{{ f.registeredAt }}</dd>
+          <dd>{{ f.createdAt || '—' }}</dd>
+
+          <dt>Coordinates</dt>
+          <dd>
+            @if (f.latitude != null && f.longitude != null) {
+              {{ f.latitude }}, {{ f.longitude }}
+            } @else {
+              —
+            }
+          </dd>
         </dl>
       </div>
+
       <div class="card">
-        <h2>Owner</h2>
+        <h2>Farmer</h2>
+
         <dl>
           <dt>Name</dt>
-          <dd>{{ f.ownerName }}</dd>
-          <dt>Phone</dt>
-          <dd>
-            <a [href]="'tel:' + f.ownerPhone">{{ f.ownerPhone }}</a>
-          </dd>
+          <dd>{{ f.farmerName || '—' }}</dd>
+
+          <dt>Farmer ID</dt>
+          <dd>{{ f.farmerId ?? '—' }}</dd>
         </dl>
       </div>
+
       <div class="card">
         <h2>Crops</h2>
+
         <div class="chips">
-          @for (c of f.crops; track c) {
-            <span class="chip">{{ c }}</span>
+          @for (crop of f.cropNames; track crop) {
+            <span class="chip">{{ crop }}</span>
+          }
+
+          @if (f.cropNames.length === 0) {
+            <span>No crops recorded</span>
           }
         </div>
       </div>
+
+      @if (f.description) {
+        <div class="card">
+          <h2>Description</h2>
+          <p>{{ f.description }}</p>
+        </div>
+      }
     </aside>
   </div>
 
   @if (confirmDelete()) {
     <app-confirm-modal
       title="Delete farm?"
-      [message]="'This removes ' + f.name + ', its photos and its inspection record.'"
+      [message]="'Are you sure you want to delete ' + f.name + '?'"
       confirmLabel="Delete farm"
       [danger]="true"
       (confirmed)="delete()"
@@ -84,5 +127,8 @@
     />
   }
 } @else {
-  <p class="empty">Farm not found. <a routerLink="/farms">Back to farms</a></p>
+  <p class="empty">
+    Farm not found.
+    <a routerLink="/farms-crops">Back to farms</a>
+  </p>
 }

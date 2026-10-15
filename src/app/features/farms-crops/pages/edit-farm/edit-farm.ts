@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { FarmForm } from '../../components/farm-form/farm-form';
-import { Farm, FarmEditValue } from '../../models/farm.model';
+import { Farm, FarmEditValue, FarmPayload } from '../../models/farm.model';
 import { FarmService, apiError } from '../../services/farm.service';
 
 @Component({
@@ -42,10 +42,22 @@ export class EditFarm implements OnInit {
     });
   }
 
-  protected save(value: FarmEditValue): void {
-    if (this.saving()) {
+  protected save(payload: FarmPayload): void {
+    const current = this.farm();
+
+    if (!current || this.saving()) {
       return;
     }
+
+    const value: FarmEditValue = {
+      name: payload.name,
+      county: payload.county,
+      subCounty: current.subCounty ?? '',
+      address: payload.location,
+      sizeAcres: payload.sizeHa * 2.47105,
+      ownershipType: current.ownershipType ?? '',
+      description: payload.description ?? '',
+    };
 
     this.saving.set(true);
     this.error.set(null);
@@ -53,7 +65,7 @@ export class EditFarm implements OnInit {
     this.service.updateFarm(Number(this.id), value).subscribe({
       next: () => {
         this.saving.set(false);
-        this.router.navigate(['/farms', this.id]);
+        this.router.navigate(['/farms-crops', this.id]);
       },
       error: (err: unknown) => {
         this.error.set(apiError(err));

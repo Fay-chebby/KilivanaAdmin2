@@ -1,9 +1,15 @@
 <nav class="crumbs" aria-label="Breadcrumb">
-  <a routerLink="/">AgriAdmin</a> / <a routerLink="/farms-crops">Farms &amp; Crops</a> /
+  <a routerLink="/dashboard">Dashboard</a>
+  <span>/</span>
+  <a routerLink="/farms-crops">Farms &amp; Crops</a>
+  <span>/</span>
   <span>Edit</span>
 </nav>
-<a class="back" [routerLink]="['/farms-crops', id]">← Back to farm</a>
+
+<a class="back" [routerLink]="['/farms-crops', id]"> ← Back to farm </a>
+
 <h1>Edit Farm</h1>
+
 <div class="card form-card">
   @if (farm(); as f) {
     <app-farm-form
@@ -13,6 +19,9 @@
       (cancelled)="cancel()"
     />
   } @else {
-    <p class="empty">Farm not found. <a routerLink="/farms">Back to farms</a></p>
+    <p class="empty">
+      Farm not found.
+      <a routerLink="/farms-crops">Back to farms</a>
+    </p>
   }
 </div>

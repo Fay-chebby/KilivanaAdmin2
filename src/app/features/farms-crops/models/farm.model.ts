@@ -83,7 +83,7 @@ export interface Crop {
 export interface FarmImage {
   id: number;
   url: string;
-  isPrimary: boolean;
+  isPrimary?: boolean;
   caption?: string;
   uploadedBy?: 'farmer' | 'inspector';
   uploadedAt?: string;
