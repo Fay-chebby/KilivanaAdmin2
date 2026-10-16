@@ -1,403 +1,67 @@
-import { Injectable, OnDestroy, computed, signal } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+
+import { Observable, firstValueFrom } from 'rxjs';
 
 import {
-  CodeKind,
+  ActionResult,
+  AdminDriver,
+  ApiResponse,
   Delivery,
-  DeliveryCode,
-  DeliveryEvent,
-  Driver,
-  EventKey,
-  GeoPoint,
-  MAX_CODE_ATTEMPTS,
-  VerifyResult,
+  DriverLocation,
+  LogisticsJob,
+  OrderLite,
+  ProofOfDeliveryDto,
+  TrackingEvent,
+  toDelivery,
 } from '../models/delivery.model';
 
-/*
- * ---------------------------------------------------------------------------
- * MOCK DRIVERS
- * ---------------------------------------------------------------------------
- *
- * These are temporary drivers for the logistics UI.
- *
- * Later, replace this list with an API call from the backend.
- */
-const DRIVERS: Driver[] = [
-  {
-    id: 'd1',
-    name: 'Peter Kamau',
-    phone: '+254712345678',
-    vehicle: 'Isuzu NPR truck',
-    plate: 'KDA 123A',
-  },
-  {
-    id: 'd2',
-    name: 'Grace Wanjiru',
-    phone: '+254723456789',
-    vehicle: 'Pickup truck',
-    plate: 'KCB 456B',
-  },
-  {
-    id: 'd3',
-    name: 'Samuel Otieno',
-    phone: '+254734567890',
-    vehicle: 'Canter lorry',
-    plate: 'KDG 789C',
-  },
-  {
-    id: 'd4',
-    name: 'Brian Kiplagat',
-    phone: '+254745678901',
-    vehicle: 'Pickup truck',
-    plate: 'KDM 321D',
-  },
-];
+// ---------- API configuration ----------
+const API_BASE = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
-/*
- * ---------------------------------------------------------------------------
- * HELPERS
- * ---------------------------------------------------------------------------
- */
-
-const makeCode = (hours: number): DeliveryCode => ({
-  value: String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, '0'),
-
-  expiresAt: new Date(Date.now() + hours * 3_600_000).toISOString(),
-
-  attempts: 0,
-  used: false,
-  locked: false,
+const API_HEADERS = new HttpHeaders({
+  'ngrok-skip-browser-warning': 'true',
 });
 
-const ago = (minutes: number): string => new Date(Date.now() - minutes * 60_000).toISOString();
+const ACTIVE = new Set([
+  'accepted',
+  'en_route_to_pickup',
+  'arrived_at_pickup',
+  'picked_up',
+  'in_transit',
+  'arrived_at_destination',
+]);
+
+const POLL_MS = 10_000;
 
-const event = (key: EventKey, text: string): DeliveryEvent => ({
-  key,
-  label: text,
-  at: new Date().toISOString(),
-});
-
-const historicalEvent = (key: EventKey, label: string, minutesAgo: number): DeliveryEvent => ({
-  key,
-  label,
-  at: ago(minutesAgo),
-});
-
-const lerp = (a: GeoPoint, b: GeoPoint, t: number): GeoPoint => ({
-  lat: a.lat + (b.lat - a.lat) * t,
-  lng: a.lng + (b.lng - a.lng) * t,
-});
-
-const point = (lat: number, lng: number): GeoPoint => ({
-  lat,
-  lng,
-});
-
-const usedCode = (code: DeliveryCode): DeliveryCode => ({
-  ...code,
-  used: true,
-});
-
-const withCode = (delivery: Delivery, kind: CodeKind, code: DeliveryCode): Delivery => {
-  if (kind === 'pickup') {
-    return {
-      ...delivery,
-      pickupCode: code,
-    };
-  }
-
-  return {
-    ...delivery,
-    deliveryCode: code,
-  };
-};
-
-const fail = (message: string): VerifyResult => ({
-  ok: false,
-  message,
-});
-
-const label = (kind: CodeKind): string => (kind === 'pickup' ? 'Pickup' : 'Delivery');
-
-/*
- * ---------------------------------------------------------------------------
- * KENYAN LOCATIONS
- * ---------------------------------------------------------------------------
- */
-
-const NAKURU = point(-0.3031, 36.08);
-
-const NAIROBI = point(-1.2921, 36.8219);
-
-const MERU = point(0.047, 37.6559);
-
-const NAIVASHA = point(-0.7172, 36.431);
-
-const ELDORET = point(0.5143, 35.2698);
-
-/*
- * ---------------------------------------------------------------------------
- * DEMO DELIVERY DATA
- * ---------------------------------------------------------------------------
- */
-
-function createSeedDeliveries(): Delivery[] {
-  const base = (
-    delivery: Partial<Delivery> & Pick<Delivery, 'id' | 'orderId' | 'origin' | 'destination'>,
-  ): Delivery => ({
-    buyerName: '',
-    buyerPhone: '',
-
-    deliveryAddress: '',
-
-    farmName: '',
-    pickupAddress: '',
-
-    driver: DRIVERS[0],
-
-    status: 'assigned',
-
-    progress: 0,
-
-    position: delivery.origin,
-
-    etaTotalMin: 240,
-    etaMin: 240,
-
-    pickupCode: makeCode(24),
-    deliveryCode: makeCode(48),
-
-    events: [],
-
-    ...delivery,
-  });
-
-  return [
-    /*
-     * Delivery 1
-     */
-    base({
-      id: 'SHP-001',
-
-      orderId: 'ORD-2851',
-
-      buyerName: 'Mary Achieng',
-      buyerPhone: '+254700111222',
-
-      farmName: 'Rift Valley Fresh',
-
-      pickupAddress: 'Nakuru',
-      deliveryAddress: 'Nairobi',
-
-      origin: NAKURU,
-      destination: NAIROBI,
-
-      driver: DRIVERS[0],
-
-      status: 'in_transit',
-
-      progress: 0.5,
-
-      position: lerp(NAKURU, NAIROBI, 0.5),
-
-      etaTotalMin: 150,
-      etaMin: 75,
-
-      pickupCode: usedCode(makeCode(24)),
-
-      events: [
-        historicalEvent('assigned', 'Driver assigned', 200),
-
-        historicalEvent('picked_up', 'Picked up at farm', 75),
-
-        historicalEvent('in_transit', 'On the way', 75),
-      ],
-    }),
-
-    /*
-     * Delivery 2
-     */
-    base({
-      id: 'SHP-002',
-
-      orderId: 'ORD-2847',
-
-      buyerName: 'John Mwangi',
-      buyerPhone: '+254700333444',
-
-      farmName: 'Meru Highlands Co-op',
-
-      pickupAddress: 'Meru',
-      deliveryAddress: 'Nairobi',
-
-      origin: MERU,
-      destination: NAIROBI,
-
-      driver: DRIVERS[1],
-
-      status: 'in_transit',
-
-      progress: 0.3,
-
-      position: lerp(MERU, NAIROBI, 0.3),
-
-      etaTotalMin: 270,
-      etaMin: 189,
-
-      pickupCode: usedCode(makeCode(24)),
-
-      events: [
-        historicalEvent('assigned', 'Driver assigned', 300),
-
-        historicalEvent('picked_up', 'Picked up at farm', 81),
-
-        historicalEvent('in_transit', 'On the way', 81),
-      ],
-    }),
-
-    /*
-     * Delivery 3
-     */
-    base({
-      id: 'SHP-003',
-
-      orderId: 'ORD-2848',
-
-      buyerName: 'Fatuma Hassan',
-      buyerPhone: '+254700555666',
-
-      farmName: 'Naivasha Greens',
-
-      pickupAddress: 'Naivasha',
-      deliveryAddress: 'Nairobi',
-
-      origin: NAIVASHA,
-      destination: NAIROBI,
-
-      driver: DRIVERS[2],
-
-      status: 'delivered',
-
-      progress: 1,
-
-      position: NAIROBI,
-
-      etaTotalMin: 90,
-      etaMin: 0,
-
-      pickupCode: usedCode(makeCode(24)),
-
-      deliveryCode: usedCode(makeCode(48)),
-
-      events: [
-        historicalEvent('assigned', 'Driver assigned', 3200),
-
-        historicalEvent('picked_up', 'Picked up at farm', 2900),
-
-        historicalEvent('in_transit', 'On the way', 2900),
-
-        historicalEvent('arrived', 'Driver arrived', 2800),
-
-        historicalEvent('delivered', 'Delivered. Code confirmed by buyer', 2790),
-      ],
-
-      proof: {
-        at: ago(2790),
-        position: NAIROBI,
-        method: 'delivery_code',
-      },
-    }),
-
-    /*
-     * Delivery 4
-     *
-     * Test delivery for the pickup-code workflow.
-     */
-    base({
-      id: 'SHP-004',
-
-      orderId: 'ORD-2852',
-
-      buyerName: 'David Kiprop',
-      buyerPhone: '+254700777888',
-
-      farmName: 'Uasin Gishu Grains',
-
-      pickupAddress: 'Eldoret',
-      deliveryAddress: 'Nakuru',
-
-      origin: ELDORET,
-      destination: NAKURU,
-
-      driver: DRIVERS[3],
-
-      status: 'assigned',
-
-      progress: 0,
-
-      position: ELDORET,
-
-      etaTotalMin: 150,
-      etaMin: 150,
-
-      events: [historicalEvent('assigned', 'Driver assigned', 20)],
-    }),
-  ];
-}
-
-/*
- * ---------------------------------------------------------------------------
- * DELIVERY SERVICE
- * ---------------------------------------------------------------------------
- *
- * This is currently an in-memory logistics service.
- *
- * IMPORTANT:
- * It does NOT call OrderService.markPickedUp()
- * or OrderService.markDelivered().
- *
- * Those methods do not exist in your real OrderService.
- *
- * When the backend logistics API is ready, this service can be converted
- * to HttpClient calls without changing the UI structure too much.
- */
 @Injectable({
   providedIn: 'root',
 })
-export class DeliveryService implements OnDestroy {
-  private readonly _deliveries = signal<Delivery[]>(createSeedDeliveries());
+export class DeliveryService {
+  private readonly http = inject(HttpClient);
 
-  /*
-   * Simulated GPS timer.
-   *
-   * Every second, an in-transit delivery moves slightly
-   * closer to its destination.
-   */
-  private readonly timer = setInterval(() => this.tick(), 1_000);
+  // ---------- State ----------
+  private readonly _deliveries = signal<Delivery[]>([]);
+  private readonly _drivers = signal<AdminDriver[]>([]);
 
-  /*
-   * Public readonly delivery list.
-   */
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
+
   readonly deliveries = this._deliveries.asReadonly();
+  readonly drivers = this._drivers.asReadonly();
 
-  /*
-   * Public driver list.
-   *
-   * AssignDriverDialog can use:
-   *
-   * this.deliveryService.drivers
-   */
-  readonly drivers = DRIVERS;
+  readonly availableDrivers = computed(() =>
+    this._drivers().filter((d) => d.status !== 'suspended' && d.status !== 'offline'),
+  );
 
-  /*
-   * Delivery statistics.
-   */
   readonly stats = computed(() => {
     const list = this._deliveries();
 
-    const count = (status: Delivery['status']): number =>
-      list.filter((delivery) => delivery.status === status).length;
+    const count = (status: Delivery['status']) => list.filter((d) => d.status === status).length;
 
     return {
+      pending: count('pending'),
       assigned: count('assigned'),
       in_transit: count('in_transit'),
       arrived: count('arrived'),
@@ -406,384 +70,396 @@ export class DeliveryService implements OnDestroy {
     };
   });
 
-  /*
-   * Clean up the simulated GPS timer.
-   */
-  ngOnDestroy(): void {
-    clearInterval(this.timer);
+  // ---------- Local lookups ----------
+  get(id: string) {
+    return this._deliveries().find((d) => d.id === id);
   }
 
-  /*
-   * -------------------------------------------------------------------------
-   * LOOKUPS
-   * -------------------------------------------------------------------------
-   */
-
-  get(id: string): Delivery | undefined {
-    return this._deliveries().find((delivery) => delivery.id === id);
+  getByOrderId(orderId: string) {
+    return this._deliveries().find((d) => d.orderId === orderId);
   }
 
-  getByOrderId(orderId: string): Delivery | undefined {
-    return this._deliveries().find((delivery) => delivery.orderId === orderId);
+  // ---------- Loading ----------
+  /** Admin: load all jobs, drivers, orders, tracking events and GPS locations. */
+  async loadAll(): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      const [jobs, drivers] = await Promise.all([
+        this.unwrap<LogisticsJob[]>(
+          this.http.get<ApiResponse<LogisticsJob[]>>(`${API_BASE}/admin/logistics/jobs`, {
+            headers: API_HEADERS,
+          }),
+        ),
+
+        this.unwrap<AdminDriver[]>(
+          this.http.get<ApiResponse<AdminDriver[]>>(`${API_BASE}/admin/drivers`, {
+            headers: API_HEADERS,
+          }),
+        ).catch(() => [] as AdminDriver[]),
+      ]);
+
+      this._drivers.set(drivers);
+      await this.hydrate(jobs ?? []);
+    } catch (e) {
+      this.error.set(this.msg(e));
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  /*
-   * -------------------------------------------------------------------------
-   * DRIVER ASSIGNMENT
-   * -------------------------------------------------------------------------
-   */
+  /** Load one job for its details or tracking page. */
+  async loadOne(jobId: string): Promise<void> {
+    this.error.set(null);
 
-  reassign(id: string, driverId: string): VerifyResult {
-    const delivery = this.get(id);
+    try {
+      if (!this._drivers().length) {
+        this._drivers.set(
+          await this.unwrap<AdminDriver[]>(
+            this.http.get<ApiResponse<AdminDriver[]>>(`${API_BASE}/admin/drivers`, {
+              headers: API_HEADERS,
+            }),
+          ).catch(() => [] as AdminDriver[]),
+        );
+      }
 
-    if (!delivery) {
-      return fail('Delivery not found.');
-    }
-
-    const driver = this.drivers.find((item) => item.id === driverId);
-
-    if (!driver) {
-      return fail('Pick a valid driver first.');
-    }
-
-    /*
-     * Reassignment is allowed:
-     *
-     * - before pickup
-     * - after failed delivery
-     */
-    if (delivery.status !== 'assigned' && delivery.status !== 'failed') {
-      return fail('A driver can only be reassigned before pickup or after a failed delivery.');
-    }
-
-    this.patch(id, (current) => ({
-      ...current,
-
-      driver,
-
-      status: 'assigned',
-
-      progress: 0,
-
-      position: current.origin,
-
-      etaMin: current.etaTotalMin,
-
-      failureReason: undefined,
-
-      pickupCode: makeCode(24),
-
-      deliveryCode: makeCode(48),
-
-      events: [...current.events, event('reassigned', `Reassigned to ${driver.name}`)],
-    }));
-
-    return {
-      ok: true,
-
-      message: `Reassigned to ${driver.name}. ` + 'New pickup and delivery codes were issued.',
-    };
-  }
-
-  /*
-   * -------------------------------------------------------------------------
-   * CODE VERIFICATION
-   * -------------------------------------------------------------------------
-   *
-   * The driver enters either:
-   *
-   * - pickup code
-   * - delivery code
-   */
-  verify(id: string, kind: CodeKind, input: string): VerifyResult {
-    const delivery = this.get(id);
-
-    if (!delivery) {
-      return fail('Delivery not found.');
-    }
-
-    /*
-     * Pickup is only possible while assigned.
-     */
-    if (kind === 'pickup' && delivery.status !== 'assigned') {
-      return fail('Pickup can only be confirmed while the delivery is waiting for pickup.');
-    }
-
-    /*
-     * Delivery confirmation is only possible
-     * after the driver has arrived.
-     */
-    if (kind === 'delivery' && delivery.status !== 'arrived') {
-      return fail('The driver must arrive before delivery can be confirmed.');
-    }
-
-    const code = kind === 'pickup' ? delivery.pickupCode : delivery.deliveryCode;
-
-    /*
-     * Prevent reuse.
-     */
-    if (code.used) {
-      return fail('This code was already used.');
-    }
-
-    /*
-     * Prevent attempts after lock.
-     */
-    if (code.locked) {
-      return fail('This code is locked after too many wrong attempts. Ask an admin to reset it.');
-    }
-
-    /*
-     * Check expiry.
-     */
-    if (Date.parse(code.expiresAt) < Date.now()) {
-      return fail('This code has expired. Ask an admin to reset it.');
-    }
-
-    /*
-     * Check the actual code.
-     */
-    if (input.trim() !== code.value) {
-      const attempts = code.attempts + 1;
-
-      const locked = attempts >= MAX_CODE_ATTEMPTS;
-
-      this.patch(id, (current) => ({
-        ...withCode(current, kind, {
-          ...code,
-          attempts,
-          locked,
+      const job = await this.unwrap<LogisticsJob>(
+        this.http.get<ApiResponse<LogisticsJob>>(`${API_BASE}/logistics/jobs/${jobId}`, {
+          headers: API_HEADERS,
         }),
-
-        events: locked
-          ? [...current.events, event('code_locked', `${label(kind)} code locked`)]
-          : current.events,
-      }));
-
-      return fail(
-        locked
-          ? 'Wrong code. The code is now locked.'
-          : `Wrong code. ${MAX_CODE_ATTEMPTS - attempts} attempt(s) left.`,
       );
-    }
 
-    /*
-     * -----------------------------------------------------------------------
-     * PICKUP SUCCESS
-     * -----------------------------------------------------------------------
-     */
-    if (kind === 'pickup') {
-      this.patch(id, (current) => ({
-        ...withCode(current, 'pickup', {
-          ...code,
-          used: true,
+      await this.hydrate([job], true);
+    } catch (e) {
+      this.error.set(this.msg(e));
+    }
+  }
+
+  /** Load the logistics job associated with a buyer's order. */
+  async loadForOrder(orderId: string): Promise<void> {
+    this.error.set(null);
+
+    try {
+      const jobs = await this.unwrap<LogisticsJob[]>(
+        this.http.get<ApiResponse<LogisticsJob[]>>(`${API_BASE}/logistics/jobs/order/${orderId}`, {
+          headers: API_HEADERS,
         }),
+      );
 
-        status: 'in_transit',
+      const latest = [...(jobs ?? [])].sort((a, b) => b.id - a.id)[0];
 
-        events: [
-          ...current.events,
-
-          event('picked_up', 'Picked up at farm'),
-
-          event('in_transit', 'On the way'),
-        ],
-      }));
-
-      /*
-       * IMPORTANT:
-       *
-       * We do not call OrderService here.
-       *
-       * The real backend order status should eventually
-       * be updated through the appropriate logistics/order
-       * API endpoint.
-       */
-
-      return {
-        ok: true,
-
-        message: 'Pickup confirmed. The order is now in transit.',
-      };
+      if (latest) {
+        await this.hydrate([latest], true);
+      }
+    } catch (e) {
+      this.error.set(this.msg(e));
     }
+  }
 
-    /*
-     * -----------------------------------------------------------------------
-     * DELIVERY SUCCESS
-     * -----------------------------------------------------------------------
-     */
+  // ---------- Live tracking ----------
+  /** Refresh live jobs every 10 seconds until the page is destroyed. */
+  watchLive(destroyRef: DestroyRef): void {
+    const timer = setInterval(() => void this.refreshLive(), POLL_MS);
 
-    this.patch(id, (current) => ({
-      ...withCode(current, 'delivery', {
-        ...code,
-        used: true,
+    destroyRef.onDestroy(() => clearInterval(timer));
+  }
+
+  private async refreshLive(): Promise<void> {
+    const live = this._deliveries().filter((d) => ACTIVE.has(d.rawStatus));
+
+    if (!live.length) return;
+
+    const results = await Promise.all(
+      live.map(async (d) => {
+        const [job, fix] = await Promise.all([
+          this.unwrap<LogisticsJob>(
+            this.http.get<ApiResponse<LogisticsJob>>(`${API_BASE}/logistics/jobs/${d.jobId}`, {
+              headers: API_HEADERS,
+            }),
+          ).catch(() => null),
+
+          this.fix(d.jobId),
+        ]);
+
+        return { id: d.id, job, fix };
       }),
+    );
 
-      status: 'delivered',
+    this._deliveries.update((list) =>
+      list.map((d) => {
+        const result = results.find((r) => r.id === d.id);
 
-      progress: 1,
+        if (!result?.job) return d;
 
-      etaMin: 0,
+        const next = toDelivery(
+          result.job,
+          undefined,
+          this.driverOf(result.job.driverId),
+          [],
+          result.fix,
+        );
 
-      position: current.destination,
-
-      events: [...current.events, event('delivered', 'Delivered. Code confirmed by buyer')],
-
-      proof: {
-        at: new Date().toISOString(),
-        position: current.destination,
-        method: 'delivery_code',
-      },
-    }));
-
-    /*
-     * Again, no OrderService.markDelivered().
-     *
-     * That method does not exist in the real OrderService.
-     */
-
-    return {
-      ok: true,
-
-      message: 'Delivery confirmed. The order is now delivered.',
-    };
-  }
-
-  /*
-   * -------------------------------------------------------------------------
-   * RESET CODE
-   * -------------------------------------------------------------------------
-   */
-
-  resetCode(id: string, kind: CodeKind): VerifyResult {
-    const delivery = this.get(id);
-
-    if (!delivery) {
-      return fail('Delivery not found.');
-    }
-
-    const code = kind === 'pickup' ? delivery.pickupCode : delivery.deliveryCode;
-
-    /*
-     * A used code should never be reset.
-     */
-    if (code.used) {
-      return fail('This code was already used.');
-    }
-
-    this.patch(id, (current) => ({
-      ...withCode(current, kind, makeCode(kind === 'pickup' ? 24 : 48)),
-
-      events: [...current.events, event('code_reset', `${label(kind)} code reset by admin`)],
-    }));
-
-    return {
-      ok: true,
-
-      message: `${label(kind)} code reset.`,
-    };
-  }
-
-  /*
-   * -------------------------------------------------------------------------
-   * MARK DELIVERY AS FAILED
-   * -------------------------------------------------------------------------
-   */
-
-  markFailed(id: string, reason: string): VerifyResult {
-    const delivery = this.get(id);
-
-    if (!delivery) {
-      return fail('Delivery not found.');
-    }
-
-    if (!reason.trim()) {
-      return fail('Write the reason for the failed delivery.');
-    }
-
-    if (delivery.status === 'delivered' || delivery.status === 'failed') {
-      return fail('This delivery is already closed.');
-    }
-
-    this.patch(id, (current) => ({
-      ...current,
-
-      status: 'failed',
-
-      failureReason: reason.trim(),
-
-      events: [...current.events, event('failed', `Delivery failed: ${reason.trim()}`)],
-    }));
-
-    return {
-      ok: true,
-
-      message: 'Marked as failed. You can reassign a driver.',
-    };
-  }
-
-  /*
-   * -------------------------------------------------------------------------
-   * SIMULATED GPS
-   * -------------------------------------------------------------------------
-   *
-   * This is only for the current mock logistics UI.
-   *
-   * Real implementation will receive driver coordinates
-   * from the backend/driver application.
-   */
-  private tick(): void {
-    const list = this._deliveries();
-
-    /*
-     * Nothing to update if there are no deliveries in transit.
-     */
-    if (!list.some((delivery) => delivery.status === 'in_transit')) {
-      return;
-    }
-
-    this._deliveries.update((deliveries) =>
-      deliveries.map((delivery) => {
-        if (delivery.status !== 'in_transit') {
-          return delivery;
-        }
-
-        /*
-         * Move the driver 4% closer
-         * on every simulated tick.
-         */
-        const progress = Math.min(1, delivery.progress + 0.04);
-
-        const arrived = progress >= 1;
-
+        // Preserve enriched fields that are not fetched during polling.
         return {
-          ...delivery,
-
-          progress,
-
-          position: lerp(delivery.origin, delivery.destination, progress),
-
-          etaMin: Math.ceil((1 - progress) * delivery.etaTotalMin),
-
-          status: arrived ? 'arrived' : 'in_transit',
-
-          events: arrived
-            ? [...delivery.events, event('arrived', 'Driver arrived')]
-            : delivery.events,
+          ...next,
+          buyerName: d.buyerName,
+          buyerPhone: d.buyerPhone,
+          deliveryAddress: d.deliveryAddress,
+          farmName: d.farmName,
+          orderCode: d.orderCode,
+          events: d.events,
+          proof: d.proof ?? next.proof,
         };
       }),
     );
   }
 
-  /*
-   * -------------------------------------------------------------------------
-   * INTERNAL PATCH
-   * -------------------------------------------------------------------------
-   */
-
-  private patch(id: string, update: (delivery: Delivery) => Delivery): void {
-    this._deliveries.update((deliveries) =>
-      deliveries.map((delivery) => (delivery.id === id ? update(delivery) : delivery)),
+  // ---------- Admin actions ----------
+  assign(jobId: string, driverId: number): Promise<ActionResult> {
+    return this.act(
+      jobId,
+      this.http.put<ApiResponse<LogisticsJob>>(`${API_BASE}/logistics/jobs/${jobId}/assign`, null, {
+        headers: API_HEADERS,
+        params: { driverId },
+      }),
+      'Driver assigned.',
     );
+  }
+
+  cancel(jobId: string, reason: string): Promise<ActionResult> {
+    if (!reason.trim()) {
+      return Promise.resolve({
+        ok: false,
+        message: 'Write the reason for cancelling.',
+      });
+    }
+
+    return this.act(
+      jobId,
+      this.http.put<ApiResponse<LogisticsJob>>(
+        `${API_BASE}/logistics/jobs/${jobId}/cancel`,
+        reason.trim(),
+        {
+          headers: new HttpHeaders({
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+          }),
+        },
+      ),
+      'Delivery cancelled.',
+    );
+  }
+
+  /** Confirm pickup by updating the backend job status. */
+  confirmPickup(jobId: string): Promise<ActionResult> {
+    return this.act(
+      jobId,
+      this.http.put<ApiResponse<LogisticsJob>>(`${API_BASE}/logistics/jobs/${jobId}/status`, null, {
+        headers: API_HEADERS,
+        params: { status: 'picked_up' },
+      }),
+      'Pickup confirmed. The order is now in transit.',
+    );
+  }
+
+  /** Confirm delivery using the buyer's six-digit OTP. */
+  async confirmDelivery(jobId: string, otp: string, recipientName: string): Promise<ActionResult> {
+    if (!/^\d{6}$/.test(otp.trim())) {
+      return {
+        ok: false,
+        message: 'Enter the 6-digit code.',
+      };
+    }
+
+    try {
+      await this.unwrap(
+        this.http.post<ApiResponse<ProofOfDeliveryDto>>(
+          `${API_BASE}/logistics/jobs/${jobId}/proof-of-delivery`,
+          {
+            logisticsJobId: Number(jobId),
+            recipientName: recipientName.trim() || undefined,
+          },
+          {
+            headers: API_HEADERS,
+            params: { otp: otp.trim() },
+          },
+        ),
+      );
+
+      // Some backends close the job when proof is submitted.
+      // If not, update the status to delivered.
+      const job = await this.unwrap<LogisticsJob>(
+        this.http.get<ApiResponse<LogisticsJob>>(`${API_BASE}/logistics/jobs/${jobId}`, {
+          headers: API_HEADERS,
+        }),
+      );
+
+      if (job.status !== 'delivered') {
+        await this.unwrap(
+          this.http.put<ApiResponse<LogisticsJob>>(
+            `${API_BASE}/logistics/jobs/${jobId}/status`,
+            null,
+            {
+              headers: API_HEADERS,
+              params: { status: 'delivered' },
+            },
+          ),
+        );
+      }
+
+      await this.loadOne(jobId);
+
+      return {
+        ok: true,
+        message: 'Delivery confirmed. The order is now delivered.',
+      };
+    } catch (e) {
+      await this.loadOne(jobId);
+
+      return {
+        ok: false,
+        message: this.msg(e),
+      };
+    }
+  }
+
+  // ---------- Internal helpers ----------
+  private driverOf(id?: number | null) {
+    return id == null ? undefined : this._drivers().find((d) => d.userId === id);
+  }
+
+  /** Enrich logistics jobs with order, driver, event and location data. */
+  private async hydrate(jobs: LogisticsJob[], full = false): Promise<void> {
+    const orderIds = [...new Set(jobs.map((j) => j.orderId))];
+    const orders = new Map<number, OrderLite>();
+
+    await Promise.all(
+      orderIds.map(async (id) => {
+        const order = await this.unwrap<OrderLite>(
+          this.http.get<ApiResponse<OrderLite>>(`${API_BASE}/orders/${id}`, {
+            headers: API_HEADERS,
+          }),
+        ).catch(() => null);
+
+        if (order) {
+          orders.set(id, order);
+        }
+      }),
+    );
+
+    const rows = await Promise.all(
+      jobs.map(async (job) => {
+        const live = ACTIVE.has(job.status);
+
+        const wantEvents = full || live || job.status === 'delivered';
+
+        const [events, fix, pod] = await Promise.all([
+          wantEvents
+            ? this.unwrap<TrackingEvent[]>(
+                this.http.get<ApiResponse<TrackingEvent[]>>(
+                  `${API_BASE}/logistics/tracking-events/job/${job.id}`,
+                  { headers: API_HEADERS },
+                ),
+              ).catch(() => [] as TrackingEvent[])
+            : Promise.resolve([] as TrackingEvent[]),
+
+          live ? this.fix(job.id) : Promise.resolve(null),
+
+          job.status === 'delivered'
+            ? this.unwrap<ProofOfDeliveryDto>(
+                this.http.get<ApiResponse<ProofOfDeliveryDto>>(
+                  `${API_BASE}/logistics/proof-of-delivery/job/${job.id}`,
+                  { headers: API_HEADERS },
+                ),
+              ).catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+        return toDelivery(
+          job,
+          orders.get(job.orderId),
+          this.driverOf(job.driverId),
+          events,
+          fix,
+          pod,
+        );
+      }),
+    );
+
+    this._deliveries.update((previous) => {
+      const byId = new Map(previous.map((d) => [d.id, d]));
+
+      for (const row of rows) {
+        byId.set(row.id, row);
+      }
+
+      return full ? [...byId.values()] : rows.sort((a, b) => b.jobId - a.jobId);
+    });
+  }
+
+  /** Get the latest GPS location; 404 is possible before movement starts. */
+  private fix(jobId: number): Promise<DriverLocation | null> {
+    return this.unwrap<DriverLocation>(
+      this.http.get<ApiResponse<DriverLocation>>(`${API_BASE}/tracking/${jobId}/location`, {
+        headers: API_HEADERS,
+      }),
+    ).catch(() => null);
+  }
+
+  /** Execute an action, then reload its job. */
+  private async act(
+    jobId: string,
+    request: Observable<ApiResponse<LogisticsJob>>,
+    successMessage: string,
+  ): Promise<ActionResult> {
+    try {
+      await this.unwrap(request);
+      await this.loadOne(jobId);
+
+      return {
+        ok: true,
+        message: successMessage,
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        message: this.msg(e),
+      };
+    }
+  }
+
+  /** Extract the data from the standard API response envelope. */
+  private async unwrap<T>(request: Observable<ApiResponse<T>>): Promise<T> {
+    const response = await firstValueFrom(request);
+
+    if (!response.success) {
+      throw new Error(response.error?.details || response.message || 'Request failed');
+    }
+
+    return response.data;
+  }
+
+  /** Convert backend errors into readable messages. */
+  private msg(e: unknown): string {
+    if (e instanceof HttpErrorResponse) {
+      const body = e.error as Partial<ApiResponse<unknown>> | null;
+
+      if (e.status === 0) {
+        return 'Cannot reach the server. Check that the backend is running.';
+      }
+
+      if (e.status === 401 || e.status === 403) {
+        return 'You are not allowed to do this. Sign in again.';
+      }
+
+      if (e.status === 429) {
+        return 'Too many wrong codes. The code is locked for a while.';
+      }
+
+      return body?.error?.details || body?.message || `Request failed (${e.status}).`;
+    }
+
+    return e instanceof Error ? e.message : 'Something went wrong.';
   }
 }
