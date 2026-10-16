@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, DestroyRef, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DeliveryTimeline } from '../../components/delivery-timeline/delivery-timeline';
 import { TrackingMap } from '../../components/tracking-map/tracking-map';
@@ -17,4 +17,9 @@ export class Tracking {
   private service = inject(DeliveryService);
   readonly delivery = computed(() => this.service.get(this.id));
   readonly statusLabel = DELIVERY_STATUS_LABEL;
+
+  constructor() {
+    void this.service.loadOne(this.id);
+    this.service.watchLive(inject(DestroyRef));
+  }
 }
