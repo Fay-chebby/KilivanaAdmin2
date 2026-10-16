@@ -1,8 +1,13 @@
 @if (delivery(); as d) {
   <header class="head">
     <div>
-      <h1>{{ d.id }} <span [class]="'badge ' + d.status">{{ statusLabel[d.status] }}</span></h1>
-      <p>Order <a [routerLink]="['/orders', d.orderId]">{{ d.orderId }}</a> · {{ d.farmName }} ({{ d.pickupAddress }}) to {{ d.deliveryAddress }}</p>
+      <h1>
+        SHP-{{ d.id }} <span [class]="'badge ' + d.status">{{ statusLabel[d.status] }}</span>
+      </h1>
+      <p>
+        Order <a [routerLink]="['/orders', d.orderId]">{{ d.orderCode ?? d.orderId }}</a> ·
+        {{ d.farmName }} ({{ d.pickupAddress }}) to {{ d.deliveryAddress }}
+      </p>
     </div>
     <div class="links">
       <a [routerLink]="['/logistics', d.id, 'tracking']">Live tracking</a>
@@ -20,7 +25,13 @@
       <app-delivery-timeline [delivery]="d" />
       @if (d.proof; as p) {
         <h2 class="gap">Proof of delivery</h2>
-        <p class="muted">Confirmed with the buyer's code on {{ p.at | date: 'd MMM y, h:mm a' }} at {{ p.position.lat.toFixed(4) }}, {{ p.position.lng.toFixed(4) }}.</p>
+        <p class="muted">
+          Confirmed with the buyer's code on {{ p.at | date: 'd MMM y, h:mm a' }}
+          @if (p.recipientName) {
+            · received by {{ p.recipientName }}
+          }
+          .
+        </p>
       }
     </div>
 
@@ -29,15 +40,19 @@
         <h2>Driver</h2>
         <p class="name">{{ d.driver.name }}</p>
         <p class="muted">{{ d.driver.vehicle }} · {{ d.driver.plate }} · {{ d.driver.phone }}</p>
-        @if (canReassign(d)) {
+        @if (canAssign(d)) {
           <div class="row">
             <select [(ngModel)]="driverId" aria-label="Choose a driver">
-              <option value="">{{ d.status === 'failed' ? 'Reassign after failed delivery' : 'Reassign driver' }}</option>
-              @for (dr of drivers; track dr.id) {
-                <option [value]="dr.id" [disabled]="dr.id === d.driver.id">{{ dr.name }}, {{ dr.vehicle }}</option>
+              <option value="">Assign a driver</option>
+              @for (dr of drivers(); track dr.userId) {
+                <option [value]="dr.userId">
+                  {{ dr.fullName }}, {{ dr.vehicleType }} {{ dr.plateNumber }}
+                </option>
               }
             </select>
-            <button type="button" class="btn" (click)="reassign(d)">Reassign</button>
+            <button type="button" class="btn" [disabled]="busy()" (click)="assign(d)">
+              Assign
+            </button>
           </div>
         }
       </div>
@@ -49,37 +64,66 @@
       </div>
 
       <div class="card">
-        <h2>Delivery codes</h2>
+        <h2>Delivery code</h2>
         <dl>
-          <dt>Pickup code, held by the farm</dt>
-          <dd>{{ codeState(d.pickupCode) }}
-            <button type="button" class="link" [disabled]="d.pickupCode.used" (click)="reset(d, 'pickup')">Reset</button></dd>
-          <dt>Delivery code, held by the buyer</dt>
-          <dd>{{ codeState(d.deliveryCode) }}
-            <button type="button" class="link" [disabled]="d.deliveryCode.used" (click)="reset(d, 'delivery')">Reset</button></dd>
+          <dt>Held by the buyer (sent by SMS)</dt>
+          <dd>{{ codeState(d.deliveryCode) }}</dd>
         </dl>
-        <p class="muted">Code values are hidden from admins on purpose.</p>
+        <p class="muted">
+          The code is stored as a hash, so admins cannot see it or reset it from here.
+        </p>
       </div>
 
-      @if (canFail(d)) {
+      @if (canCancel(d)) {
         <div class="card">
-          <h2>Report a problem</h2>
+          <h2>Cancel delivery</h2>
           <div class="row">
-            <input type="text" placeholder="Why did delivery fail?" [(ngModel)]="failReason" />
-            <button type="button" class="btn danger" (click)="fail(d)">Mark failed</button>
+            <input type="text" placeholder="Reason for cancelling" [(ngModel)]="failReason" />
+            <button type="button" class="btn danger" [disabled]="busy()" (click)="cancel(d)">
+              Cancel delivery
+            </button>
           </div>
         </div>
       }
 
       <div class="card">
-        <label class="demo"><input type="checkbox" [checked]="demo()" (change)="demo.set($any($event.target).checked)" /> Demo: act as the driver app</label>
+        <label class="demo"
+          ><input
+            type="checkbox"
+            [checked]="demo()"
+            (change)="demo.set($any($event.target).checked)"
+          />
+          Demo: act as the driver app</label
+        >
         @if (demo()) {
           <div class="demo-box">
-            <p class="muted">Pickup code <strong>{{ d.pickupCode.value }}</strong> · Delivery code <strong>{{ d.deliveryCode.value }}</strong></p>
-            <input type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" [(ngModel)]="codeInput" />
             <div class="row">
-              <button type="button" class="btn" [disabled]="d.status !== 'assigned'" (click)="verify(d, 'pickup')">Confirm pickup</button>
-              <button type="button" class="btn" [disabled]="d.status !== 'arrived'" (click)="verify(d, 'delivery')">Confirm delivery</button>
+              <button
+                type="button"
+                class="btn"
+                [disabled]="busy() || !canPickup(d)"
+                (click)="pickup(d)"
+              >
+                Confirm pickup
+              </button>
+            </div>
+            <input type="text" placeholder="Recipient name (optional)" [(ngModel)]="recipient" />
+            <input
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="6-digit code from the buyer"
+              [(ngModel)]="codeInput"
+            />
+            <div class="row">
+              <button
+                type="button"
+                class="btn"
+                [disabled]="busy() || d.status !== 'arrived'"
+                (click)="deliver(d)"
+              >
+                Confirm delivery
+              </button>
             </div>
           </div>
         }
@@ -90,8 +134,11 @@
       }
     </div>
   </section>
+} @else if (loading() || !error()) {
+  <section class="card empty"><p>Loading delivery…</p></section>
 } @else {
   <section class="card empty">
+    <p class="msg" role="alert">{{ error() }}</p>
     <h1>Delivery not found</h1>
     <p>No delivery has the id {{ id }}. <a routerLink="/logistics">Back to deliveries</a></p>
   </section>

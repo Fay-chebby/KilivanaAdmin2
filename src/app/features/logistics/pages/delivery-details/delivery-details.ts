@@ -1,14 +1,13 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DeliveryTimeline } from '../../components/delivery-timeline/delivery-timeline';
 import { TrackingMap } from '../../components/tracking-map/tracking-map';
 import {
-  CodeKind,
+  ActionResult,
   DELIVERY_STATUS_LABEL,
   Delivery,
-  VerifyResult,
   codeState,
 } from '../../models/delivery.model';
 import { DeliveryService } from '../../services/delivery.service';
@@ -24,43 +23,68 @@ export class DeliveryDetails {
   private service = inject(DeliveryService);
 
   readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id') ?? '';
-  readonly drivers = this.service.drivers;
+  readonly drivers = this.service.availableDrivers;
   readonly delivery = computed(() => this.service.get(this.id));
+  readonly loading = this.service.loading;
+  readonly error = this.service.error;
   readonly statusLabel = DELIVERY_STATUS_LABEL;
   readonly codeState = codeState;
 
   demo = signal(false);
-  message = signal<VerifyResult | null>(null);
+  busy = signal(false);
+  message = signal<ActionResult | null>(null);
   codeInput = '';
+  recipient = '';
   driverId = '';
   failReason = '';
 
-  reset(d: Delivery, kind: CodeKind) {
-    this.message.set(this.service.resetCode(d.id, kind));
+  constructor() {
+    void this.service.loadOne(this.id);
+    this.service.watchLive(inject(DestroyRef));
   }
 
-  reassign(d: Delivery) {
-    this.message.set(this.service.reassign(d.id, this.driverId));
-    this.driverId = '';
+  private async run(p: Promise<ActionResult>) {
+    this.busy.set(true);
+    try {
+      const r = await p;
+      this.message.set(r);
+      return r;
+    } finally {
+      this.busy.set(false);
+    }
   }
 
-  fail(d: Delivery) {
-    const r = this.service.markFailed(d.id, this.failReason);
-    this.message.set(r);
+  async assign(d: Delivery) {
+    if (!this.driverId) {
+      this.message.set({ ok: false, message: 'Pick a driver first.' });
+      return;
+    }
+    const r = await this.run(this.service.assign(d.id, Number(this.driverId)));
+    if (r.ok) this.driverId = '';
+  }
+
+  async cancel(d: Delivery) {
+    const r = await this.run(this.service.cancel(d.id, this.failReason));
     if (r.ok) this.failReason = '';
   }
 
   /** Demo only: stands in for the driver's mobile app. */
-  verify(d: Delivery, kind: CodeKind) {
-    const r = this.service.verify(d.id, kind, this.codeInput);
-    this.message.set(r);
+  pickup(d: Delivery) {
+    return this.run(this.service.confirmPickup(d.id));
+  }
+
+  async deliver(d: Delivery) {
+    const r = await this.run(this.service.confirmDelivery(d.id, this.codeInput, this.recipient));
     if (r.ok) this.codeInput = '';
   }
 
-  canReassign(d: Delivery) {
-    return d.status === 'assigned' || d.status === 'failed';
+  canAssign(d: Delivery) {
+    return d.status === 'pending';
   }
-  canFail(d: Delivery) {
+  canCancel(d: Delivery) {
     return d.status !== 'delivered' && d.status !== 'failed';
+  }
+  canPickup(d: Delivery) {
+    return d.status === 'assigned' && d.rawStatus !== 'assigned';
   }
 }
