@@ -2,6 +2,9 @@
   <span>AgriAdmin</span><span class="sep">/</span><span class="cur">Logistics</span>
 </nav>
 <h1>Logistics &amp; Delivery</h1>
+@if (error(); as e) {
+  <p class="err" role="alert">{{ e }}</p>
+}
 
 <section class="map-card">
   <app-tracking-map
@@ -38,10 +41,10 @@
                 class="mono id"
                 [routerLink]="['/logistics', d.id]"
                 (click)="$event.stopPropagation()"
-                >{{ d.id }}</a
+                >SHP-{{ d.id }}</a
               >
             </td>
-            <td class="mono muted">{{ d.orderId }}</td>
+            <td class="mono muted">{{ d.orderCode ?? d.orderId }}</td>
             <td>{{ d.driver.name }}</td>
             <td>{{ d.pickupAddress }}</td>
             <td>{{ d.deliveryAddress }}</td>
@@ -53,7 +56,7 @@
         } @empty {
           <tr>
             <td colspan="7" class="empty">
-              No shipments yet. They appear here once a driver is assigned to a confirmed order.
+              {{ loading() ? 'Loading shipments…' : 'No shipments yet.' }}
             </td>
           </tr>
         }

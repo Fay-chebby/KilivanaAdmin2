@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TrackingMap } from '../../components/tracking-map/tracking-map';
 import { DELIVERY_STATUS_LABEL, etaDate } from '../../models/delivery.model';
@@ -16,6 +16,14 @@ export class DeliveryList {
   private service = inject(DeliveryService);
 
   readonly rows = this.service.deliveries;
+  readonly loading = this.service.loading;
+  readonly error = this.service.error;
+
+  constructor() {
+    void this.service.loadAll();
+    this.service.watchLive(inject(DestroyRef));
+  }
+
   readonly statusLabel = DELIVERY_STATUS_LABEL;
   readonly etaDate = etaDate;
   selectedId = signal<string | null>(null);
