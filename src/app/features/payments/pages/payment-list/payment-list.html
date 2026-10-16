@@ -1,5 +1,5 @@
 <nav class="crumbs" aria-label="Breadcrumb">
-  <span>AgriAdmin</span><span class="sep">/</span><span class="cur">Payments</span>
+  <span>Dashboard</span><span class="sep">/</span><span class="cur">Payments</span>
 </nav>
 <header class="head">
   <h1>Payments &amp; Finance</h1>
@@ -149,9 +149,7 @@
           <tr>
             <td colspan="10" class="empty">
               No
-              {{
-                tab() === 'refund' ? 'refunds' : tab() === 'payout' ? 'payouts' : 'transactions'
-              }}
+              {{ tab() === 'refund' ? 'refunds' : tab() === 'payout' ? 'payouts' : 'transactions' }}
               yet.
             </td>
           </tr>

@@ -1,13 +1,17 @@
 <section class="reports">
   <header class="head">
     <div>
-      <p class="crumbs">AgriAdmin / Reports</p>
+      <p class="crumbs">Dashboard/ Reports</p>
       <h1>Reports &amp; analytics</h1>
     </div>
     <div class="tools">
       <app-report-filters [range]="range()" (rangeChange)="range.set($event)" />
-      <app-export-button label="Export all" align="end" [loading]="exporting() === 'overview'"
-        (exportRequested)="onExport('overview', $event)" />
+      <app-export-button
+        label="Export all"
+        align="end"
+        [loading]="exporting() === 'overview'"
+        (exportRequested)="onExport('overview', $event)"
+      />
     </div>
   </header>
 
@@ -23,7 +27,9 @@
         </article>
       }
     } @else {
-      @for (s of skeleton; track s) { <article class="kpi skeleton"></article> }
+      @for (s of skeleton; track s) {
+        <article class="kpi skeleton"></article>
+      }
     }
   </div>
 
@@ -31,15 +37,29 @@
     <article class="panel" [class.loading]="loading()">
       <h2>Sales trend</h2>
       @if (overview(); as o) {
-        <app-report-chart [data]="o.salesTrend" type="line" valueType="currency" ariaLabel="Sales trend line chart" />
-      } @else { <div class="chart-skeleton"></div> }
+        <app-report-chart
+          [data]="o.salesTrend"
+          type="line"
+          valueType="currency"
+          ariaLabel="Sales trend line chart"
+        />
+      } @else {
+        <div class="chart-skeleton"></div>
+      }
     </article>
 
     <article class="panel" [class.loading]="loading()">
       <h2>Orders</h2>
       @if (overview(); as o) {
-        <app-report-chart [data]="o.orders" type="bar" color="#22c55e" ariaLabel="Orders bar chart" />
-      } @else { <div class="chart-skeleton"></div> }
+        <app-report-chart
+          [data]="o.orders"
+          type="bar"
+          color="#22c55e"
+          ariaLabel="Orders bar chart"
+        />
+      } @else {
+        <div class="chart-skeleton"></div>
+      }
     </article>
   </div>
 
@@ -50,8 +70,13 @@
         <h3>{{ r.title }}</h3>
         <p>{{ r.description }}</p>
         <footer>
-          <app-export-button [loading]="exporting() === r.id" (exportRequested)="onExport(r.id, $event)" />
-          @if (r.route) { <a class="view" [routerLink]="r.route">View report</a> }
+          <app-export-button
+            [loading]="exporting() === r.id"
+            (exportRequested)="onExport(r.id, $event)"
+          />
+          @if (r.route) {
+            <a class="view" [routerLink]="r.route">View report</a>
+          }
         </footer>
       </article>
     }
