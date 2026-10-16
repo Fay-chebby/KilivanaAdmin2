@@ -1,7 +1,7 @@
 @if (delivery(); as d) {
   <header class="head">
     <div>
-      <h1>Track order {{ d.orderId }}</h1>
+      <h1>Track order {{ d.orderCode ?? d.orderId }}</h1>
       <p>{{ statusText() }}</p>
     </div>
     <a [routerLink]="['/orders', d.orderId]">Back to order</a>
@@ -33,14 +33,12 @@
 
       <div class="card code">
         <h2>Your delivery code</h2>
-        @if (!codeNote()) {
-          <p class="digits" aria-label="Delivery code">{{ spacedCode() }}</p>
+        <p class="muted">{{ codeNote() }}</p>
+        @if (d.deliveryCode.used === false && !d.deliveryCode.locked) {
           <p class="muted">
-            Give this code to the driver only when you have received your order. Do not share it
+            Give the code to the driver only when you have received your order. Do not share it
             before.
           </p>
-        } @else {
-          <p class="muted">{{ codeNote() }}</p>
         }
       </div>
 

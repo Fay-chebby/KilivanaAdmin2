@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, DestroyRef, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DeliveryTimeline } from '../../../logistics/components/delivery-timeline/delivery-timeline';
 import { TrackingMap } from '../../../logistics/components/tracking-map/tracking-map';
@@ -21,6 +21,8 @@ export class OrderTracking {
 
   readonly statusText = computed(() => {
     switch (this.delivery()?.status) {
+      case 'pending':
+        return 'We are finding a driver for your order';
       case 'assigned':
         return 'Waiting for the driver to collect your order from the farm';
       case 'in_transit':
@@ -36,11 +38,10 @@ export class OrderTracking {
     }
   });
 
-  /** "123456" becomes "123 456" for readability. */
-  readonly spacedCode = computed(() => {
-    const v = this.delivery()?.deliveryCode.value ?? '';
-    return `${v.slice(0, 3)} ${v.slice(3)}`;
-  });
+  constructor() {
+    void this.service.loadForOrder(this.orderId);
+    this.service.watchLive(inject(DestroyRef));
+  }
 
   readonly codeNote = computed(() => {
     const c = this.delivery()?.deliveryCode;
@@ -48,8 +49,8 @@ export class OrderTracking {
     if (c.used) return 'This code was used to confirm delivery.';
     if (c.locked)
       return 'This code is locked after too many wrong attempts. Contact support to get a new one.';
-    if (Date.parse(c.expiresAt) < Date.now())
+    if (c.expiresAt && Date.parse(c.expiresAt) < Date.now())
       return 'This code has expired. Contact support to get a new one.';
-    return '';
+    return 'We sent a 6-digit delivery code to your phone.';
   });
 }
