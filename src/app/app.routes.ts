@@ -2,14 +2,9 @@ import { Routes } from '@angular/router';
 
 import { AdminLayout } from './layouts/admin-layout/admin-layout';
 import { Dashboard } from './features/dashboard/pages/dashboard/dashboard';
-import { DeliveryList } from './features/logistics/pages/delivery-list/delivery-list';
-import { OrderList } from './features/orders/pages/order-list/order-list';
-import { PaymentList } from './features/payments/pages/payment-list/payment-list';
-import { KycList } from './features/kyc/pages/kyc-list/kyc-list';
-import { DisputeList } from './features/disputes/pages/dispute-list/dispute-list';
+
 import { ReportsDashboard } from './features/reports/pages/reports-dashboard/reports-dashboard';
 import { UserList } from './features/users/pages/user-list/user-list';
-import { GeneralSettings } from './features/settings/pages/general-settings/general-settings';
 
 import { AuthLayout } from './layouts/auth-layout/auth-layout';
 import { Login } from './features/auth/pages/login/login';

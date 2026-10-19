@@ -145,22 +145,25 @@
                         {{ p.verificationInfo }}
                       </p>
                     }
+                    <div class="card">
+                      <h3 class="label">Photos</h3>
 
-                    @if (f.profileImages.length) {
-                      <h3 class="label sub">Photos</h3>
+                      @if (f.profileImages.length) {
+                        <div class="imgs">
+                          @for (img of f.profileImages; track img.id) {
+                            <figure>
+                              <img [src]="img.url" [alt]="f.name + ' photo'" loading="lazy" />
 
-                      <div class="imgs">
-                        @for (img of f.profileImages; track img.id) {
-                          <figure>
-                            <img [src]="img.url" [alt]="p.farmName + ' photo'" loading="lazy" />
-
-                            @if (img.isPrimary) {
-                              <figcaption>Primary</figcaption>
-                            }
-                          </figure>
-                        }
-                      </div>
-                    }
+                              @if (img.isPrimary) {
+                                <figcaption>Primary</figcaption>
+                              }
+                            </figure>
+                          }
+                        </div>
+                      } @else {
+                        <p class="note">—</p>
+                      }
+                    </div>
                   </div>
                 } @else {
                   <div class="card empty">

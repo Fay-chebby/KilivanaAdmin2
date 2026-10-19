@@ -344,24 +344,17 @@ export class FarmerService {
       map(({ farmer, profile, profileImages, documents }) => {
         const base = toFarmer(farmer);
 
+        // Prefer the gallery returned with the farmer; fall back to the separate images call
+        const gallery = (farmer.profileImages ?? [])
+          .map(toProfileImage)
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+
         return {
           ...base,
-
-          /* Farmer farms */
-
           farms: (farmer.farms ?? []).map(toFarm),
-
-          /* Farmer profile */
-
           profile,
-
-          /* KYC documents */
-
           documents,
-
-          /* Profile images */
-
-          profileImages,
+          profileImages: gallery.length ? gallery : profileImages,
         };
       }),
     );

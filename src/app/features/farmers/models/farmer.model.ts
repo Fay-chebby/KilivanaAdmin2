@@ -93,6 +93,9 @@ export interface ApiFarmer {
   createdAt: string;
 
   farms?: ApiFarm[];
+
+  /** Returned by GET /admin/farmers/{id} since the backend update */
+  profileImages?: ApiFarmerImage[] | null;
 }
 
 /* =========================================================
