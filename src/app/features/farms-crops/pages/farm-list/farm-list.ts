@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, effect, inject, signal } from '@angular/core';
+
 import { Router, RouterLink } from '@angular/router';
 
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
@@ -7,6 +8,7 @@ import { ConfirmModal } from '../../../inspectors/components/confirm-modal/confi
 import { FARM_STATUS_META, Farm, coverOf } from '../../models/farm.model';
 
 import { FarmService } from '../../services/farm.service';
+import { ImageLoader } from '../../../../shared/service/image-loader';
 
 @Component({
   selector: 'app-farm-list',
@@ -15,7 +17,7 @@ import { FarmService } from '../../services/farm.service';
   templateUrl: './farm-list.html',
   styleUrl: './farm-list.scss',
 })
-export class FarmList implements OnInit {
+export class FarmList implements OnInit, OnDestroy {
   protected readonly service = inject(FarmService);
   protected readonly router = inject(Router);
 
@@ -29,6 +31,116 @@ export class FarmList implements OnInit {
 
   protected readonly cover = coverOf;
   protected readonly farmMeta = FARM_STATUS_META;
+
+  private readonly imageLoader = inject(ImageLoader);
+
+  private readonly backendOrigin = 'https://either-juvenile-progeny.ngrok-free.dev';
+
+  private readonly loadedCoverUrls = new Map<number, string>();
+  private readonly pendingCoverUrls = new Set<string>();
+
+  protected readonly loadedCovers = signal<Record<string, string>>({});
+
+  private destroyed = false;
+
+  private resolveImageUrl(value: string | null | undefined): string {
+    const url = (value ?? '').trim();
+
+    if (!url) return '';
+
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+
+    if (url.startsWith('/api/v1/')) {
+      return `${this.backendOrigin}${url}`;
+    }
+
+    if (url === '/api/v1') {
+      return `${this.backendOrigin}/api/v1`;
+    }
+
+    if (url.startsWith('/')) {
+      return `${this.backendOrigin}/api/v1${url}`;
+    }
+
+    if (url.startsWith('api/v1/')) {
+      return `${this.backendOrigin}/${url}`;
+    }
+
+    return `${this.backendOrigin}/api/v1/${url}`;
+  }
+
+  protected coverUrl(farm: Farm): string {
+    return this.loadedCovers()[String(farm.id)] ?? '';
+  }
+
+  private readonly coverEffect = effect(() => {
+    const farms = this.service.farms();
+
+    for (const farm of farms) {
+      const id = Number(farm.id);
+      const source = this.resolveImageUrl(this.cover(farm));
+
+      if (!source || this.loadedCoverUrls.get(id) === source) {
+        continue;
+      }
+
+      const previous = this.loadedCoverUrls.get(id);
+
+      if (previous) {
+        this.imageLoader.revoke(previous);
+        this.loadedCoverUrls.delete(id);
+
+        this.loadedCovers.update((current) => {
+          const next = { ...current };
+          delete next[String(id)];
+          return next;
+        });
+      }
+
+      if (this.pendingCoverUrls.has(source)) {
+        continue;
+      }
+
+      this.pendingCoverUrls.add(source);
+      this.loadedCoverUrls.set(id, source);
+
+      this.imageLoader
+        .load(source)
+        .then((objectUrl) => {
+          if (this.destroyed || this.loadedCoverUrls.get(id) !== source) {
+            URL.revokeObjectURL(objectUrl);
+            return;
+          }
+
+          this.loadedCovers.update((current) => ({
+            ...current,
+            [String(id)]: objectUrl,
+          }));
+        })
+        .catch((error: unknown) => {
+          if (!this.destroyed) {
+            console.error(`Failed to load cover photo for farm ${farm.id}:`, source, error);
+          }
+        })
+        .finally(() => {
+          this.pendingCoverUrls.delete(source);
+        });
+    }
+  });
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+
+    for (const source of this.loadedCoverUrls.values()) {
+      this.imageLoader.revoke(source);
+    }
+
+    this.loadedCoverUrls.clear();
+    this.pendingCoverUrls.clear();
+    this.loadedCovers.set({});
+  }
 
   // Load farms when the page opens.
   ngOnInit(): void {

@@ -113,8 +113,8 @@
           <tr>
             <td>
               <a class="farm" [routerLink]="['/farms-crops', f.id]">
-                @if (cover(f)) {
-                  <img [src]="cover(f)" [alt]="f.name" />
+                @if (coverUrl(f); as photoUrl) {
+                  <img [src]="photoUrl" [alt]="f.name" />
                 } @else {
                   <span class="ph thumb">
                     {{ initials(f.name) }}
@@ -181,8 +181,8 @@
     @for (f of rows(); track f.id) {
       <article class="farm-card">
         <a class="cover" [routerLink]="['/farms-crops', f.id]" [attr.aria-label]="'Open ' + f.name">
-          @if (cover(f)) {
-            <img [src]="cover(f)" [alt]="f.name" />
+          @if (coverUrl(f); as photoUrl) {
+            <img [src]="photoUrl" [alt]="f.name" />
           } @else {
             <span class="ph fill">
               {{ initials(f.name) }}
