@@ -26,45 +26,97 @@ export class FarmGallery implements OnDestroy {
 
   private readonly imageLoader = inject(ImageLoader);
 
+  private readonly backendOrigin = 'https://either-juvenile-progeny.ngrok-free.dev';
+
+  private readonly apiBaseUrl = `${this.backendOrigin}/api/v1`;
+
   protected readonly filter = signal<Filter>('all');
   protected readonly index = signal<number | null>(null);
-
-  // Maps each original image URL to its loaded blob URL.
   protected readonly loadedImages = signal<Record<string, string>>({});
 
   private readonly loading = new Set<string>();
+  private readonly objectUrls = new Map<string, string>();
   private destroyed = false;
+
+  /**
+   * Convert relative image paths to backend URLs.
+   */
+  private resolveImageUrl(value: string | null | undefined): string {
+    const url = (value ?? '').trim();
+
+    if (!url) {
+      return '';
+    }
+
+    // Keep absolute URLs unchanged.
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+
+    // Image endpoint already includes /api/v1.
+    if (url.startsWith('/api/v1/')) {
+      return `${this.backendOrigin}${url}`;
+    }
+
+    if (url === '/api/v1') {
+      return this.apiBaseUrl;
+    }
+
+    // Other root-relative paths are treated as API paths.
+    if (url.startsWith('/')) {
+      return `${this.apiBaseUrl}${url}`;
+    }
+
+    if (url.startsWith('api/v1/')) {
+      return `${this.backendOrigin}/${url}`;
+    }
+
+    return `${this.apiBaseUrl}/${url}`;
+  }
 
   private readonly imageEffect = effect(() => {
     const images = this.images();
 
     for (const image of images) {
-      const source = image.url?.trim();
+      const originalUrl = (image.url ?? '').trim();
+      const source = this.resolveImageUrl(originalUrl);
 
-      if (!source || this.loadedImages()[source] || this.loading.has(source)) {
+      if (!source || this.loadedImages()[originalUrl] || this.loading.has(originalUrl)) {
         continue;
       }
 
-      this.loading.add(source);
+      this.loading.add(originalUrl);
 
       this.imageLoader
         .load(source)
         .then((objectUrl) => {
-          this.loading.delete(source);
+          this.loading.delete(originalUrl);
 
           if (this.destroyed) {
             URL.revokeObjectURL(objectUrl);
             return;
           }
 
+          // If the same source was loaded again, release the previous URL.
+          const previous = this.objectUrls.get(originalUrl);
+
+          if (previous) {
+            URL.revokeObjectURL(previous);
+          }
+
+          this.objectUrls.set(originalUrl, objectUrl);
+
           this.loadedImages.update((current) => ({
             ...current,
-            [source]: objectUrl,
+            [originalUrl]: objectUrl,
           }));
         })
         .catch((error: unknown) => {
-          this.loading.delete(source);
-          console.error('Failed to load gallery image:', source, error);
+          this.loading.delete(originalUrl);
+
+          if (!this.destroyed) {
+            console.error('Failed to load farm gallery image:', source, error);
+          }
         });
     }
   });
@@ -120,10 +172,12 @@ export class FarmGallery implements OnDestroy {
   ngOnDestroy(): void {
     this.destroyed = true;
 
-    for (const objectUrl of Object.values(this.loadedImages())) {
+    for (const objectUrl of this.objectUrls.values()) {
       URL.revokeObjectURL(objectUrl);
     }
 
+    this.objectUrls.clear();
+    this.loading.clear();
     this.loadedImages.set({});
   }
 }
