@@ -1,6 +1,6 @@
 export type FarmerStatus = 'verified' | 'pending' | 'suspended' | 'rejected' | 'inactive';
 
-export type FarmerAction = 'approve' | 'reject' | 'suspend' | 'reinstate';
+export type FarmerAction = 'approve' | 'reject' | 'suspend' | 'reinstate' | 'delete';
 
 export type Tone = 'green' | 'amber' | 'red' | 'blue' | 'gray';
 

@@ -36,6 +36,13 @@ const CONFIG: Record<
     needsReason: false,
     placeholder: '',
   },
+  delete: {
+    title: 'Delete Farmer',
+    confirm: 'Confirm Deletion',
+    danger: true,
+    needsReason: false,
+    placeholder: '',
+  },
 };
 
 @Component({

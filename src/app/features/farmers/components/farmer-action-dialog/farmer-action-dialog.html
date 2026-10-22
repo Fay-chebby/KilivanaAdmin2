@@ -59,6 +59,13 @@
             and fulfil orders.
           </p>
         }
+        @case ('delete') {
+          <p class="error">
+            Are you sure you want to permanently delete
+            <strong>{{ farmer().name }}</strong
+            >? This action cannot be undone.
+          </p>
+        }
         @default {
           <label for="reason"
             >{{ action() === 'reject' ? 'Rejection reason' : 'Suspension reason' }}

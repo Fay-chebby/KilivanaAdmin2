@@ -180,6 +180,14 @@
                       </button>
                     }
                   }
+                  <button
+                    type="button"
+                    class="btn sm reject"
+                    (click)="ask('delete', f, $event)"
+                    [attr.aria-label]="'Delete ' + f.name"
+                  >
+                    Delete
+                  </button>
                 </div>
               </td>
             </tr>

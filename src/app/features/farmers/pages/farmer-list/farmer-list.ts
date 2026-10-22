@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { Observable, map } from 'rxjs';
 import { Router, RouterLink } from '@angular/router';
 import { FarmerService, apiError } from '../../services/farmer.service';
 import { FarmerFilters } from '../../components/farmer-filters/farmer-filters';
@@ -154,19 +155,40 @@ export class FarmerList {
     if (!this.busy()) this.dialog.set(null);
   }
 
-  confirm(reason: string) {
-    const d = this.dialog();
-    if (!d) return;
+  confirm(reason: string): void {
+    const dialog = this.dialog();
+
+    if (!dialog) {
+      return;
+    }
+
     this.busy.set(true);
     this.actionError.set(null);
-    this.service.applyAction(d.farmer.id, d.action, reason).subscribe({
+
+    const farmerId = String(dialog.farmer.id);
+
+    const request: Observable<void> =
+      dialog.action === 'delete'
+        ? this.service.deleteFarmer(farmerId)
+        : this.service.applyAction(farmerId, dialog.action, reason).pipe(map(() => undefined));
+
+    request.subscribe({
       next: () => {
         this.busy.set(false);
         this.dialog.set(null);
+
+        if (dialog.action === 'delete') {
+          const updatedSelection = new Set(this.selected());
+          updatedSelection.delete(dialog.farmer.id);
+          this.selected.set(updatedSelection);
+
+          this.service.load();
+        }
       },
-      error: (e) => {
+
+      error: (error: unknown) => {
         this.busy.set(false);
-        this.actionError.set(apiError(e));
+        this.actionError.set(apiError(error));
       },
     });
   }

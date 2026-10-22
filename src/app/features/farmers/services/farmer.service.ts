@@ -498,92 +498,71 @@ export class FarmerService {
       );
   }
 
-  /* =======================================================
-     APPROVE / REJECT / SUSPEND / REINSTATE
-     ======================================================= */
-
   /**
-   * Farmer administration actions.
-   *
-   * Approve:
-   * POST /admin/farmers/{id}/approve
-   *
-   * Reject:
-   * POST /admin/farmers/{id}/reject
-   *
-   * Suspend:
-   * PUT /admin/farmers/{userId}/suspend
-   *
-   * Reinstate:
-   * PUT /admin/farmers/{userId}/unsuspend
+   * Approve, reject, suspend, or reinstate a farmer.
    */
   applyAction(id: string, action: FarmerAction, reason = ''): Observable<Farmer> {
-    const params = {
-      reason,
-    };
+    const params = { reason };
+    const headers = apiHeaders();
 
     let request: Observable<unknown>;
 
     switch (action) {
-      /* -----------------------------------------------
-         APPROVE
-         ----------------------------------------------- */
-
       case 'approve':
-        request = this.http.post(`${API}/admin/farmers/${id}/approve`, null, {
-          headers: apiHeaders(),
-        });
-
+        request = this.http.post(`${API}/admin/farmers/${id}/approve`, null, { headers });
         break;
-
-      /* -----------------------------------------------
-         REJECT
-         ----------------------------------------------- */
 
       case 'reject':
-        request = this.http.post(`${API}/admin/farmers/${id}/reject`, null, {
-          headers: apiHeaders(),
-
-          params,
-        });
-
+        request = this.http.post(`${API}/admin/farmers/${id}/reject`, null, { headers, params });
         break;
-
-      /* -----------------------------------------------
-         SUSPEND
-         ----------------------------------------------- */
 
       case 'suspend':
-        request = this.http.put(`${API}/admin/farmers/${id}/suspend`, null, {
-          headers: apiHeaders(),
-
-          params,
-        });
-
+        request = this.http.put(`${API}/admin/farmers/${id}/suspend`, null, { headers, params });
         break;
-
-      /* -----------------------------------------------
-         REINSTATE
-         ----------------------------------------------- */
 
       case 'reinstate':
-        request = this.http.put(`${API}/admin/farmers/${id}/unsuspend`, null, {
-          headers: apiHeaders(),
-        });
-
+        request = this.http.put(`${API}/admin/farmers/${id}/unsuspend`, null, { headers });
         break;
+
+      default:
+        return throwError(() => new Error(`Unsupported farmer action: ${action}`));
     }
 
     return request.pipe(
       switchMap(() => this.fetchFarmer(id)),
-
       map(toFarmer),
-
-      tap((farmer) => {
-        this.patchLocal(farmer);
-      }),
+      tap((farmer) => this.patchLocal(farmer)),
     );
   }
+
+  /**
+   * Permanently delete a farmer profile.
+   */
+
+  deleteFarmer(id: string | number): Observable<void> {
+    return this.http
+      .delete<void>(`${API}/admin/users/${id}`, {
+        headers: apiHeaders(),
+      })
+      .pipe(
+        tap(() => {
+          this._farmers.update((list) => list.filter((farmer) => String(farmer.id) !== String(id)));
+        }),
+      );
+  }
+
+  /**
+   * Update a farmer in the local list.
+   */
+  // private patchLocal(farmer: Farmer): void {
+  //   this._farmers.update((list) =>
+  //     list.map((item) =>
+  //       String(item.id) === String(farmer.id)
+  //         ? farmer
+  //         : item
+  //     )
+  //   );
+  // }
 
   /* =======================================================
      PROFILE BODY
