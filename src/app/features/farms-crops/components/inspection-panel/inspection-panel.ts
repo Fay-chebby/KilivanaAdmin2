@@ -1,12 +1,4 @@
-
-import {
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  signal,
-} from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 
 import { Farm, INSPECTION_META } from '../../models/farm.model';
 import { InspectionResponse } from '../../models/inspection.model';
@@ -34,12 +26,7 @@ export class InspectionPanel {
 
   readonly farm = input.required<Farm>();
 
-  protected readonly steps = [
-    'Registered',
-    'Inspector assigned',
-    'On-site review',
-    'Decision',
-  ];
+  protected readonly steps = ['Registered', 'Inspector assigned', 'On-site review', 'Decision'];
 
   protected readonly inspection = signal<InspectionResponse | null>(null);
   protected readonly evidence = signal<InspectionPhoto[]>([]);
@@ -53,9 +40,7 @@ export class InspectionPanel {
 
   // The backend inspection response does not include checklist items.
   // Keep this local until a checklist API is available.
-  protected readonly checklist = signal<
-    { key: string; label: string; checked: boolean }[]
-  >([
+  protected readonly checklist = signal<{ key: string; label: string; checked: boolean }[]>([
     { key: 'ownership', label: 'Farm ownership verified', checked: false },
     { key: 'land', label: 'Farm land and location verified', checked: false },
     { key: 'production', label: 'Production facilities inspected', checked: false },
@@ -72,21 +57,17 @@ export class InspectionPanel {
     };
   });
 
-protected readonly meta = computed(() => {
-  const status = this.insp().status;
+  protected readonly meta = computed(() => {
+    const status = this.insp().status;
 
-  if (status in INSPECTION_META) {
-    return INSPECTION_META[
-      status as keyof typeof INSPECTION_META
-    ];
-  }
+    if (status in INSPECTION_META) {
+      return INSPECTION_META[status as keyof typeof INSPECTION_META];
+    }
 
-  return INSPECTION_META['unassigned'];
-});
+    return INSPECTION_META['unassigned'];
+  });
 
-  protected readonly notes = computed(
-    () => this.draft() ?? this.insp().notes,
-  );
+  protected readonly notes = computed(() => this.draft() ?? this.insp().notes);
 
   protected readonly photos = computed(() => this.evidence());
 
@@ -95,9 +76,7 @@ protected readonly meta = computed(() => {
   );
 
   protected readonly allChecked = computed(
-    () =>
-      this.checklist().length > 0 &&
-      this.checked() === this.checklist().length,
+    () => this.checklist().length > 0 && this.checked() === this.checklist().length,
   );
 
   protected readonly overdue = computed(() => false);
@@ -109,9 +88,7 @@ protected readonly meta = computed(() => {
     });
   }
 
-  private normaliseStatus(
-    status: string | null | undefined,
-  ): string {
+  private normaliseStatus(status: string | null | undefined): string {
     const value = (status ?? 'unassigned').toLowerCase();
 
     if (value === 'in review' || value === 'in-review') {
@@ -139,9 +116,7 @@ protected readonly meta = computed(() => {
         this.loading.set(false);
 
         this.error.set(
-          err?.status === 404
-            ? 'No inspection has been created for this farm yet.'
-            : apiError(err),
+          err?.status === 404 ? 'No inspection has been created for this farm yet.' : apiError(err),
         );
       },
     });
@@ -150,9 +125,7 @@ protected readonly meta = computed(() => {
   private loadEvidence(inspectionId: number): void {
     this.service.getInspectionEvidence(inspectionId).subscribe({
       next: (response: any) => {
-        const raw = Array.isArray(response)
-          ? response
-          : response?.data ?? [];
+        const raw = Array.isArray(response) ? response : (response?.data ?? []);
 
         this.evidence.set(
           raw
@@ -161,10 +134,7 @@ protected readonly meta = computed(() => {
               url: item.url ?? item.imageUrl ?? item.evidenceUrl,
               name: item.name ?? item.fileName,
             }))
-            .filter(
-              (item: InspectionPhoto) =>
-                Number.isFinite(item.id) && !!item.url,
-            ),
+            .filter((item: InspectionPhoto) => Number.isFinite(item.id) && !!item.url),
         );
       },
       error: () => this.evidence.set([]),
@@ -174,40 +144,54 @@ protected readonly meta = computed(() => {
   protected assign(assignment: Assignment): void {
     this.error.set('');
 
+    const farmId = Number(this.farm().id);
+    const inspectorId = Number(assignment.id);
+
+    if (
+      !Number.isSafeInteger(farmId) ||
+      farmId <= 0 ||
+      !Number.isSafeInteger(inspectorId) ||
+      inspectorId <= 0
+    ) {
+      this.error.set('Invalid farm or inspector ID.');
+      return;
+    }
+
     const current = this.inspection();
 
-    // Reassignment requires a supported backend update endpoint.
     if (current) {
       this.error.set(
-        'An inspection already exists. Reassignment requires a backend update endpoint.',
+        'This farm already has an inspection. Reassigning its inspector requires a backend update endpoint.',
       );
       return;
     }
 
     this.saving.set(true);
 
-    this.service.assignInspector({
-      id: assignment.id,
-      targetType: 'FARM',
-      targetId: this.farm().id,
-      status: 'ASSIGNED',
-      notes: `Inspection due date: ${assignment.dueDate}`,
-      evidenceUrls: [],
-    } as any).subscribe({
-      next: (inspection) => {
-        this.inspection.set(inspection);
-        this.showAssign.set(false);
-        this.draft.set(null);
-        this.saving.set(false);
-        this.loadEvidence(inspection.id);
-      },
-      error: (err) => {
-        this.error.set(apiError(err));
-        this.saving.set(false);
-      },
-    });
-  }
+    this.service
+      .assignInspector({
+        inspectorId,
+        targetType: 'FARM',
+        targetId: farmId,
+        status: 'ASSIGNED',
+        notes: `Inspection due date: ${assignment.dueDate}`,
+      })
+      .subscribe({
+        next: (inspection) => {
+          this.inspection.set(inspection);
+          this.showAssign.set(false);
+          this.draft.set(null);
+          this.saving.set(false);
+          this.error.set('');
 
+          this.loadEvidence(inspection.id);
+        },
+        error: (err: unknown) => {
+          this.error.set(apiError(err));
+          this.saving.set(false);
+        },
+      });
+  }
   protected start(): void {
     const inspection = this.inspection();
 
@@ -218,26 +202,22 @@ protected readonly meta = computed(() => {
 
     this.saving.set(true);
 
-    this.service
-      .updateInspectionStatus(inspection.id, 'IN_REVIEW')
-      .subscribe({
-        next: (updated) => {
-          this.inspection.set(updated);
-          this.saving.set(false);
-          this.error.set('');
-        },
-        error: (err) => {
-          this.error.set(apiError(err));
-          this.saving.set(false);
-        },
-      });
+    this.service.updateInspectionStatus(inspection.id, 'IN_REVIEW').subscribe({
+      next: (updated) => {
+        this.inspection.set(updated);
+        this.saving.set(false);
+        this.error.set('');
+      },
+      error: (err) => {
+        this.error.set(apiError(err));
+        this.saving.set(false);
+      },
+    });
   }
 
   protected toggle(key: string): void {
     this.checklist.update((items) =>
-      items.map((item) =>
-        item.key === key ? { ...item, checked: !item.checked } : item,
-      ),
+      items.map((item) => (item.key === key ? { ...item, checked: !item.checked } : item)),
     );
   }
 
@@ -246,17 +226,13 @@ protected readonly meta = computed(() => {
 
     if (!inspection) return;
 
-    this.service
-      .deleteInspectionEvidence(inspection.id, id)
-      .subscribe({
-        next: () => {
-          this.evidence.update((photos) =>
-            photos.filter((photo) => photo.id !== id),
-          );
-          this.error.set('');
-        },
-        error: (err) => this.error.set(apiError(err)),
-      });
+    this.service.deleteInspectionEvidence(inspection.id, id).subscribe({
+      next: () => {
+        this.evidence.update((photos) => photos.filter((photo) => photo.id !== id));
+        this.error.set('');
+      },
+      error: (err) => this.error.set(apiError(err)),
+    });
   }
 
   protected reopen(): void {
@@ -267,12 +243,10 @@ protected readonly meta = computed(() => {
     this.draft.set(null);
     this.error.set('');
 
-    this.service
-      .updateInspectionStatus(inspection.id, 'IN_REVIEW')
-      .subscribe({
-        next: (updated) => this.inspection.set(updated),
-        error: (err) => this.error.set(apiError(err)),
-      });
+    this.service.updateInspectionStatus(inspection.id, 'IN_REVIEW').subscribe({
+      next: (updated) => this.inspection.set(updated),
+      error: (err) => this.error.set(apiError(err)),
+    });
   }
 
   protected updateNotes(value: string): void {
@@ -305,12 +279,10 @@ protected readonly meta = computed(() => {
     for (const file of selected) {
       try {
         await new Promise<void>((resolve, reject) => {
-          this.service
-            .uploadInspectionEvidence(inspection.id, file)
-            .subscribe({
-              next: () => resolve(),
-              error: (err) => reject(err),
-            });
+          this.service.uploadInspectionEvidence(inspection.id, file).subscribe({
+            next: () => resolve(),
+            error: (err) => reject(err),
+          });
         });
       } catch (err) {
         this.error.set(apiError(err));
@@ -367,22 +339,16 @@ protected readonly meta = computed(() => {
     this.saving.set(true);
     this.error.set('');
 
-    this.service
-      .submitInspectionResult(
-        inspection.id,
-        status.toUpperCase(),
-        notes,
-      )
-      .subscribe({
-        next: (updated) => {
-          this.inspection.set(updated);
-          this.draft.set(null);
-          this.saving.set(false);
-        },
-        error: (err) => {
-          this.error.set(apiError(err));
-          this.saving.set(false);
-        },
-      });
+    this.service.submitInspectionResult(inspection.id, status.toUpperCase(), notes).subscribe({
+      next: (updated) => {
+        this.inspection.set(updated);
+        this.draft.set(null);
+        this.saving.set(false);
+      },
+      error: (err) => {
+        this.error.set(apiError(err));
+        this.saving.set(false);
+      },
+    });
   }
 }

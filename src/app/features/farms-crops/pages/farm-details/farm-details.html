@@ -26,9 +26,9 @@
     </div>
 
     <div class="actions">
-      <button type="button" class="btn" (click)="showAssignInspector.set(true)">
+      <!-- <button type="button" class="btn" (click)="showAssignInspector.set(true)">
         Assign inspector
-      </button>
+      </button> -->
       <a class="btn ghost" [routerLink]="['/farms-crops', f.id, 'edit']"> Edit </a>
 
       <button type="button" class="btn danger" (click)="confirmDelete.set(true)">Delete</button>
@@ -37,8 +37,8 @@
 
   <div class="layout">
     <div class="main">
-      <app-farm-gallery [images]="f.images" />
       <app-inspection-panel [farm]="f" />
+      <app-farm-gallery [images]="f.images" />
     </div>
 
     <aside class="side">
