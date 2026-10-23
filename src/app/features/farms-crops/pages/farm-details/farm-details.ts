@@ -4,6 +4,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ConfirmModal } from '../../../inspectors/components/confirm-modal/confirm-modal';
 import { FarmGallery } from '../../components/farm-gallery/farm-gallery';
 import { InspectionPanel } from '../../components/inspection-panel/inspection-panel';
+import { AssignInspectorDialog } from '../../components/assign-inspector-dialog/assign-inspector-dialog';
+import { InspectionRequest } from '../../models/inspection.model';
 
 import { FARM_STATUS_META, INSPECTION_META, Farm } from '../../models/farm.model';
 
@@ -11,7 +13,7 @@ import { FarmService, apiError } from '../../services/farm.service';
 
 @Component({
   selector: 'app-farm-details',
-  imports: [RouterLink, ConfirmModal, FarmGallery, InspectionPanel],
+  imports: [RouterLink, ConfirmModal, FarmGallery, InspectionPanel, AssignInspectorDialog],
   templateUrl: './farm-details.html',
   styleUrl: './farm-details.scss',
 })
@@ -27,11 +29,13 @@ export class FarmDetails implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly deleting = signal(false);
   protected readonly confirmDelete = signal(false);
+  showAssignInspector = signal(false);
 
   protected readonly farmMeta = FARM_STATUS_META;
   protected readonly inspMeta = INSPECTION_META;
 
   protected readonly hasFarm = computed(() => this.farm() !== null);
+  protected readonly assigningInspector = signal(false);
 
   ngOnInit(): void {
     if (!this.id || !Number.isFinite(Number(this.id))) {
@@ -89,5 +93,51 @@ export class FarmDetails implements OnInit {
       label: status || 'Unknown',
       tone: 'gray' as const,
     };
+  }
+  protected assignInspector(event: { id: string; name: string; dueDate: string }): void {
+    const farm = this.farm();
+
+    if (!farm || this.assigningInspector()) {
+      return;
+    }
+
+    const inspectorId = Number(event.id);
+    const farmId = Number(farm.id);
+
+    if (!Number.isFinite(inspectorId) || !Number.isFinite(farmId)) {
+      this.error.set('Invalid farm or inspector ID.');
+      return;
+    }
+
+    const request: InspectionRequest = {
+      inspectorId,
+      targetType: 'FARM',
+      targetId: farmId,
+      status: 'ASSIGNED',
+    };
+
+    this.assigningInspector.set(true);
+    this.error.set(null);
+
+    this.service.assignInspector(request).subscribe({
+      next: (inspection) => {
+        this.assigningInspector.set(false);
+        this.showAssignInspector.set(false);
+
+        // Refresh the farm details so the latest inspection can be displayed.
+        this.service.getFarm(String(farmId)).subscribe({
+          next: (updatedFarm) => this.farm.set(updatedFarm),
+          error: (err: unknown) => {
+            console.error('Could not refresh farm details:', apiError(err));
+          },
+        });
+
+        console.log('Inspector assigned successfully:', inspection);
+      },
+      error: (err: unknown) => {
+        this.error.set(apiError(err));
+        this.assigningInspector.set(false);
+      },
+    });
   }
 }

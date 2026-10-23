@@ -1,10 +1,4 @@
-export type InspectionStatus =
-  | 'unassigned'
-  | 'assigned'
-  | 'in_review'
-  | 'approved'
-  | 'rejected'
-  | string;
+export type InspectionStatus = 'ASSIGNED' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export interface InspectionResponse {
   id: number;
