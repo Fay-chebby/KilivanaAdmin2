@@ -7,7 +7,7 @@
     <span>{{ f.name }}</span>
   </nav>
 
-  <a class="back" routerLink="/farms-crops"> ← Back to farms </a>
+  <a class="back" routerLink="/farms-crops">← Back to farms</a>
 
   <div class="head">
     <div>
@@ -26,9 +26,17 @@
     </div>
 
     <div class="actions">
-      <!-- <button type="button" class="btn" (click)="showAssignInspector.set(true)">
+      <!-- Assign inspector button can be enabled when needed. -->
+      <!--
+      <button
+        type="button"
+        class="btn"
+        (click)="showAssignInspector.set(true)"
+      >
         Assign inspector
-      </button> -->
+      </button>
+      -->
+
       <a class="btn ghost" [routerLink]="['/farms-crops', f.id, 'edit']"> Edit </a>
 
       <button type="button" class="btn danger" (click)="confirmDelete.set(true)">Delete</button>
@@ -36,11 +44,54 @@
   </div>
 
   <div class="layout">
+    <!-- MAIN CONTENT -->
     <div class="main">
+      <!-- Inspection panel -->
       <app-inspection-panel [farm]="f" />
+
+      <!-- Farm photos -->
       <app-farm-gallery [images]="f.images" />
+
+      <!-- Three cards in one row below the photos -->
+      <div class="info-row">
+        <!-- Farmer -->
+        <div class="card">
+          <h2>Farmer</h2>
+
+          <dl>
+            <dt>Name</dt>
+            <dd>{{ f.farmerName || '—' }}</dd>
+
+            <dt>Farmer ID</dt>
+            <dd>{{ f.farmerId ?? '—' }}</dd>
+          </dl>
+        </div>
+
+        <!-- Crops -->
+        <div class="card">
+          <h2>Crops</h2>
+
+          <div class="chips">
+            @for (crop of f.cropNames; track crop) {
+              <span class="chip">{{ crop }}</span>
+            }
+
+            @if (f.cropNames.length === 0) {
+              <span>No crops recorded</span>
+            }
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="card">
+          <h2>Description</h2>
+
+          <p>{{ f.description || 'No description available.' }}</p>
+        </div>
+      </div>
     </div>
 
+    <!-- RIGHT SIDEBAR -->
     <aside class="side">
       <div class="card">
         <h2>Farm details</h2>
@@ -84,42 +135,10 @@
           </dd>
         </dl>
       </div>
-
-      <div class="card">
-        <h2>Farmer</h2>
-
-        <dl>
-          <dt>Name</dt>
-          <dd>{{ f.farmerName || '—' }}</dd>
-
-          <dt>Farmer ID</dt>
-          <dd>{{ f.farmerId ?? '—' }}</dd>
-        </dl>
-      </div>
-
-      <div class="card">
-        <h2>Crops</h2>
-
-        <div class="chips">
-          @for (crop of f.cropNames; track crop) {
-            <span class="chip">{{ crop }}</span>
-          }
-
-          @if (f.cropNames.length === 0) {
-            <span>No crops recorded</span>
-          }
-        </div>
-      </div>
-
-      @if (f.description) {
-        <div class="card">
-          <h2>Description</h2>
-          <p>{{ f.description }}</p>
-        </div>
-      }
     </aside>
   </div>
 
+  <!-- DELETE CONFIRMATION -->
   @if (confirmDelete()) {
     <app-confirm-modal
       title="Delete farm?"

@@ -6,30 +6,37 @@ $muted: #6b766f;
   display: block;
   color: $ink;
 }
+
 h1 {
   margin: 0;
   font-size: 22px;
   letter-spacing: -0.01em;
 }
+
 h2 {
   margin: 0;
   font-size: 15px;
 }
+
 .crumbs {
   font-size: 11.5px;
   color: #8a948f;
   margin-bottom: 6px;
+
   a {
     color: $green;
     text-decoration: none;
+
     &:hover {
       text-decoration: underline;
     }
   }
+
   span {
     color: $ink;
   }
 }
+
 .back {
   display: inline-block;
   font-size: 12.5px;
@@ -37,10 +44,12 @@ h2 {
   color: $green;
   text-decoration: none;
   margin-bottom: 10px;
+
   &:hover {
     text-decoration: underline;
   }
 }
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -56,36 +65,45 @@ h2 {
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.15s;
+
   &:hover {
     background: #00692b;
   }
+
   &.ghost {
     background: #eef1ef;
     color: #22302a;
+
     &:hover {
       background: #e3e8e5;
     }
   }
+
   &.danger {
     background: #fde8e6;
     color: #b42318;
+
     &:hover {
       background: #fbd5d1;
     }
   }
+
   &.sm {
     padding: 6px 11px;
     font-size: 12px;
   }
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
+
   &:focus-visible {
     outline: 2px solid $green;
     outline-offset: 2px;
   }
 }
+
 .card {
   background: #fff;
   border-radius: 14px;
@@ -94,6 +112,7 @@ h2 {
     0 1px 2px rgba(16, 24, 20, 0.05),
     0 4px 14px rgba(16, 24, 20, 0.04);
 }
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -103,6 +122,7 @@ h2 {
   padding: 3px 9px;
   border-radius: 999px;
   white-space: nowrap;
+
   &::before {
     content: '';
     width: 6px;
@@ -110,27 +130,33 @@ h2 {
     border-radius: 50%;
     background: currentColor;
   }
+
   &[data-tone='green'] {
     background: #e6f7ed;
     color: #007a33;
   }
+
   &[data-tone='amber'] {
     background: #fff4e0;
     color: #b45309;
   }
+
   &[data-tone='red'] {
     background: #fde8e6;
     color: #b42318;
   }
+
   &[data-tone='grey'] {
     background: #eceeed;
     color: #5b6660;
   }
+
   &[data-tone='blue'] {
     background: #e8f0fe;
     color: #1d4ed8;
   }
 }
+
 .chip {
   font-size: 11px;
   padding: 3px 9px;
@@ -139,12 +165,14 @@ h2 {
   color: #1f5f3a;
   font-weight: 500;
 }
+
 .empty {
   text-align: center;
   color: $muted;
   font-size: 13px;
   padding: 28px 16px;
 }
+
 .head {
   display: flex;
   justify-content: space-between;
@@ -152,63 +180,123 @@ h2 {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 20px;
+
   .sub {
     margin: 4px 0 10px;
     color: $muted;
     font-size: 13px;
   }
 }
+
 .badges {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
+
 .actions {
   display: flex;
   gap: 8px;
 }
+
+/* Main layout: content on the left, farm details on the right */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 18px;
+  gap: 20px;
   align-items: start;
 }
-.main,
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  min-width: 0;
+}
+
 .side {
   display: grid;
   gap: 18px;
+  min-width: 0;
 }
-.side h2 {
-  margin-bottom: 8px;
+
+/* Farmer, Crops and Description in one horizontal row */
+.info-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  align-items: stretch;
 }
+
+.info-row .card {
+  min-width: 0;
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+
+.info-row h2 {
+  margin-bottom: 10px;
+}
+
+.info-row p {
+  margin: 8px 0 0;
+  color: $muted;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Definition lists */
 dl {
   margin: 0;
+
   dt {
     font-size: 11px;
     color: #8a948f;
     margin-top: 12px;
   }
+
   dd {
     margin: 2px 0 0;
     font-size: 13.5px;
+
     a {
       color: $green;
       text-decoration: none;
     }
   }
 }
+
 .soft {
   color: $muted;
   font-size: 12px;
 }
+
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
 }
+
+/* Tablet and smaller desktop screens */
 @media (max-width: 960px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .side {
+    grid-row: auto;
+  }
+}
+
+/* Narrow screens: stack the three information cards */
+@media (max-width: 700px) {
+  .info-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .actions {
+    flex-wrap: wrap;
   }
 }
