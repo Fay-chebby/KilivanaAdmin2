@@ -19,7 +19,7 @@ import {
 } from '../models/farm.model';
 
 /** Backend API base URL */
-const API = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+import { API_BASE } from '../../../core/config/api.config';
 
 /** Ngrok browser-warning bypass header */
 const NGROK_HEADERS = new HttpHeaders({
@@ -88,7 +88,7 @@ export class FarmService {
   readonly cropTypes = signal<ApiCropType[]>([]);
 
   /** Inspection API base URL */
-  private readonly inspectionUrl = `${API}/admin/inspections`;
+  private readonly inspectionUrl = `${API_BASE}/admin/inspections`;
 
   // ============================================================
   // FARMS
@@ -100,7 +100,7 @@ export class FarmService {
     this.farmsError.set(null);
 
     this.http
-      .get<ApiEnvelope<unknown>>(`${API}/admin/farms`, {
+      .get<ApiEnvelope<unknown>>(`${API_BASE}/admin/farms`, {
         ...HTTP_OPTIONS,
         params: {
           page: 0,
@@ -136,7 +136,7 @@ export class FarmService {
   /** GET /admin/farms/{id} */
   getFarm(id: string): Observable<Farm> {
     return this.http
-      .get<ApiEnvelope<ApiFarm>>(`${API}/admin/farms/${id}`, HTTP_OPTIONS)
+      .get<ApiEnvelope<ApiFarm>>(`${API_BASE}/admin/farms/${id}`, HTTP_OPTIONS)
       .pipe(map((response) => toFarm(response.data)));
   }
 
@@ -146,7 +146,7 @@ export class FarmService {
    * or returns an empty list.
    */
   regions(): Observable<string[]> {
-    return this.http.get<ApiEnvelope<string[]>>(`${API}/regions`, HTTP_OPTIONS).pipe(
+    return this.http.get<ApiEnvelope<string[]>>(`${API_BASE}/regions`, HTTP_OPTIONS).pipe(
       map((response) => (Array.isArray(response.data) ? response.data.filter(Boolean) : [])),
       map((regions) => (regions.length ? regions : KENYA_COUNTIES)),
       catchError(() => of(KENYA_COUNTIES)),
@@ -159,7 +159,7 @@ export class FarmService {
    * removes fields that must not be included in the update body.
    */
   updateFarm(id: number, value: FarmEditValue): Observable<Farm> {
-    return this.http.get<ApiEnvelope<ApiFarm>>(`${API}/admin/farms/${id}`, HTTP_OPTIONS).pipe(
+    return this.http.get<ApiEnvelope<ApiFarm>>(`${API_BASE}/admin/farms/${id}`, HTTP_OPTIONS).pipe(
       switchMap((response) => {
         const body = {
           ...response.data,
@@ -169,7 +169,11 @@ export class FarmService {
         delete body.crops;
         delete body.images;
 
-        return this.http.put<ApiEnvelope<ApiFarm>>(`${API}/admin/farms/${id}`, body, HTTP_OPTIONS);
+        return this.http.put<ApiEnvelope<ApiFarm>>(
+          `${API_BASE}/admin/farms/${id}`,
+          body,
+          HTTP_OPTIONS,
+        );
       }),
       map((response) => toFarm(response.data)),
       tap((farm) => this.patchFarm(farm)),
@@ -179,7 +183,7 @@ export class FarmService {
   /** PUT /admin/farms/{id}/status?status= */
   setFarmStatus(id: number, status: string): Observable<Farm> {
     return this.http
-      .put<ApiEnvelope<ApiFarm>>(`${API}/admin/farms/${id}/status`, null, {
+      .put<ApiEnvelope<ApiFarm>>(`${API_BASE}/admin/farms/${id}/status`, null, {
         ...HTTP_OPTIONS,
         params: { status },
       })
@@ -191,7 +195,7 @@ export class FarmService {
 
   /** DELETE /admin/farms/{id} */
   deleteFarm(id: number): Observable<unknown> {
-    return this.http.delete(`${API}/admin/farms/${id}`, HTTP_OPTIONS).pipe(
+    return this.http.delete(`${API_BASE}/admin/farms/${id}`, HTTP_OPTIONS).pipe(
       tap(() => {
         this.farms.update((list) => list.filter((farm) => farm.id !== id));
       }),
@@ -212,7 +216,7 @@ export class FarmService {
     this.cropsError.set(null);
 
     this.http
-      .get<ApiEnvelope<unknown>>(`${API}/admin/crops`, {
+      .get<ApiEnvelope<unknown>>(`${API_BASE}/admin/crops`, {
         ...HTTP_OPTIONS,
         params: {
           page: 0,
@@ -242,14 +246,14 @@ export class FarmService {
       });
 
     this.http
-      .get<ApiEnvelope<ApiCropSummary[]>>(`${API}/admin/crops/summary`, HTTP_OPTIONS)
+      .get<ApiEnvelope<ApiCropSummary[]>>(`${API_BASE}/admin/crops/summary`, HTTP_OPTIONS)
       .pipe(catchError(() => of(null)))
       .subscribe((response) => {
         this.summary.set(response?.data ?? []);
       });
 
     this.http
-      .get<ApiEnvelope<ApiCropType[]>>(`${API}/admin/crops/types`, HTTP_OPTIONS)
+      .get<ApiEnvelope<ApiCropType[]>>(`${API_BASE}/admin/crops/types`, HTTP_OPTIONS)
       .pipe(catchError(() => of(null)))
       .subscribe((response) => {
         this.cropTypes.set(response?.data ?? []);
@@ -259,7 +263,7 @@ export class FarmService {
   /** PUT /admin/crops/{id}/status?status= */
   setCropStatus(id: number, status: string): Observable<Crop> {
     return this.http
-      .put<ApiEnvelope<ApiCrop>>(`${API}/admin/crops/${id}/status`, null, {
+      .put<ApiEnvelope<ApiCrop>>(`${API_BASE}/admin/crops/${id}/status`, null, {
         ...HTTP_OPTIONS,
         params: { status },
       })
@@ -275,7 +279,7 @@ export class FarmService {
 
   /** DELETE /admin/crops/{id} */
   deleteCrop(id: number): Observable<unknown> {
-    return this.http.delete(`${API}/admin/crops/${id}`, HTTP_OPTIONS).pipe(
+    return this.http.delete(`${API_BASE}/admin/crops/${id}`, HTTP_OPTIONS).pipe(
       tap(() => {
         this.crops.update((list) => list.filter((crop) => crop.id !== id));
       }),
