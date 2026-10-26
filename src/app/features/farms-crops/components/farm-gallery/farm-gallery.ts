@@ -41,6 +41,11 @@ export class FarmGallery implements OnDestroy {
   /**
    * Convert relative image paths to backend URLs.
    */
+
+  /**
+   * Convert relative image paths to backend URLs
+   * without duplicating /api/v1.
+   */
   private resolveImageUrl(value: string | null | undefined): string {
     const url = (value ?? '').trim();
 
@@ -48,12 +53,18 @@ export class FarmGallery implements OnDestroy {
       return '';
     }
 
-    // Keep absolute URLs unchanged.
+    // Keep absolute URLs unchanged unless they contain a duplicated API prefix.
     if (/^https?:\/\//i.test(url)) {
-      return url;
+      try {
+        const parsed = new URL(url);
+        parsed.pathname = parsed.pathname.replace(/\/api\/v1\/api\/v1(?=\/|$)/g, '/api/v1');
+        return parsed.toString();
+      } catch {
+        return url;
+      }
     }
 
-    // Image endpoint already includes /api/v1.
+    // The path already starts with /api/v1.
     if (url.startsWith('/api/v1/')) {
       return `${this.backendOrigin}${url}`;
     }
@@ -62,15 +73,17 @@ export class FarmGallery implements OnDestroy {
       return this.apiBaseUrl;
     }
 
-    // Other root-relative paths are treated as API paths.
-    if (url.startsWith('/')) {
-      return `${this.apiBaseUrl}${url}`;
-    }
-
+    // The path starts with api/v1 but has no leading slash.
     if (url.startsWith('api/v1/')) {
       return `${this.backendOrigin}/${url}`;
     }
 
+    // Other root-relative paths, such as /images/44.
+    if (url.startsWith('/')) {
+      return `${this.apiBaseUrl}${url}`;
+    }
+
+    // Relative paths, such as images/44.
     return `${this.apiBaseUrl}/${url}`;
   }
 

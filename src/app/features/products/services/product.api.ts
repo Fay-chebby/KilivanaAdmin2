@@ -14,6 +14,7 @@ import {
   ProductRequestDto,
   UserDto,
 } from '../models/productsapi.model';
+import { API_BASE } from '../../../core/config/api.config';
 
 type Params = Record<string, string | number | boolean>;
 
@@ -22,8 +23,6 @@ type Params = Record<string, string | number | boolean>;
 })
 export class ProductApi {
   private readonly http = inject(HttpClient);
-
-  private readonly base = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
   /**
    * Applied to every request made through call().
@@ -49,7 +48,7 @@ export class ProductApi {
 
     try {
       const response = await firstValueFrom(
-        this.http.request<ApiEnvelope<T>>(method, `${this.base}${path}`, {
+        this.http.request<ApiEnvelope<T>>(method, `${API_BASE}${path}`, {
           body,
           params: httpParams,
           headers: this.headers,

@@ -11,7 +11,7 @@ import {
   SupplierStatus,
 } from '../models/supplier.model';
 
-const API = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+import { API_BASE } from '../../../core/config/api.config';
 
 const NGROK_HEADERS = new HttpHeaders({
   'ngrok-skip-browser-warning': 'true',
@@ -86,7 +86,7 @@ export class SupplierService {
 
     this.http
       .get<ApiEnvelope<AdminSupplierDto[] | { content: AdminSupplierDto[] }>>(
-        `${API}/admin/suppliers`,
+        `${API_BASE}/admin/suppliers`,
         { headers: NGROK_HEADERS },
       )
       .pipe(
@@ -103,7 +103,7 @@ export class SupplierService {
     if (this.regions().length) return;
 
     this.http
-      .get<ApiEnvelope<string[]>>(`${API}/regions`, {
+      .get<ApiEnvelope<string[]>>(`${API_BASE}/regions`, {
         headers: NGROK_HEADERS,
       })
       .subscribe({
@@ -116,7 +116,7 @@ export class SupplierService {
     return this.http
       .get<
         ApiEnvelope<AdminSupplierDto>
-      >(`${API}/admin/suppliers/${id}`, { headers: NGROK_HEADERS })
+      >(`${API_BASE}/admin/suppliers/${id}`, { headers: NGROK_HEADERS })
       .pipe(
         map((r) => toSupplier(r.data)),
         tap((s) => this.upsert(s)),
@@ -135,14 +135,14 @@ export class SupplierService {
     return this.http
       .post<
         ApiEnvelope<AdminSupplierDto>
-      >(`${API}/admin/suppliers`, this.body(v, true), { headers: NGROK_HEADERS })
+      >(`${API_BASE}/admin/suppliers`, this.body(v, true), { headers: NGROK_HEADERS })
       .pipe(
         map((r) => toSupplier(r.data)),
 
         switchMap((s) =>
           v.status === 'active' && s.status !== 'active'
             ? this.http
-                .put(`${API}/admin/users/${s.id}/activate`, null, { headers: NGROK_HEADERS })
+                .put(`${API_BASE}/admin/users/${s.id}/activate`, null, { headers: NGROK_HEADERS })
                 .pipe(
                   map(() => ({
                     ...s,
@@ -163,7 +163,7 @@ export class SupplierService {
     return this.http
       .put<
         ApiEnvelope<AdminSupplierDto>
-      >(`${API}/admin/suppliers/${id}`, this.body(v, false), { headers: NGROK_HEADERS })
+      >(`${API_BASE}/admin/suppliers/${id}`, this.body(v, false), { headers: NGROK_HEADERS })
       .pipe(
         map((r) => toSupplier(r.data)),
         tap((s) => {
@@ -175,7 +175,7 @@ export class SupplierService {
 
   delete$(s: Supplier): Observable<unknown> {
     return this.http
-      .delete(`${API}/admin/suppliers/${s.id}`, {
+      .delete(`${API_BASE}/admin/suppliers/${s.id}`, {
         headers: NGROK_HEADERS,
       })
       .pipe(
@@ -189,7 +189,7 @@ export class SupplierService {
 
   suspend$(s: Supplier, reason: string): Observable<unknown> {
     return this.http
-      .put(`${API}/admin/suppliers/${s.id}/suspend`, null, {
+      .put(`${API_BASE}/admin/suppliers/${s.id}/suspend`, null, {
         headers: NGROK_HEADERS,
         params: { reason },
       })
@@ -209,10 +209,12 @@ export class SupplierService {
   activate$(s: Supplier): Observable<unknown> {
     const call$ =
       s.status === 'suspended'
-        ? this.http.put(`${API}/admin/suppliers/${s.id}/unsuspend`, null, {
+        ? this.http.put(`${API_BASE}/admin/suppliers/${s.id}/unsuspend`, null, {
             headers: NGROK_HEADERS,
           })
-        : this.http.put(`${API}/admin/users/${s.id}/activate`, null, { headers: NGROK_HEADERS });
+        : this.http.put(`${API_BASE}/admin/users/${s.id}/activate`, null, {
+            headers: NGROK_HEADERS,
+          });
 
     return call$.pipe(
       tap(() => {

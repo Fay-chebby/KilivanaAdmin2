@@ -26,20 +26,44 @@ import {
 
 import { ProductApi } from './product.api';
 
-const API_URL = 'https://either-juvenile-progeny.ngrok-free.dev';
+import { API_BASE } from '../../../core/config/api.config';
 
 const abs = (url: string | null | undefined): string => {
   if (!url) return '';
 
   const cleanUrl = url.trim();
 
-  // Keep absolute URLs and data URLs unchanged.
-  if (/^(https?:|data:)/i.test(cleanUrl)) {
+  if (!cleanUrl) return '';
+
+  // Keep data URLs unchanged.
+  if (/^data:/i.test(cleanUrl)) {
     return cleanUrl;
   }
 
-  // Convert relative paths into absolute URLs.
-  return `${API_URL}${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
+  // Normalize absolute URLs that contain a duplicated API prefix.
+  if (/^https?:\/\//i.test(cleanUrl)) {
+    try {
+      const parsed = new URL(cleanUrl);
+
+      parsed.pathname = parsed.pathname.replace(/\/api\/v1\/api\/v1(?=\/|$)/g, '/api/v1');
+
+      return parsed.toString();
+    } catch {
+      return cleanUrl;
+    }
+  }
+
+  // The image path already contains the API prefix.
+  if (cleanUrl.startsWith('/api/v1/')) {
+    return `${API_BASE.replace(/\/api\/v1\/?$/, '')}${cleanUrl}`;
+  }
+
+  if (cleanUrl.startsWith('api/v1/')) {
+    return `${API_BASE.replace(/\/api\/v1\/?$/, '')}/${cleanUrl}`;
+  }
+
+  // Other relative paths use the shared API base.
+  return `${API_BASE}${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
 };
 
 const day = (iso?: string | null) => (iso ? iso.slice(0, 10) : '');

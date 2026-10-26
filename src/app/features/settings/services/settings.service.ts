@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 import { ApiResponse, AuditLogDto, AuditRow, PageDto } from '../models/settings.model';
+import { API_BASE } from '../../../core/config/api.config';
 
 interface UserLite {
   id: number;
@@ -11,7 +12,6 @@ interface UserLite {
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   private http = inject(HttpClient);
-  private api = ' https://either-juvenile-progeny.ngrok-free.dev/api/v1/admin';
 
   getAuditLog(page = 0, size = 10): Observable<{ rows: AuditRow[]; totalPages: number }> {
     const params = new HttpParams()
@@ -19,12 +19,12 @@ export class SettingsService {
       .set('size', size)
       .set('sort', 'createdAt,desc');
 
-    const logs$ = this.http.get<ApiResponse<PageDto<AuditLogDto>>>(`${this.api}/audit-logs`, {
+    const logs$ = this.http.get<ApiResponse<PageDto<AuditLogDto>>>(`${API_BASE}/audit-logs`, {
       params,
     });
 
     const users$ = this.http
-      .get<ApiResponse<UserLite[]>>(`${this.api}/users`, {
+      .get<ApiResponse<UserLite[]>>(`${API_BASE}/users`, {
         params: new HttpParams().set('page', 0).set('size', 500),
       })
       .pipe(
