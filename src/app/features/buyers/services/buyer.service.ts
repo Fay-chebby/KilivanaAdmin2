@@ -2,15 +2,14 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import { ApiResponse, Buyer, BuyerDto, BuyerStatus, BuyerType } from '../models/buyer.model';
+import { API_BASE } from '../../../core/config/api.config';
 
 @Injectable({ providedIn: 'root' })
 export class BuyerService {
   private http = inject(HttpClient);
 
-  private api = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
-
-  private buyersUrl = `${this.api}/admin/buyers`;
-  private usersUrl = `${this.api}/admin/users`;
+  private buyersUrl = `${API_BASE}/admin/buyers`;
+  private usersUrl = `${API_BASE}/admin/users`;
 
   private headers = new HttpHeaders({
     'ngrok-skip-browser-warning': 'true',

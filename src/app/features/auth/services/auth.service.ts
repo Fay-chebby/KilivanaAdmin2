@@ -3,10 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
 import { ApiResponse, AuthData, AuthUser, LoginRequest } from '../models/auth.model';
+import { API_BASE } from '../../../core/config/api.config';
 
 const STORAGE_KEY = 'kilivana_admin_session';
-
-const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
 interface StoredSession {
   accessToken: string;
@@ -29,7 +28,7 @@ export class AuthService {
   readonly isAdmin = computed(() => this._currentUser()?.role === 'ADMIN');
 
   login(request: LoginRequest): Observable<ApiResponse<AuthData>> {
-    return this.http.post<ApiResponse<AuthData>>(`${API_BASE_URL}/auth/login`, request).pipe(
+    return this.http.post<ApiResponse<AuthData>>(`${API_BASE}/auth/login`, request).pipe(
       tap((response) => {
         const session: StoredSession = {
           accessToken: response.data.accessToken,
@@ -46,7 +45,7 @@ export class AuthService {
 
   requestPasswordReset(email: string): Observable<void> {
     return this.http.post<void>(
-      `${API_BASE_URL}/auth/forgot-password`,
+      `${API_BASE}/auth/forgot-password`,
       {},
       {
         params: {
@@ -62,7 +61,7 @@ export class AuthService {
     if (accessToken) {
       this.http
         .post(
-          `${API_BASE_URL}/auth/logout`,
+          `${API_BASE}/auth/logout`,
           {},
           {
             headers: {
@@ -80,15 +79,11 @@ export class AuthService {
   }
 
   getAccessToken(): string | null {
-    const session = this.readSession();
-
-    return session?.accessToken ?? null;
+    return this.readSession()?.accessToken ?? null;
   }
 
   getRefreshToken(): string | null {
-    const session = this.readSession();
-
-    return session?.refreshToken ?? null;
+    return this.readSession()?.refreshToken ?? null;
   }
 
   getCurrentUser(): AuthUser | null {
