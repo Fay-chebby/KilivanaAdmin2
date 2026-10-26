@@ -92,3 +92,6 @@ export const canSettle = (t: Transaction) => t.status === 'pending' && t.type !=
 /** A buyer payment that has been received can be refunded. */
 export const canRefund = (t: Transaction) =>
   t.type === 'payment' && ['paid', 'held', 'settled'].includes(t.rawStatus);
+
+/** A buyer payment still waiting for M-Pesa. An admin can confirm it by hand after checking the money arrived. */
+export const canMarkPaid = (t: Transaction) => t.type === 'payment' && t.rawStatus === 'pending';

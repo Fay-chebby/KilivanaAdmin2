@@ -12,6 +12,7 @@ import {
   PaymentResponse,
   TXN_TYPE_LABEL,
   Transaction,
+  canMarkPaid,
   canRefund,
   canSettle,
   kes,
@@ -142,16 +143,11 @@ const fail = (message: string): PayResult => ({
   message,
 });
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class PaymentService {
   private readonly http = inject(HttpClient);
 
-  /**
-   * Ngrok warning-bypass header.
-   * Reuse it for every request made by this service.
-   */
+  // Ngrok warning-bypass header for every request in this service.
   private readonly headers = new HttpHeaders({
     'ngrok-skip-browser-warning': 'true',
   });
@@ -215,10 +211,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Details page opened directly:
-   * make sure the payment data is loaded.
-   */
+  /** Details page opened directly: make sure data is there. */
   async ensureLoaded(): Promise<void> {
     if (!this._payments().length) {
       await this.load();
@@ -227,24 +220,13 @@ export class PaymentService {
 
   // ---------- Actions ----------
 
-  /**
-   * Settle a payout.
-   * Payments settle automatically; refunds are created by refund().
-   */
+  /** Settle a payout. Payments settle by themselves; refunds are created by refund(). */
   async settle(id: string): Promise<PayResult> {
     const t = this.get(id);
 
-    if (!t) {
-      return fail('Transaction not found.');
-    }
-
-    if (t.status === 'settled') {
-      return fail(`${t.id} is already settled.`);
-    }
-
-    if (!canSettle(t)) {
-      return fail('Payments settle automatically.');
-    }
+    if (!t) return fail('Transaction not found.');
+    if (t.status === 'settled') return fail(`${t.id} is already settled.`);
+    if (!canSettle(t)) return fail('Payments settle automatically.');
 
     try {
       await this.unwrap(
@@ -269,9 +251,38 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Refund the buyer for a received payment.
-   */
+  /** Confirm a buyer payment manually after verifying receipt of the money. */
+  async markPaid(id: string): Promise<PayResult> {
+    const t = this.get(id);
+
+    if (!t || !canMarkPaid(t)) {
+      return fail('This payment is not waiting for confirmation.');
+    }
+
+    try {
+      await this.unwrap(
+        this.http.put<ApiResponse<PaymentResponse>>(
+          `${API_BASE}/payments/${t.paymentId}/status`,
+          null,
+          {
+            params: { status: 'paid' },
+            headers: this.headers,
+          },
+        ),
+      );
+
+      await this.load();
+
+      return {
+        ok: true,
+        message: `Payment of ${kes(t.amount)} from ${t.party} was confirmed. A payout for the farmer is now ready.`,
+      };
+    } catch (e) {
+      return fail(this.msg(e));
+    }
+  }
+
+  /** Refund the buyer for a received payment. */
   async refund(id: string): Promise<PayResult> {
     const t = this.get(id);
 
@@ -299,9 +310,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Settle every pending payout, one request each.
-   */
+  /** Settle every pending payout, one request each. */
   async runPayoutBatch(): Promise<PayResult> {
     const pending = this._txns().filter((t) => t.type === 'payout' && t.status === 'pending');
 

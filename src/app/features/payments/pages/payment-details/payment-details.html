@@ -1,6 +1,6 @@
 @if (txn(); as t) {
   <nav class="crumbs" aria-label="Breadcrumb">
-    <span>AgriAdmin</span><span class="sep">/</span><a routerLink="/payments">Payments</a
+    <span>Dashboard</span><span class="sep">/</span><a routerLink="/payments">Payments</a
     ><span class="sep">/</span><span class="cur">{{ t.id }}</span>
   </nav>
   <header class="head">
@@ -29,6 +29,13 @@
       @if (canSettle(t)) {
         <button type="button" class="btn" (click)="confirming.set(true)">Pay farmer now</button>
       }
+      @if (canMarkPaid(t)) {
+        <button type="button" class="btn" (click)="markingPaid.set(true)">Mark as paid</button>
+        <p class="hint">
+          Waiting for M-Pesa. Mark as paid only after you have seen the money on your statement. The
+          farmer's payout appears after this.
+        </p>
+      }
       @if (canRefund(t)) {
         <button type="button" class="btn red" (click)="refunding.set(true)">Refund buyer</button>
       }
@@ -55,6 +62,24 @@
     </section>
   </div>
 
+  @if (markingPaid()) {
+    <app-payment-action-dialog
+      title="Confirm payment received"
+      [message]="
+        'Confirm that ' +
+        kes(t.amount) +
+        ' from ' +
+        t.party +
+        ' for order ' +
+        t.reference +
+        ' reached your account?'
+      "
+      confirmLabel="Yes, mark as paid"
+      tone="green"
+      (confirmed)="markPaid()"
+      (dismissed)="markingPaid.set(false)"
+    />
+  }
   @if (refunding()) {
     <app-payment-action-dialog
       title="Refund buyer"

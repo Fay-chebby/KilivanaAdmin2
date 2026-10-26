@@ -5,22 +5,13 @@ import { StatCard } from '../../../../shared/components/stat-card/stat-card';
 import { PaymentActionDialog } from '../../components/payment-action-dialog/payment-action-dialog';
 import { ChartPoint, RevenueChart } from '../../components/revenue-chart/revenue-chart';
 import {
-  PAYMENT_TABS,
-  PLATFORM_FEE_RATE,
-  PayResult,
-  PaymentTab,
-  TXN_STATUS_LABEL,
-  TXN_TYPE_LABEL,
-  Transaction,
-  canSettle,
-  compactKes,
-  kes,
+  PAYMENT_TABS, PLATFORM_FEE_RATE, PayResult, PaymentTab, TXN_STATUS_LABEL, TXN_TYPE_LABEL, Transaction, canMarkPaid, canSettle, compactKes, kes,
 } from '../../models/payment.model';
 import { PaymentService } from '../../services/payment.service';
 
 const PAGE_SIZE = 5;
 
-type DialogState = { kind: 'batch' } | { kind: 'settle'; id: string };
+type DialogState = { kind: 'batch' } | { kind: 'settle'; id: string } | { kind: 'paid'; id: string };
 
 @Component({
   selector: 'app-payment-list',
@@ -32,9 +23,7 @@ type DialogState = { kind: 'batch' } | { kind: 'settle'; id: string };
 export class PaymentList {
   private service = inject(PaymentService);
   private destroyRef = inject(DestroyRef);
-  constructor() {
-    void this.service.load();
-  }
+  constructor() { void this.service.load(); }
 
   private noticeTimer?: ReturnType<typeof setTimeout>;
 
@@ -44,6 +33,7 @@ export class PaymentList {
   readonly kes = kes;
   readonly compactKes = compactKes;
   readonly canSettle = canSettle;
+  readonly canMarkPaid = canMarkPaid;
   readonly stats = this.service.stats;
   readonly loading = this.service.loading;
   readonly error = this.service.error;
@@ -55,23 +45,15 @@ export class PaymentList {
   notice = signal<PayResult | null>(null);
 
   readonly chartPoints = computed<ChartPoint[]>(() =>
-    this.service
-      .monthlySeries()
-      .map((m) => ({ label: m.label, value: m.revenue, display: kes(m.revenue) })),
-  );
+    this.service.monthlySeries().map(m => ({ label: m.label, value: m.revenue, display: kes(m.revenue) })));
 
   readonly counts = computed(() => {
     const all = this.service.transactions();
-    return {
-      all: all.length,
-      payout: all.filter((t) => t.type === 'payout').length,
-      refund: all.filter((t) => t.type === 'refund').length,
-    };
+    return { all: all.length, payout: all.filter(t => t.type === 'payout').length, refund: all.filter(t => t.type === 'refund').length };
   });
 
   readonly filtered = computed(() =>
-    this.service.transactions().filter((t) => this.tab() === 'all' || t.type === this.tab()),
-  );
+    this.service.transactions().filter(t => this.tab() === 'all' || t.type === this.tab()));
 
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / PAGE_SIZE)));
   readonly pageRows = computed(() => {
@@ -84,81 +66,66 @@ export class PaymentList {
     const start = (Math.min(this.page(), this.totalPages()) - 1) * PAGE_SIZE;
     return `Showing ${start + 1}–${start + this.pageRows().length} of ${total} ${this.tabNoun()}`;
   });
-  private tabNoun = computed(
-    () => ({ all: 'transactions', payout: 'payouts', refund: 'refunds' })[this.tab()],
-  );
+  private tabNoun = computed(() => ({ all: 'transactions', payout: 'payouts', refund: 'refunds' }[this.tab()]));
 
   /** What the confirmation dialog shows, or null when it is closed. */
   readonly dialogView = computed(() => {
     const d = this.dialog();
     if (!d) return null;
     if (d.kind === 'batch') {
-      const pending = this.service
-        .transactions()
-        .filter((t) => t.type === 'payout' && t.status === 'pending');
-      const lines = pending.slice(0, 6).map((t) => `${t.party}: ${kes(t.amount)}`);
+      const pending = this.service.transactions().filter(t => t.type === 'payout' && t.status === 'pending');
+      const lines = pending.slice(0, 6).map(t => `${t.party}: ${kes(t.amount)}`);
       if (pending.length > 6) lines.push(`and ${pending.length - 6} more`);
       return {
         title: 'Run payout batch',
         message: `Pay ${pending.length} farmer${pending.length === 1 ? '' : 's'} now? This sends ${kes(pending.reduce((s, t) => s + t.amount, 0))} by M-Pesa.`,
-        lines,
-        confirmLabel: 'Run batch',
-        tone: 'green' as const,
+        lines, confirmLabel: 'Run batch', tone: 'green' as const,
       };
     }
     const t = this.service.get(d.id);
     if (!t) return null;
+    if (d.kind === 'paid') {
+      return {
+        title: 'Confirm payment received',
+        message: `Confirm that ${kes(t.amount)} from ${t.party} for order ${t.reference} reached your account? Only do this after you have seen the money on your statement.`,
+        lines: [] as string[], confirmLabel: 'Yes, mark as paid', tone: 'green' as const,
+      };
+    }
     const refund = t.type === 'refund';
     return {
       title: refund ? 'Process refund' : 'Pay farmer now',
       message: refund
         ? `Refund ${kes(t.amount)} to ${t.party} for order ${t.reference}?`
         : `Pay ${kes(t.amount)} to ${t.party} for order ${t.reference}?`,
-      lines: [] as string[],
-      confirmLabel: refund ? 'Process refund' : 'Pay now',
-      tone: refund ? ('red' as const) : ('green' as const),
+      lines: [] as string[], confirmLabel: refund ? 'Process refund' : 'Pay now', tone: refund ? ('red' as const) : ('green' as const),
     };
   });
 
-  setTab(t: PaymentTab) {
-    this.tab.set(t);
-    this.page.set(1);
-  }
+  setTab(t: PaymentTab) { this.tab.set(t); this.page.set(1); }
 
   /** Arrow keys move between tabs. */
   onTabKey(e: KeyboardEvent) {
-    const i = this.tabs.findIndex((t) => t.key === this.tab());
+    const i = this.tabs.findIndex(t => t.key === this.tab());
     const next = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : null;
     if (next === null) return;
     e.preventDefault();
     const target = this.tabs[(next + this.tabs.length) % this.tabs.length];
     this.setTab(target.key);
-    queueMicrotask(() =>
-      (document.getElementById('tab-' + target.key) as HTMLElement | null)?.focus(),
-    );
+    queueMicrotask(() => (document.getElementById('tab-' + target.key) as HTMLElement | null)?.focus());
   }
 
-  prev() {
-    this.page.set(Math.max(1, this.page() - 1));
-  }
-  next() {
-    this.page.set(Math.min(this.totalPages(), this.page() + 1));
-  }
+  prev() { this.page.set(Math.max(1, this.page() - 1)); }
+  next() { this.page.set(Math.min(this.totalPages(), this.page() + 1)); }
 
-  openBatch() {
-    if (this.stats().pendingPayoutCount) this.dialog.set({ kind: 'batch' });
-  }
-  openSettle(t: Transaction) {
-    this.dialog.set({ kind: 'settle', id: t.id });
-  }
+  openBatch() { if (this.stats().pendingPayoutCount) this.dialog.set({ kind: 'batch' }); }
+  openSettle(t: Transaction) { this.dialog.set({ kind: 'settle', id: t.id }); }
+  openMarkPaid(t: Transaction) { this.dialog.set({ kind: 'paid', id: t.id }); }
 
   async confirm() {
     const d = this.dialog();
     if (!d) return;
     this.dialog.set(null);
-    this.showNotice(
-      await (d.kind === 'batch' ? this.service.runPayoutBatch() : this.service.settle(d.id)),
-    );
+    this.showNotice(await (d.kind === 'batch' ? this.service.runPayoutBatch() : d.kind === 'paid' ? this.service.markPaid(d.id) : this.service.settle(d.id)));
   }
 
   exportCsv() {
@@ -169,35 +136,10 @@ export class PaymentList {
       if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
       return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const head = [
-      'Transaction ID',
-      'Type',
-      'Party',
-      'Reference',
-      'Amount (KSh)',
-      'Fee (KSh)',
-      'Net (KSh)',
-      'Status',
-      'Date',
-    ];
-    const lines = this.filtered().map((t) =>
-      [
-        t.id,
-        TXN_TYPE_LABEL[t.type],
-        t.party,
-        t.reference,
-        t.amount,
-        t.fee,
-        t.net,
-        TXN_STATUS_LABEL[t.status],
-        date.transform(t.createdAt, 'yyyy-MM-dd') ?? '',
-      ]
-        .map(esc)
-        .join(','),
-    );
-    const blob = new Blob(['﻿' + [head.join(','), ...lines].join('\r\n')], {
-      type: 'text/csv;charset=utf-8',
-    });
+    const head = ['Transaction ID', 'Type', 'Party', 'Reference', 'Amount (KSh)', 'Fee (KSh)', 'Net (KSh)', 'Status', 'Date'];
+    const lines = this.filtered().map(t =>
+      [t.id, TXN_TYPE_LABEL[t.type], t.party, t.reference, t.amount, t.fee, t.net, TXN_STATUS_LABEL[t.status], date.transform(t.createdAt, 'yyyy-MM-dd') ?? ''].map(esc).join(','));
+    const blob = new Blob(['﻿' + [head.join(','), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -206,10 +148,7 @@ export class PaymentList {
     URL.revokeObjectURL(url);
   }
 
-  dismissNotice() {
-    clearTimeout(this.noticeTimer);
-    this.notice.set(null);
-  }
+  dismissNotice() { clearTimeout(this.noticeTimer); this.notice.set(null); }
 
   private showNotice(r: PayResult) {
     clearTimeout(this.noticeTimer);

@@ -1,5 +1,5 @@
 <nav class="crumbs" aria-label="Breadcrumb">
-  <span>AgriAdmin</span><span class="sep">/</span><span class="cur">Payments</span>
+  <span>Dashboard</span><span class="sep">/</span><span class="cur">Payments</span>
 </nav>
 @if (error(); as e) {
   <p class="notice bad" role="alert">{{ e }}</p>
@@ -141,6 +141,9 @@
             </td>
             <td class="mono muted">{{ t.createdAt | date: 'yyyy-MM-dd' }}</td>
             <td class="act">
+              @if (canMarkPaid(t)) {
+                <button type="button" class="btn small" (click)="openMarkPaid(t)">Mark paid</button>
+              }
               @if (canSettle(t)) {
                 <button type="button" class="btn small" (click)="openSettle(t)">
                   {{ t.type === 'refund' ? 'Process' : 'Pay now' }}

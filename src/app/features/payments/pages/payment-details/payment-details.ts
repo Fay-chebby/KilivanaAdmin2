@@ -6,6 +6,7 @@ import {
   PayResult,
   TXN_STATUS_LABEL,
   TXN_TYPE_LABEL,
+  canMarkPaid,
   canRefund,
   canSettle,
   kes,
@@ -29,10 +30,12 @@ export class PaymentDetails {
   readonly kes = kes;
   readonly canSettle = canSettle;
   readonly canRefund = canRefund;
+  readonly canMarkPaid = canMarkPaid;
   readonly loading = this.service.loading;
 
   confirming = signal(false);
   refunding = signal(false);
+  markingPaid = signal(false);
 
   constructor() {
     void this.service.ensureLoaded();
@@ -42,6 +45,11 @@ export class PaymentDetails {
   async settle() {
     this.confirming.set(false);
     this.result.set(await this.service.settle(this.id));
+  }
+
+  async markPaid() {
+    this.markingPaid.set(false);
+    this.result.set(await this.service.markPaid(this.id));
   }
 
   async refund() {
