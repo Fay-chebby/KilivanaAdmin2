@@ -25,6 +25,13 @@ export class KycReview {
     return !!a && isOpen(a);
   });
 
+  readonly loading = this.service.loading;
+  readonly loadError = this.service.error;
+
+  constructor() {
+    void this.service.ensureLoaded();
+  }
+
   activeDocId = signal<string | null>(null);
   mode = signal<ApprovalMode>('idle');
   error = signal('');
@@ -45,13 +52,13 @@ export class KycReview {
     this.activeDocId.set(docId);
   }
 
-  approve() {
-    const r = this.service.approve(this.id);
+  async approve() {
+    const r = await this.service.approve(this.id);
     this.error.set(r.ok ? '' : r.message);
   }
 
-  reject(reason: string) {
-    const r = this.service.reject(this.id, reason);
+  async reject(reason: string) {
+    const r = await this.service.reject(this.id, reason);
     this.error.set(r.ok ? '' : r.message);
     if (r.ok) this.mode.set('idle');
   }

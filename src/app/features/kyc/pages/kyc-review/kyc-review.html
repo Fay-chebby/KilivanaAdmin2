@@ -72,9 +72,14 @@
       </div>
     </section>
   </div>
+} @else if (loading()) {
+  <p class="empty">Loading application…</p>
 } @else {
   <section class="card missing">
     <h1>Application not found</h1>
+    @if (loadError(); as e) {
+      <p role="alert">{{ e }}</p>
+    }
     <p>No application has the id {{ id }}. <a routerLink="/kyc">Back to verification</a></p>
   </section>
 }
