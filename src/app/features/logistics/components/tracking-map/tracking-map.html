@@ -1,1 +1,10 @@
-<div #mapEl class="tracking-map" [style.height]="height()"></div>
+
+<div class="tracking-map-wrapper">
+  <div
+    #mapEl
+    class="tracking-map"
+    [style.height]="height()"
+    role="application"
+    aria-label="Delivery tracking map"
+  ></div>
+</div>
