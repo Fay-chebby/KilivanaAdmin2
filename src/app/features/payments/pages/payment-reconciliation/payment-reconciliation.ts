@@ -38,6 +38,12 @@ export class PaymentReconciliation {
   readonly minNote = MIN_NOTE;
   readonly stats = this.service.stats;
   readonly items = this.service.items;
+  readonly loading = this.service.loading;
+  readonly loadError = this.service.error;
+
+  constructor() {
+    void this.service.load();
+  }
 
   filter = signal<ReconFilter>('all');
   page = signal(1);

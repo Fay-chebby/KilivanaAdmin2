@@ -24,6 +24,9 @@
     </button>
   </div>
 </header>
+@if (loadError(); as e) {
+  <p class="notice bad" role="alert">{{ e }}</p>
+}
 <p class="format">
   CSV columns: <code>date</code> (yyyy-mm-dd), <code>reference</code>, <code>amount</code>,
   <code>direction</code> (in or out).
@@ -141,8 +144,11 @@
               <td colspan="7" class="empty">
                 @if (filter() === 'review') {
                   Nothing needs review. Every settled transaction matches the statement.
+                } @else if (loading()) {
+                  Loading payments…
                 } @else {
-                  No items here yet. Import a statement to start.
+                  No items here yet. Import an M-Pesa or bank statement CSV to compare it with your
+                  payments.
                 }
               </td>
             </tr>
