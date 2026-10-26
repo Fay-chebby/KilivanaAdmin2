@@ -29,6 +29,12 @@ export class KycList {
   readonly typeLabel = KYC_TYPE_LABEL;
   readonly statusLabel = KYC_STATUS_LABEL;
   readonly stats = this.service.stats;
+  readonly loading = this.service.loading;
+  readonly loadError = this.service.error;
+
+  constructor() {
+    void this.service.load();
+  }
 
   filter = signal<KycFilter>('all');
   selectedId = signal<string | null>('VQ-001');
@@ -80,18 +86,18 @@ export class KycList {
     this.select(a.id);
   }
 
-  approve() {
+  async approve() {
     const a = this.selected();
     if (!a) return;
-    const r = this.service.approve(a.id);
+    const r = await this.service.approve(a.id);
     this.error.set(r.ok ? '' : r.message);
     this.notice.set(r.ok ? r.message : '');
   }
 
-  reject(reason: string) {
+  async reject(reason: string) {
     const a = this.selected();
     if (!a) return;
-    const r = this.service.reject(a.id, reason);
+    const r = await this.service.reject(a.id, reason);
     this.error.set(r.ok ? '' : r.message);
     this.notice.set(r.ok ? r.message : '');
     if (r.ok) this.mode.set('idle');
