@@ -20,14 +20,12 @@ import {
 } from '../models/inspector.model';
 
 import { catchError, forkJoin, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
-
+import { API_BASE } from '../../../core/config/api.config';
 @Injectable({
   providedIn: 'root',
 })
 export class InspectorService {
   private readonly http = inject(HttpClient);
-
-  private readonly API = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
 
   // Ngrok header only
   private readonly ngrokHeaders = new HttpHeaders({
@@ -70,7 +68,7 @@ export class InspectorService {
     this._loading.set(true);
 
     return this.http
-      .get<ApiResponse<UserResponse[]>>(`${this.API}/admin/users/role/INSPECTOR`, {
+      .get<ApiResponse<UserResponse[]>>(`${API_BASE}/admin/users/role/INSPECTOR`, {
         headers: this.ngrokHeaders,
       })
       .pipe(
@@ -149,7 +147,7 @@ export class InspectorService {
   // =========================================================
 
   getUser(id: number): Observable<ApiResponse<UserResponse>> {
-    return this.http.get<ApiResponse<UserResponse>>(`${this.API}/admin/users/${id}`, {
+    return this.http.get<ApiResponse<UserResponse>>(`${API_BASE}/admin/users/${id}`, {
       headers: this.ngrokHeaders,
     });
   }
@@ -160,7 +158,7 @@ export class InspectorService {
 
   getProfile(userId: number): Observable<ApiResponse<InspectorProfileResponse>> {
     return this.http.get<ApiResponse<InspectorProfileResponse>>(
-      `${this.API}/profiles/inspectors/${userId}`,
+      `${API_BASE}/profiles/inspectors/${userId}`,
       {
         headers: this.ngrokHeaders,
       },
@@ -172,7 +170,7 @@ export class InspectorService {
     payload: InspectorProfileRequest,
   ): Observable<ApiResponse<InspectorProfileResponse>> {
     return this.http.post<ApiResponse<InspectorProfileResponse>>(
-      `${this.API}/profiles/inspectors/${userId}`,
+      `${API_BASE}/profiles/inspectors/${userId}`,
       payload,
       {
         headers: this.ngrokHeaders,
@@ -185,7 +183,7 @@ export class InspectorService {
     payload: InspectorProfileRequest,
   ): Observable<ApiResponse<InspectorProfileResponse>> {
     return this.http.put<ApiResponse<InspectorProfileResponse>>(
-      `${this.API}/profiles/inspectors/${userId}`,
+      `${API_BASE}/profiles/inspectors/${userId}`,
       payload,
       {
         headers: this.ngrokHeaders,
@@ -194,7 +192,7 @@ export class InspectorService {
   }
 
   deleteProfile(userId: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.API}/profiles/inspectors/${userId}`, {
+    return this.http.delete<ApiResponse<void>>(`${API_BASE}/profiles/inspectors/${userId}`, {
       headers: this.ngrokHeaders,
     });
   }
@@ -217,7 +215,7 @@ export class InspectorService {
     };
 
     return this.http
-      .post<ApiResponse<UserResponse>>(`${this.API}/admin/users`, userPayload, {
+      .post<ApiResponse<UserResponse>>(`${API_BASE}/admin/users`, userPayload, {
         headers: this.ngrokHeaders,
       })
       .pipe(
@@ -241,7 +239,7 @@ export class InspectorService {
 
             catchError((error) => {
               return this.http
-                .delete<ApiResponse<void>>(`${this.API}/admin/users/${user.id}`, {
+                .delete<ApiResponse<void>>(`${API_BASE}/admin/users/${user.id}`, {
                   headers: this.ngrokHeaders,
                 })
                 .pipe(switchMap(() => throwError(() => error)));
@@ -304,7 +302,7 @@ export class InspectorService {
 
   activateUser(id: number): Observable<ApiResponse<UserResponse>> {
     return this.http.put<ApiResponse<UserResponse>>(
-      `${this.API}/admin/users/${id}/activate`,
+      `${API_BASE}/admin/users/${id}/activate`,
       {},
       {
         headers: this.ngrokHeaders,
@@ -320,7 +318,7 @@ export class InspectorService {
 
     return this.http
       .put<ApiResponse<UserResponse>>(
-        `${this.API}/admin/inspectors/${id}/suspend`,
+        `${API_BASE}/admin/inspectors/${id}/suspend`,
         {},
         {
           headers: this.ngrokHeaders,
@@ -351,7 +349,7 @@ export class InspectorService {
   reactivate(id: number): Observable<Inspector> {
     return this.http
       .put<ApiResponse<UserResponse>>(
-        `${this.API}/admin/inspectors/${id}/unsuspend`,
+        `${API_BASE}/admin/inspectors/${id}/unsuspend`,
         {},
         {
           headers: this.ngrokHeaders,
@@ -381,7 +379,7 @@ export class InspectorService {
   remove(id: number): Observable<void> {
     return this.deleteProfile(id).pipe(
       switchMap(() =>
-        this.http.delete<ApiResponse<void>>(`${this.API}/admin/users/${id}`, {
+        this.http.delete<ApiResponse<void>>(`${API_BASE}/admin/users/${id}`, {
           headers: this.ngrokHeaders,
         }),
       ),
@@ -402,7 +400,7 @@ export class InspectorService {
 
   getInspectorInspections(inspectorId: number): Observable<ApiResponse<InspectionResponse[]>> {
     return this.http.get<ApiResponse<InspectionResponse[]>>(
-      `${this.API}/admin/inspections/inspector/${inspectorId}`,
+      `${API_BASE}/admin/inspections/inspector/${inspectorId}`,
       {
         headers: this.ngrokHeaders,
       },
@@ -438,7 +436,7 @@ export class InspectorService {
 
     return this.http
       .put<ApiResponse<InspectionResponse>>(
-        `${this.API}/admin/inspections/${inspectionId}/status`,
+        `${API_BASE}/admin/inspections/${inspectionId}/status`,
         {},
         {
           headers: this.ngrokHeaders,
@@ -486,7 +484,7 @@ export class InspectorService {
 
     return this.http
       .post<ApiResponse<InspectionResponse>>(
-        `${this.API}/admin/inspections/${assignment.inspectionId}/result`,
+        `${API_BASE}/admin/inspections/${assignment.inspectionId}/result`,
         payload,
         {
           headers: this.ngrokHeaders,
@@ -509,7 +507,7 @@ export class InspectorService {
   getEvidenceImages(inspectionId: number): Observable<InspectorImage[]> {
     return this.http
       .get<ApiResponse<InspectorImage[]>>(
-        `${this.API}/admin/inspections/${inspectionId}/evidence/images`,
+        `${API_BASE}/admin/inspections/${inspectionId}/evidence/images`,
         {
           headers: this.ngrokHeaders,
         },
@@ -524,7 +522,7 @@ export class InspectorService {
 
     return this.http
       .post<ApiResponse<InspectorImage>>(
-        `${this.API}/admin/inspections/${inspectionId}/evidence/images`,
+        `${API_BASE}/admin/inspections/${inspectionId}/evidence/images`,
         formData,
         {
           headers: this.ngrokHeaders,
@@ -536,7 +534,7 @@ export class InspectorService {
   deleteEvidenceImage(inspectionId: number, imageId: number): Observable<void> {
     return this.http
       .delete<ApiResponse<void>>(
-        `${this.API}/admin/inspections/${inspectionId}/evidence/images/${imageId}`,
+        `${API_BASE}/admin/inspections/${inspectionId}/evidence/images/${imageId}`,
         {
           headers: this.ngrokHeaders,
         },
@@ -550,7 +548,7 @@ export class InspectorService {
 
   getInspectorImages(userId: number): Observable<InspectorImage[]> {
     return this.http
-      .get<ApiResponse<InspectorImage[]>>(`${this.API}/profiles/inspectors/${userId}/images`, {
+      .get<ApiResponse<InspectorImage[]>>(`${API_BASE}/profiles/inspectors/${userId}/images`, {
         headers: this.ngrokHeaders,
       })
       .pipe(map((response) => response.data ?? []));
@@ -559,7 +557,7 @@ export class InspectorService {
   setPrimaryImage(userId: number, imageId: number): Observable<InspectorImage> {
     return this.http
       .put<ApiResponse<InspectorImage>>(
-        `${this.API}/profiles/inspectors/${userId}/images/${imageId}/primary`,
+        `${API_BASE}/profiles/inspectors/${userId}/images/${imageId}/primary`,
         {},
         {
           headers: this.ngrokHeaders,
@@ -570,7 +568,7 @@ export class InspectorService {
 
   deleteInspectorImage(userId: number, imageId: number): Observable<void> {
     return this.http
-      .delete<ApiResponse<void>>(`${this.API}/profiles/inspectors/${userId}/images/${imageId}`, {
+      .delete<ApiResponse<void>>(`${API_BASE}/profiles/inspectors/${userId}/images/${imageId}`, {
         headers: this.ngrokHeaders,
       })
       .pipe(map(() => undefined));
