@@ -24,8 +24,7 @@ import {
   toProfile,
   toProfileImage,
 } from '../models/farmer.model';
-
-const API = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+import { API_BASE } from '../../../core/config/api.config';
 
 /* =========================================================
    ERROR HANDLING
@@ -169,7 +168,7 @@ export class FarmerService {
     this.loadError.set(null);
 
     this.http
-      .get<ApiEnvelope<unknown>>(`${API}/admin/farmers`, {
+      .get<ApiEnvelope<unknown>>(`${API_BASE}/admin/farmers`, {
         params: {
           page: 0,
           size: 500,
@@ -210,7 +209,7 @@ export class FarmerService {
    */
   private fetchFarmer(id: string | number): Observable<ApiFarmer> {
     return this.http
-      .get<ApiEnvelope<ApiFarmer>>(`${API}/admin/farmers/${id}`, {
+      .get<ApiEnvelope<ApiFarmer>>(`${API_BASE}/admin/farmers/${id}`, {
         headers: apiHeaders(),
       })
       .pipe(map((response) => response.data));
@@ -230,7 +229,7 @@ export class FarmerService {
    */
   getProfile(userId: string | number): Observable<ReturnType<typeof toProfile> | null> {
     return this.http
-      .get<ApiEnvelope<ApiFarmerProfile>>(`${API}/profiles/farmers/${userId}`, {
+      .get<ApiEnvelope<ApiFarmerProfile>>(`${API_BASE}/profiles/farmers/${userId}`, {
         headers: apiHeaders(),
       })
       .pipe(
@@ -254,7 +253,7 @@ export class FarmerService {
    */
   getProfileImages(userId: string | number): Observable<FarmerProfileImage[]> {
     return this.http
-      .get<ApiEnvelope<unknown>>(`${API}/profiles/farmers/${userId}/images`, {
+      .get<ApiEnvelope<unknown>>(`${API_BASE}/profiles/farmers/${userId}/images`, {
         headers: apiHeaders(),
       })
       .pipe(
@@ -282,7 +281,7 @@ export class FarmerService {
    */
   getKycDocuments(userId: string | number): Observable<FarmerDocument[]> {
     return this.http
-      .get<ApiEnvelope<unknown>>(`${API}/admin/kyc`, {
+      .get<ApiEnvelope<unknown>>(`${API_BASE}/admin/kyc`, {
         headers: apiHeaders(),
       })
       .pipe(
@@ -371,7 +370,7 @@ export class FarmerService {
    */
   regions(): Observable<string[]> {
     return this.http
-      .get<ApiEnvelope<string[]>>(`${API}/regions`, {
+      .get<ApiEnvelope<string[]>>(`${API_BASE}/regions`, {
         headers: apiHeaders(),
       })
       .pipe(
@@ -416,7 +415,7 @@ export class FarmerService {
         ApiEnvelope<{
           id: number;
         }>
-      >(`${API}/admin/users`, userBody, {
+      >(`${API_BASE}/admin/users`, userBody, {
         headers: apiHeaders(),
       })
       .pipe(
@@ -424,7 +423,7 @@ export class FarmerService {
           const userId = response.data.id;
 
           return this.http
-            .post(`${API}/profiles/farmers/${userId}`, this.profileBody(value), {
+            .post(`${API_BASE}/profiles/farmers/${userId}`, this.profileBody(value), {
               headers: apiHeaders(),
             })
             .pipe(switchMap(() => this.fetchFarmer(userId)));
@@ -466,21 +465,25 @@ export class FarmerService {
     };
 
     return this.http
-      .put(`${API}/admin/users/${id}`, userBody, {
+      .put(`${API_BASE}/admin/users/${id}`, userBody, {
         headers: apiHeaders(),
       })
       .pipe(
         switchMap(() =>
           this.http
-            .put(`${API}/profiles/farmers/${id}`, this.profileBody(value), {
+            .put(`${API_BASE}/profiles/farmers/${id}`, this.profileBody(value), {
               headers: apiHeaders(),
             })
             .pipe(
               catchError((error: HttpErrorResponse) => {
                 if (error.status === 404) {
-                  return this.http.post(`${API}/profiles/farmers/${id}`, this.profileBody(value), {
-                    headers: apiHeaders(),
-                  });
+                  return this.http.post(
+                    `${API_BASE}/profiles/farmers/${id}`,
+                    this.profileBody(value),
+                    {
+                      headers: apiHeaders(),
+                    },
+                  );
                 }
 
                 return throwError(() => error);
@@ -509,19 +512,25 @@ export class FarmerService {
 
     switch (action) {
       case 'approve':
-        request = this.http.post(`${API}/admin/farmers/${id}/approve`, null, { headers });
+        request = this.http.post(`${API_BASE}/admin/farmers/${id}/approve`, null, { headers });
         break;
 
       case 'reject':
-        request = this.http.post(`${API}/admin/farmers/${id}/reject`, null, { headers, params });
+        request = this.http.post(`${API_BASE}/admin/farmers/${id}/reject`, null, {
+          headers,
+          params,
+        });
         break;
 
       case 'suspend':
-        request = this.http.put(`${API}/admin/farmers/${id}/suspend`, null, { headers, params });
+        request = this.http.put(`${API_BASE}/admin/farmers/${id}/suspend`, null, {
+          headers,
+          params,
+        });
         break;
 
       case 'reinstate':
-        request = this.http.put(`${API}/admin/farmers/${id}/unsuspend`, null, { headers });
+        request = this.http.put(`${API_BASE}/admin/farmers/${id}/unsuspend`, null, { headers });
         break;
 
       default:
@@ -541,7 +550,7 @@ export class FarmerService {
 
   deleteFarmer(id: string | number): Observable<void> {
     return this.http
-      .delete<void>(`${API}/admin/users/${id}`, {
+      .delete<void>(`${API_BASE}/admin/users/${id}`, {
         headers: apiHeaders(),
       })
       .pipe(
