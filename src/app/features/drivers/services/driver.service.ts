@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Driver, DriverFormValue } from '../models/driver.model';
 
-const API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
+import { API_BASE } from '../../../core/config/api.config';
 
 const NGROK_HEADERS = new HttpHeaders({
   'ngrok-skip-browser-warning': 'true',
@@ -186,7 +186,7 @@ export class DriverService {
 
   loadDrivers(): Observable<ApiResponse<DriverApiResponse[]>> {
     return this.http
-      .get<ApiResponse<DriverApiResponse[]>>(`${API_BASE_URL}/admin/drivers`, {
+      .get<ApiResponse<DriverApiResponse[]>>(`${API_BASE}/admin/drivers`, {
         headers: NGROK_HEADERS,
       })
       .pipe(
@@ -250,7 +250,7 @@ export class DriverService {
     };
 
     return this.http
-      .post<ApiResponse<DriverApiResponse>>(`${API_BASE_URL}/admin/drivers`, request, {
+      .post<ApiResponse<DriverApiResponse>>(`${API_BASE}/admin/drivers`, request, {
         headers: NGROK_HEADERS,
       })
       .pipe(
@@ -277,12 +277,9 @@ export class DriverService {
   // ============================================================
 
   getById(userId: number): Observable<ApiResponse<DriverApiResponse>> {
-    return this.http.get<ApiResponse<DriverApiResponse>>(
-      `${API_BASE_URL}/admin/drivers/${userId}`,
-      {
-        headers: NGROK_HEADERS,
-      },
-    );
+    return this.http.get<ApiResponse<DriverApiResponse>>(`${API_BASE}/admin/drivers/${userId}`, {
+      headers: NGROK_HEADERS,
+    });
   }
 
   // ============================================================
@@ -329,7 +326,7 @@ export class DriverService {
 
     return this.http
       .put<ApiResponse<DriverProfileApiResponse>>(
-        `${API_BASE_URL}/profiles/drivers/${userId}`,
+        `${API_BASE}/profiles/drivers/${userId}`,
         request,
         {
           headers: NGROK_HEADERS,
@@ -372,7 +369,7 @@ export class DriverService {
 
   delete(userId: number): Observable<ApiResponse<unknown>> {
     return this.http
-      .delete<ApiResponse<unknown>>(`${API_BASE_URL}/admin/drivers/${userId}`, {
+      .delete<ApiResponse<unknown>>(`${API_BASE}/admin/drivers/${userId}`, {
         headers: NGROK_HEADERS,
       })
       .pipe(
@@ -403,7 +400,7 @@ export class DriverService {
 
     return this.http
       .put<ApiResponse<DriverApiResponse>>(
-        `${API_BASE_URL}/admin/drivers/${userId}/suspend`,
+        `${API_BASE}/admin/drivers/${userId}/suspend`,
         {},
         {
           headers: NGROK_HEADERS,
@@ -436,7 +433,7 @@ export class DriverService {
   unsuspend(userId: number): Observable<ApiResponse<DriverApiResponse>> {
     return this.http
       .put<ApiResponse<DriverApiResponse>>(
-        `${API_BASE_URL}/admin/drivers/${userId}/unsuspend`,
+        `${API_BASE}/admin/drivers/${userId}/unsuspend`,
         {},
         {
           headers: NGROK_HEADERS,
