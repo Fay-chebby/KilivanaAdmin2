@@ -27,14 +27,10 @@
         <dd class="mono total" [class.neg]="t.net < 0">{{ kes(t.net) }}</dd>
       </dl>
       @if (canSettle(t)) {
-        <button
-          type="button"
-          class="btn"
-          [class.red]="t.type === 'refund'"
-          (click)="confirming.set(true)"
-        >
-          {{ t.type === 'refund' ? 'Process refund' : 'Pay farmer now' }}
-        </button>
+        <button type="button" class="btn" (click)="confirming.set(true)">Pay farmer now</button>
+      }
+      @if (canRefund(t)) {
+        <button type="button" class="btn red" (click)="refunding.set(true)">Refund buyer</button>
       }
     </section>
 
@@ -59,6 +55,16 @@
     </section>
   </div>
 
+  @if (refunding()) {
+    <app-payment-action-dialog
+      title="Refund buyer"
+      [message]="'Refund ' + kes(t.amount) + ' to ' + t.party + ' for order ' + t.reference + '?'"
+      confirmLabel="Refund"
+      tone="red"
+      (confirmed)="refund()"
+      (dismissed)="refunding.set(false)"
+    />
+  }
   @if (confirming()) {
     <app-payment-action-dialog
       [title]="t.type === 'refund' ? 'Process refund' : 'Pay farmer now'"
@@ -77,6 +83,8 @@
       (dismissed)="confirming.set(false)"
     />
   }
+} @else if (loading()) {
+  <section class="card missing"><p>Loading…</p></section>
 } @else {
   <section class="card missing">
     <h1>Transaction not found</h1>

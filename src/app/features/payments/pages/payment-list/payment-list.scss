@@ -298,6 +298,10 @@ a.id:hover {
   background: #fffbeb;
   color: #d97706;
 }
+.status.failed {
+  background: #fef2f2;
+  color: #dc2626;
+}
 
 .foot {
   display: flex;

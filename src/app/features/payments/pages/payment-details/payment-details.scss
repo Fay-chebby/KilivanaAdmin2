@@ -163,6 +163,10 @@ dd {
   background: #fffbeb;
   color: #d97706;
 }
+.status.failed {
+  background: #fef2f2;
+  color: #dc2626;
+}
 @media (max-width: 900px) {
   .cols {
     grid-template-columns: 1fr;

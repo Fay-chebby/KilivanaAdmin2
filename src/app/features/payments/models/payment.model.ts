@@ -3,7 +3,22 @@ import { PLATFORM_FEE_RATE } from '../../orders/models/order.model';
 export { PLATFORM_FEE_RATE };
 
 export type TxnType = 'payment' | 'payout' | 'refund';
-export type TxnStatus = 'settled' | 'pending';
+export type TxnStatus = 'settled' | 'pending' | 'failed';
+
+// ---------- Backend contract (/api/v1/payments, /api/v1/admin/payments) ----------
+export type ApiPaymentStatus = 'pending' | 'paid' | 'held' | 'settled' | 'failed' | 'refunded';
+export interface PaymentResponse {
+  id: number;
+  orderId: number;
+  method: 'mpesa' | 'bank' | 'card';
+  reference?: string;
+  amount: number;
+  status: ApiPaymentStatus;
+  paidAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export type PaymentTab = 'all' | 'payout' | 'refund';
 
 /** What the farmer receives for a payment: the amount minus the platform fee (the rate comes from the order model). */
@@ -23,6 +38,8 @@ export interface Transaction {
   settledAt?: string;
   method: 'M-Pesa' | 'Bank transfer' | 'Card';
   externalRef?: string; // M-Pesa code (10 letters and numbers) or bank reference
+  paymentId: number; // backend payment this row comes from
+  rawStatus: ApiPaymentStatus;
 }
 
 export interface MonthlyPoint {
@@ -45,6 +62,7 @@ export const TXN_TYPE_LABEL: Record<TxnType, string> = {
 export const TXN_STATUS_LABEL: Record<TxnStatus, string> = {
   settled: 'Settled',
   pending: 'Pending',
+  failed: 'Failed',
 };
 
 export const PAYMENT_TABS: { key: PaymentTab; label: string }[] = [
@@ -70,3 +88,7 @@ export function compactKes(n: number): string {
 export const isPending = (t: Transaction) => t.status === 'pending';
 /** Payments settle on their own. Payouts and refunds are settled by an admin. */
 export const canSettle = (t: Transaction) => t.status === 'pending' && t.type !== 'payment';
+
+/** A buyer payment that has been received can be refunded. */
+export const canRefund = (t: Transaction) =>
+  t.type === 'payment' && ['paid', 'held', 'settled'].includes(t.rawStatus);

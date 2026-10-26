@@ -1,6 +1,9 @@
 <nav class="crumbs" aria-label="Breadcrumb">
-  <span>Dashboard</span><span class="sep">/</span><span class="cur">Payments</span>
+  <span>AgriAdmin</span><span class="sep">/</span><span class="cur">Payments</span>
 </nav>
+@if (error(); as e) {
+  <p class="notice bad" role="alert">{{ e }}</p>
+}
 <header class="head">
   <h1>Payments &amp; Finance</h1>
   <div class="head-actions">
@@ -149,7 +152,9 @@
           <tr>
             <td colspan="10" class="empty">
               No
-              {{ tab() === 'refund' ? 'refunds' : tab() === 'payout' ? 'payouts' : 'transactions' }}
+              {{
+                tab() === 'refund' ? 'refunds' : tab() === 'payout' ? 'payouts' : 'transactions'
+              }}
               yet.
             </td>
           </tr>

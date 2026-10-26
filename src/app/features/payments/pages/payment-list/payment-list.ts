@@ -32,6 +32,10 @@ type DialogState = { kind: 'batch' } | { kind: 'settle'; id: string };
 export class PaymentList {
   private service = inject(PaymentService);
   private destroyRef = inject(DestroyRef);
+  constructor() {
+    void this.service.load();
+  }
+
   private noticeTimer?: ReturnType<typeof setTimeout>;
 
   readonly tabs = PAYMENT_TABS;
@@ -41,6 +45,8 @@ export class PaymentList {
   readonly compactKes = compactKes;
   readonly canSettle = canSettle;
   readonly stats = this.service.stats;
+  readonly loading = this.service.loading;
+  readonly error = this.service.error;
   readonly feePct = Math.round(PLATFORM_FEE_RATE * 1000) / 10;
 
   tab = signal<PaymentTab>('all');
@@ -49,11 +55,9 @@ export class PaymentList {
   notice = signal<PayResult | null>(null);
 
   readonly chartPoints = computed<ChartPoint[]>(() =>
-    this.service.monthly.map((m) => ({
-      label: m.label,
-      value: m.revenue,
-      display: kes(m.revenue),
-    })),
+    this.service
+      .monthlySeries()
+      .map((m) => ({ label: m.label, value: m.revenue, display: kes(m.revenue) })),
   );
 
   readonly counts = computed(() => {
@@ -148,11 +152,13 @@ export class PaymentList {
     this.dialog.set({ kind: 'settle', id: t.id });
   }
 
-  confirm() {
+  async confirm() {
     const d = this.dialog();
     if (!d) return;
     this.dialog.set(null);
-    this.showNotice(d.kind === 'batch' ? this.service.runPayoutBatch() : this.service.settle(d.id));
+    this.showNotice(
+      await (d.kind === 'batch' ? this.service.runPayoutBatch() : this.service.settle(d.id)),
+    );
   }
 
   exportCsv() {

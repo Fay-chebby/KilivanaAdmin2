@@ -6,6 +6,7 @@ import {
   PayResult,
   TXN_STATUS_LABEL,
   TXN_TYPE_LABEL,
+  canRefund,
   canSettle,
   kes,
 } from '../../models/payment.model';
@@ -27,12 +28,24 @@ export class PaymentDetails {
   readonly statusLabel = TXN_STATUS_LABEL;
   readonly kes = kes;
   readonly canSettle = canSettle;
+  readonly canRefund = canRefund;
+  readonly loading = this.service.loading;
 
   confirming = signal(false);
+  refunding = signal(false);
+
+  constructor() {
+    void this.service.ensureLoaded();
+  }
   result = signal<PayResult | null>(null);
 
-  settle() {
+  async settle() {
     this.confirming.set(false);
-    this.result.set(this.service.settle(this.id));
+    this.result.set(await this.service.settle(this.id));
+  }
+
+  async refund() {
+    this.refunding.set(false);
+    this.result.set(await this.service.refund(this.id));
   }
 }
