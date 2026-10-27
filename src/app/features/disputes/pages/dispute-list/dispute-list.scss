@@ -297,3 +297,32 @@ tbody tr {
     max-height: none;
   }
 }
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  background: #fdf3e1;
+  border: 1px solid #f0d9a8;
+  color: #7a5314;
+}
+.banner.err {
+  background: #fbeae7;
+  border-color: #f0c4bd;
+  color: #8a2a1c;
+}
+.banner button {
+  margin-left: auto;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font: inherit;
+  cursor: pointer;
+}
