@@ -40,7 +40,7 @@
     <div>
       <dt>Amount at stake</dt>
       <dd>
-        <strong class="mono">{{ d.amountKes | currencyKsh }}</strong>
+        <strong class="mono">{{ d.amountKes | kes }}</strong>
       </dd>
     </div>
     <div>
@@ -57,7 +57,7 @@
 
   <div class="block">
     <span class="lbl"
-      >Evidence <em>{{ d.evidence.length }}/{{ max }}</em></span
+      >Evidence <em>{{ d.evidence.length }}/{{ max }} · this session</em></span
     >
     <div class="thumbs">
       @for (e of d.evidence; track e.id) {
@@ -100,6 +100,14 @@
       [locked]="d.status === 'resolved'"
       (posted)="post($event)"
     />
+    <p class="local" role="note">
+      Messages to the buyer or farmer are sent to them as an in-app notification, but their replies
+      are not shown here yet. Internal notes and escalation are saved on this device only, and
+      evidence photos until you refresh the page.
+    </p>
+    @if (service.error()) {
+      <p class="error" role="alert">{{ service.error() }}</p>
+    }
   </div>
 
   @if (d.resolution; as r) {
@@ -109,7 +117,7 @@
       <small
         >{{ r.by }} · {{ when(r.at) }}
         @if (r.refundKes) {
-          · {{ r.refundKes | currencyKsh }} refunded
+          · {{ r.refundKes | kes }} refunded
         }
       </small>
     </div>
@@ -141,7 +149,9 @@
         <button type="button" class="btn ghost" (click)="showEscalate.set(true)">Escalate</button>
       }
     </div>
-    <button type="button" class="resolve" (click)="resolveClick.emit()">Resolve</button>
+    <button type="button" class="resolve" [disabled]="service.busy()" (click)="resolveClick.emit()">
+      Resolve
+    </button>
   }
 </section>
 

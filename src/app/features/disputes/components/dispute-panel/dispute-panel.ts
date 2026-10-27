@@ -40,19 +40,20 @@ export class DisputePanel {
   protected readonly error = signal('');
   protected readonly zoom = signal<DisputeImage | null>(null);
 
-  protected escalate() {
+  protected async escalate() {
     if (this.reason().trim().length < 5) {
       this.error.set('Add a short reason (at least 5 characters).');
       return;
     }
-    this.service.escalate(this.dispute().id, this.reason().trim());
-    this.showEscalate.set(false);
-    this.reason.set('');
-    this.error.set('');
+    if (await this.service.escalate(this.dispute().id, this.reason().trim())) {
+      this.showEscalate.set(false);
+      this.reason.set('');
+      this.error.set('');
+    }
   }
 
   protected post(e: { text: string; mode: PostMode }) {
-    this.service.post(this.dispute().id, e.text, e.mode);
+    return this.service.post(this.dispute().id, e.text, e.mode);
   }
 
   protected async addEvidence(files: FileList | null) {
