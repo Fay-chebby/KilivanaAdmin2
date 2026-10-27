@@ -111,7 +111,11 @@
             <ul class="thumbs">
               @for (photo of photos(); track photo.id) {
                 <li>
-                  <img [src]="photo.url" [alt]="photo.name ?? 'Inspection evidence'" />
+                  <img
+                    [src]="photo.url"
+                    [alt]="photo.name ?? 'Inspection evidence'"
+                    (error)="onImageError(photo)"
+                  />
                   <button
                     type="button"
                     (click)="removePhoto(photo.id)"

@@ -1,7 +1,12 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, OnDestroy } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 
 import { Farm, INSPECTION_META } from '../../models/farm.model';
-import { InspectionResponse } from '../../models/inspection.model';
+import {
+  InspectionEvidenceImage,
+  InspectionRequest,
+  InspectionResponse,
+} from '../../models/inspection.model';
 import { FarmService, apiError } from '../../services/farm.service';
 import {
   AssignInspectorDialog,
@@ -14,6 +19,8 @@ interface InspectionPhoto {
   name?: string;
 }
 
+type PanelStatus = 'unassigned' | 'assigned' | 'in_review' | 'approved' | 'rejected' | 'cancelled';
+
 @Component({
   selector: 'app-inspection-panel',
   standalone: true,
@@ -21,7 +28,7 @@ interface InspectionPhoto {
   templateUrl: './inspection-panel.html',
   styleUrl: './inspection-panel.scss',
 })
-export class InspectionPanel {
+export class InspectionPanel implements OnDestroy {
   private readonly service = inject(FarmService);
 
   readonly farm = input.required<Farm>();
@@ -38,20 +45,40 @@ export class InspectionPanel {
   protected readonly error = signal('');
   protected readonly dragging = signal(false);
 
-  // The backend inspection response does not include checklist items.
-  // Keep this local until a checklist API is available.
+  /**
+   * Browser-created URLs for downloaded image blobs.
+   * These must be revoked when replaced or when the component is destroyed.
+   */
+  private readonly imageObjectUrls = new Set<string>();
+
   protected readonly checklist = signal<{ key: string; label: string; checked: boolean }[]>([
-    { key: 'ownership', label: 'Farm ownership verified', checked: false },
-    { key: 'land', label: 'Farm land and location verified', checked: false },
-    { key: 'production', label: 'Production facilities inspected', checked: false },
-    { key: 'compliance', label: 'Farm requirements met', checked: false },
+    {
+      key: 'ownership',
+      label: 'Farm ownership verified',
+      checked: false,
+    },
+    {
+      key: 'land',
+      label: 'Farm land and location verified',
+      checked: false,
+    },
+    {
+      key: 'production',
+      label: 'Production facilities inspected',
+      checked: false,
+    },
+    {
+      key: 'compliance',
+      label: 'Farm requirements met',
+      checked: false,
+    },
   ]);
 
   protected readonly insp = computed(() => {
     const current = this.inspection();
 
     return {
-      status: this.normaliseStatus(current?.status),
+      status: this.normaliseStatus(current),
       notes: current?.notes ?? '',
       dueDate: null as string | null,
     };
@@ -88,31 +115,96 @@ export class InspectionPanel {
     });
   }
 
-  private normaliseStatus(status: string | null | undefined): string {
-    const value = (status ?? 'unassigned').toLowerCase();
+  ngOnDestroy(): void {
+    this.releaseImageObjectUrls();
+  }
 
-    if (value === 'in review' || value === 'in-review') {
+  /** Revoke all browser-created image URLs. */
+  private releaseImageObjectUrls(): void {
+    for (const url of this.imageObjectUrls) {
+      URL.revokeObjectURL(url);
+    }
+
+    this.imageObjectUrls.clear();
+  }
+
+  /** Handle a failed image display in the template. */
+  protected onImageError(photo: InspectionPhoto): void {
+    console.error(`Failed to display inspection image ${photo.id}:`, photo.url);
+  }
+
+  /**
+   * Map backend inspection statuses and results into the values
+   * expected by inspection-panel.html.
+   */
+  private normaliseStatus(current: InspectionResponse | null): PanelStatus {
+    if (!current) {
+      return 'unassigned';
+    }
+
+    const status = String(current.status ?? '').toUpperCase();
+    const result = String(current.result ?? '').toUpperCase();
+
+    if (status === 'CANCELLED') {
+      return 'cancelled';
+    }
+
+    if (status === 'COMPLETED') {
+      if (['PASSED', 'APPROVED', 'ACCEPTED'].includes(result)) {
+        return 'approved';
+      }
+
+      if (['FAILED', 'REJECTED'].includes(result)) {
+        return 'rejected';
+      }
+
+      return 'approved';
+    }
+
+    if (status === 'IN_PROGRESS') {
       return 'in_review';
     }
 
-    return value;
+    if (status === 'ASSIGNED' || status === 'PENDING') {
+      return current.inspectorId ? 'assigned' : 'unassigned';
+    }
+
+    return 'unassigned';
   }
 
+  /**
+   * Load inspections for the farm and select the most recently updated one.
+   */
   protected loadInspection(farmId: number): void {
     this.loading.set(true);
     this.error.set('');
 
     this.service.getFarmInspection(farmId).subscribe({
-      next: (inspection) => {
-        this.inspection.set(inspection);
+      next: (inspections) => {
+        const latest =
+          [...inspections].sort((a, b) => {
+            const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+
+            const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+
+            return dateB - dateA;
+          })[0] ?? null;
+
+        this.inspection.set(latest);
         this.draft.set(null);
         this.loading.set(false);
 
-        this.loadEvidence(inspection.id);
+        if (latest) {
+          void this.loadEvidence(latest.id);
+        } else {
+          this.evidence.set([]);
+          this.releaseImageObjectUrls();
+        }
       },
       error: (err) => {
         this.inspection.set(null);
         this.evidence.set([]);
+        this.releaseImageObjectUrls();
         this.loading.set(false);
 
         this.error.set(
@@ -122,23 +214,69 @@ export class InspectionPanel {
     });
   }
 
-  private loadEvidence(inspectionId: number): void {
-    this.service.getInspectionEvidence(inspectionId).subscribe({
-      next: (response: any) => {
-        const raw = Array.isArray(response) ? response : (response?.data ?? []);
+  /**
+   * Fetch the evidence records saved by the backend, download their images,
+   * and convert the image blobs into browser URLs for the template.
+   *
+   * This method is also used after uploading photos, so both initial
+   * loading and refreshing follow the same image-loading process.
+   */
+  private async loadEvidence(inspectionId: number): Promise<void> {
+    try {
+      const images: InspectionEvidenceImage[] = await firstValueFrom(
+        this.service.getInspectionEvidence(inspectionId),
+      );
 
-        this.evidence.set(
-          raw
-            .map((item: any) => ({
-              id: Number(item.id ?? item.imageId),
-              url: item.url ?? item.imageUrl ?? item.evidenceUrl,
-              name: item.name ?? item.fileName,
-            }))
-            .filter((item: InspectionPhoto) => Number.isFinite(item.id) && !!item.url),
-        );
-      },
-      error: () => this.evidence.set([]),
-    });
+      // Release URLs from the previous evidence list.
+      this.releaseImageObjectUrls();
+
+      const validImages = images.filter((image) => !!image.url);
+
+      // Clear old photos while the latest saved images are processed.
+      this.evidence.set([]);
+
+      const loadedPhotos = await Promise.all(
+        validImages.map(async (image): Promise<InspectionPhoto> => {
+          const photo: InspectionPhoto = {
+            id: image.id,
+            url: image.url,
+            name: `Inspection photo ${image.sortOrder + 1}`,
+          };
+
+          try {
+            const blob = await firstValueFrom(this.service.getInspectionImageBlob(image.url));
+
+            if (!blob.type.startsWith('image/')) {
+              console.error(`Backend did not return image content for evidence ${image.id}.`, {
+                url: image.url,
+                contentType: blob.type,
+              });
+
+              return photo;
+            }
+
+            const objectUrl = URL.createObjectURL(blob);
+            this.imageObjectUrls.add(objectUrl);
+
+            return {
+              ...photo,
+              url: objectUrl,
+            };
+          } catch (err) {
+            console.error(`Could not download inspection image ${image.id}:`, err);
+
+            // Keep the saved evidence record and original backend URL.
+            return photo;
+          }
+        }),
+      );
+
+      this.evidence.set(loadedPhotos);
+    } catch (err) {
+      console.error('Could not load inspection evidence:', err);
+      this.evidence.set([]);
+      this.error.set(apiError(err));
+    }
   }
 
   protected assign(assignment: Assignment): void {
@@ -157,52 +295,52 @@ export class InspectionPanel {
       return;
     }
 
-    const current = this.inspection();
-
-    if (current) {
+    if (this.inspection()) {
       this.error.set(
-        'This farm already has an inspection. Reassigning its inspector requires a backend update endpoint.',
+        'An inspection already exists. Reassignment requires a backend endpoint that updates the inspector.',
       );
       return;
     }
 
     this.saving.set(true);
 
-    this.service
-      .assignInspector({
-        inspectorId,
-        targetType: 'FARM',
-        targetId: farmId,
-        status: 'ASSIGNED',
-        notes: `Inspection due date: ${assignment.dueDate}`,
-      })
-      .subscribe({
-        next: (inspection) => {
-          this.inspection.set(inspection);
-          this.showAssign.set(false);
-          this.draft.set(null);
-          this.saving.set(false);
-          this.error.set('');
+    const request: InspectionRequest = {
+      inspectorId,
+      targetType: 'FARM',
+      targetId: farmId,
+      status: 'ASSIGNED',
+      notes: assignment.dueDate ? `Inspection due date: ${assignment.dueDate}` : null,
+    };
 
-          this.loadEvidence(inspection.id);
-        },
-        error: (err: unknown) => {
-          this.error.set(apiError(err));
-          this.saving.set(false);
-        },
-      });
+    this.service.assignInspector(request).subscribe({
+      next: (created) => {
+        this.inspection.set(created);
+        this.showAssign.set(false);
+        this.draft.set(null);
+        this.saving.set(false);
+        this.error.set('');
+
+        void this.loadEvidence(created.id);
+      },
+      error: (err: unknown) => {
+        this.error.set(apiError(err));
+        this.saving.set(false);
+      },
+    });
   }
-  protected start(): void {
-    const inspection = this.inspection();
 
-    if (!inspection) {
+  protected start(): void {
+    const current = this.inspection();
+
+    if (!current) {
       this.error.set('Assign an inspector first.');
       return;
     }
 
     this.saving.set(true);
+    this.error.set('');
 
-    this.service.updateInspectionStatus(inspection.id, 'IN_REVIEW').subscribe({
+    this.service.updateInspectionStatus(current.id, 'IN_PROGRESS').subscribe({
       next: (updated) => {
         this.inspection.set(updated);
         this.saving.set(false);
@@ -222,30 +360,51 @@ export class InspectionPanel {
   }
 
   protected removePhoto(id: number): void {
-    const inspection = this.inspection();
+    const current = this.inspection();
 
-    if (!inspection) return;
+    if (!current) {
+      return;
+    }
 
-    this.service.deleteInspectionEvidence(inspection.id, id).subscribe({
+    this.service.deleteInspectionEvidence(current.id, id).subscribe({
       next: () => {
+        const photo = this.evidence().find((item) => item.id === id);
+
+        if (photo && this.imageObjectUrls.has(photo.url)) {
+          URL.revokeObjectURL(photo.url);
+          this.imageObjectUrls.delete(photo.url);
+        }
+
         this.evidence.update((photos) => photos.filter((photo) => photo.id !== id));
+
         this.error.set('');
       },
-      error: (err) => this.error.set(apiError(err)),
+      error: (err) => {
+        this.error.set(apiError(err));
+      },
     });
   }
 
   protected reopen(): void {
-    const inspection = this.inspection();
+    const current = this.inspection();
 
-    if (!inspection) return;
+    if (!current) {
+      return;
+    }
 
+    this.saving.set(true);
     this.draft.set(null);
     this.error.set('');
 
-    this.service.updateInspectionStatus(inspection.id, 'IN_REVIEW').subscribe({
-      next: (updated) => this.inspection.set(updated),
-      error: (err) => this.error.set(apiError(err)),
+    this.service.updateInspectionStatus(current.id, 'IN_PROGRESS').subscribe({
+      next: (updated) => {
+        this.inspection.set(updated);
+        this.saving.set(false);
+      },
+      error: (err) => {
+        this.error.set(apiError(err));
+        this.saving.set(false);
+      },
     });
   }
 
@@ -255,14 +414,16 @@ export class InspectionPanel {
   }
 
   protected async addPhotos(files: FileList | null): Promise<void> {
-    const inspection = this.inspection();
+    const current = this.inspection();
 
-    if (!inspection) {
+    if (!current) {
       this.error.set('Assign an inspector before uploading evidence.');
       return;
     }
 
-    if (!files?.length) return;
+    if (!files?.length) {
+      return;
+    }
 
     const remaining = 10 - this.photos().length;
 
@@ -271,39 +432,46 @@ export class InspectionPanel {
       return;
     }
 
-    const selected = Array.from(files).slice(0, remaining);
+    const selected = Array.from(files)
+      .filter((file) => file.type.startsWith('image/'))
+      .slice(0, remaining);
+
+    if (!selected.length) {
+      this.error.set('Please select valid image files.');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set('');
 
-    // Upload the actual File objects, not data URL previews.
-    for (const file of selected) {
-      try {
-        await new Promise<void>((resolve, reject) => {
-          this.service.uploadInspectionEvidence(inspection.id, file).subscribe({
-            next: () => resolve(),
-            error: (err) => reject(err),
-          });
-        });
-      } catch (err) {
-        this.error.set(apiError(err));
-        this.saving.set(false);
-        return;
+    try {
+      // Upload each selected image to the backend.
+      for (const file of selected) {
+        await firstValueFrom(this.service.uploadInspectionEvidence(current.id, file));
       }
-    }
 
-    this.loadEvidence(inspection.id);
-    this.saving.set(false);
+      // Reload the authoritative evidence list and download the images.
+      await this.loadEvidence(current.id);
+    } catch (err) {
+      this.error.set(apiError(err));
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   protected onPick(event: Event): void {
     const element = event.target as HTMLInputElement;
+
     void this.addPhotos(element.files);
+
+    // Allow selecting the same file again if necessary.
     element.value = '';
   }
 
   protected onDrop(event: DragEvent): void {
     event.preventDefault();
     this.dragging.set(false);
+
     void this.addPhotos(event.dataTransfer?.files ?? null);
   }
 
@@ -313,10 +481,10 @@ export class InspectionPanel {
   }
 
   protected decide(status: 'approved' | 'rejected'): void {
-    const inspection = this.inspection();
+    const current = this.inspection();
     const notes = this.notes().trim();
 
-    if (!inspection) {
+    if (!current) {
       this.error.set('No inspection is loaded.');
       return;
     }
@@ -339,11 +507,16 @@ export class InspectionPanel {
     this.saving.set(true);
     this.error.set('');
 
-    this.service.submitInspectionResult(inspection.id, status.toUpperCase(), notes).subscribe({
+    // PASSED is supported by the previously observed backend response.
+    // Confirm FAILED against the backend InspectionResult enum.
+    const result = status === 'approved' ? 'PASSED' : 'FAILED';
+
+    this.service.submitInspectionResult(current.id, result, notes).subscribe({
       next: (updated) => {
         this.inspection.set(updated);
         this.draft.set(null);
         this.saving.set(false);
+        this.error.set('');
       },
       error: (err) => {
         this.error.set(apiError(err));

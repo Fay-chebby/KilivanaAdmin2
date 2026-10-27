@@ -2,7 +2,11 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
-import { InspectionRequest, InspectionResponse } from '../models/inspection.model';
+import {
+  InspectionRequest,
+  InspectionResponse,
+  InspectionEvidenceImage,
+} from '../models/inspection.model';
 
 import {
   ApiCrop,
@@ -18,7 +22,6 @@ import {
   toFarm,
 } from '../models/farm.model';
 
-/** Backend API base URL */
 import { API_BASE } from '../../../core/config/api.config';
 
 /** Ngrok browser-warning bypass header */
@@ -26,7 +29,7 @@ const NGROK_HEADERS = new HttpHeaders({
   'ngrok-skip-browser-warning': 'true',
 });
 
-/** Standard HTTP options for ngrok API requests */
+/** Standard HTTP options for API requests */
 const HTTP_OPTIONS = {
   headers: NGROK_HEADERS,
 };
@@ -155,8 +158,8 @@ export class FarmService {
 
   /**
    * PUT /admin/farms/{id}
-   * Fetches the existing farm, merges editable fields, and
-   * removes fields that must not be included in the update body.
+   * Fetches the existing farm, merges editable fields, and removes
+   * fields that must not be included in the update body.
    */
   updateFarm(id: number, value: FarmEditValue): Observable<Farm> {
     return this.http.get<ApiEnvelope<ApiFarm>>(`${API_BASE}/admin/farms/${id}`, HTTP_OPTIONS).pipe(
@@ -291,15 +294,48 @@ export class FarmService {
   // ============================================================
 
   /**
-   * GET /admin/inspections/target/FARM/{farmId}
-   * Retrieves the inspection associated with a farm.
+   * GET /admin/inspections/target/{targetType}/{targetId}
+   *
+   * Returns a LIST of inspections, not a single inspection.
+   *
+   * Example targetType values must match the backend API,
+   * such as FARM or FARMER. The correct value depends on the
+   * resource being inspected and the backend implementation.
    */
-  getFarmInspection(farmId: number): Observable<InspectionResponse> {
+  /**
+   * GET an inspection evidence image.
+   *
+   * Resolves relative image URLs against the backend API host
+   * instead of the Angular frontend at localhost:4200.
+   */
+  getInspectionImageBlob(url: string): Observable<Blob> {
+    const apiUrl = new URL(API_BASE);
+    const imageUrl = new URL(url, apiUrl.origin);
+
+    return this.http.get(imageUrl.href, {
+      headers: NGROK_HEADERS,
+      responseType: 'blob',
+    });
+  }
+
+  getInspectionsByTarget(targetType: string, targetId: number): Observable<InspectionResponse[]> {
     return this.http
       .get<
-        ApiEnvelope<InspectionResponse>
-      >(`${this.inspectionUrl}/target/FARM/${farmId}`, HTTP_OPTIONS)
-      .pipe(map((response) => response.data));
+        ApiEnvelope<InspectionResponse[]>
+      >(`${this.inspectionUrl}/target/${encodeURIComponent(targetType)}/${targetId}`, HTTP_OPTIONS)
+      .pipe(map((response) => (Array.isArray(response.data) ? response.data : [])));
+  }
+
+  /**
+   * Compatibility method for existing callers that request
+   * inspections for a farm using the FARM target type.
+   *
+   * IMPORTANT: Update callers to handle an array.
+   * If your backend uses FARMER for this resource, call
+   * getInspectionsByTarget('FARMER', targetId) instead.
+   */
+  getFarmInspection(farmId: number): Observable<InspectionResponse[]> {
+    return this.getInspectionsByTarget('FARM', farmId);
   }
 
   /**
@@ -347,6 +383,7 @@ export class FarmService {
     formData.append('image', file);
 
     // Do not set Content-Type manually for FormData.
+    // The browser must set the multipart boundary.
     return this.http.post(
       `${this.inspectionUrl}/${inspectionId}/evidence/images`,
       formData,
@@ -356,9 +393,19 @@ export class FarmService {
 
   /**
    * GET /admin/inspections/{id}/evidence/images
+   *
+   * The API returns:
+   * {
+   *   success: true,
+   *   data: [{ id, url, publicId, assetId, ... }]
+   * }
    */
-  getInspectionEvidence(inspectionId: number): Observable<unknown> {
-    return this.http.get(`${this.inspectionUrl}/${inspectionId}/evidence/images`, HTTP_OPTIONS);
+  getInspectionEvidence(inspectionId: number): Observable<InspectionEvidenceImage[]> {
+    return this.http
+      .get<
+        ApiEnvelope<InspectionEvidenceImage[]>
+      >(`${this.inspectionUrl}/${inspectionId}/evidence/images`, HTTP_OPTIONS)
+      .pipe(map((response) => (Array.isArray(response.data) ? response.data : [])));
   }
 
   /**

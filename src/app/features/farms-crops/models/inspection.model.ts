@@ -23,6 +23,16 @@ export interface InspectionRequest {
   notes?: string | null;
   evidenceUrls?: string[];
 }
+export interface InspectionEvidenceImage {
+  id: number;
+  url: string;
+  publicId: string;
+  assetId: string;
+  sortOrder: number;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface ApiResponse<T> {
   success: boolean;
