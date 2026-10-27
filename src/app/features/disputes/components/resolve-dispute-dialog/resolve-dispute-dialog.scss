@@ -161,3 +161,11 @@ $muted: #6b766f;
     outline-offset: 2px;
   }
 }
+
+.opt.off {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.opt.off input {
+  cursor: not-allowed;
+}

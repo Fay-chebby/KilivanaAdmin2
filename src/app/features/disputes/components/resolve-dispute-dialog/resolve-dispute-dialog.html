@@ -8,17 +8,18 @@
   >
     <h3 id="rd-title">Resolve {{ dispute().code }}</h3>
     <p>
-      {{ dispute().orderCode }} · {{ dispute().amountKes | currencyKsh }} is on hold. Choose how to
-      settle it.
+      {{ dispute().orderCode }} · {{ dispute().amountKes | kes }} is on hold. Choose how to settle
+      it.
     </p>
 
     <div class="opts" role="radiogroup" aria-label="Outcome">
       @for (o of options(); track o.id) {
-        <label class="opt" [class.on]="outcome() === o.id">
+        <label class="opt" [class.on]="outcome() === o.id" [class.off]="o.disabled">
           <input
             type="radio"
             name="outcome"
             [checked]="outcome() === o.id"
+            [disabled]="o.disabled"
             (change)="outcome.set(o.id)"
           />
           <span
@@ -42,17 +43,17 @@
           [class.err]="touched() && !partialOk()"
         />
         @if (touched() && !partialOk()) {
-          <small>Enter more than 0 and less than {{ dispute().amountKes | currencyKsh }}.</small>
+          <small>Enter more than 0 and less than {{ dispute().amountKes | kes }}.</small>
         }
       </div>
     }
 
     <div class="split" aria-live="polite">
       <div>
-        <small>Buyer gets back</small><strong>{{ refund() | currencyKsh }}</strong>
+        <small>Buyer gets back</small><strong>{{ refund() | kes }}</strong>
       </div>
       <div>
-        <small>Farmer is paid</small><strong>{{ farmerGets() | currencyKsh }}</strong
+        <small>Farmer is paid</small><strong>{{ farmerGets() | kes }}</strong
         ><em>after the 3% platform fee</em>
       </div>
     </div>
@@ -73,12 +74,18 @@
     </div>
 
     <p class="warn">
-      This updates {{ dispute().orderCode }} and moves the money. It can't be undone from here.
+      This closes the dispute on {{ dispute().orderCode }} for everyone. It can't be undone from
+      here. If the money does not move on its own, you will be told what to do next.
     </p>
+    @if (service.error()) {
+      <p class="warn" role="alert">{{ service.error() }}</p>
+    }
 
     <div class="actions">
       <button type="button" class="btn ghost" (click)="cancelled.emit()">Back</button>
-      <button type="button" class="btn" (click)="submit()">Resolve dispute</button>
+      <button type="button" class="btn" [disabled]="service.busy()" (click)="submit()">
+        {{ service.busy() ? 'Saving…' : 'Resolve dispute' }}
+      </button>
     </div>
   </div>
 </div>

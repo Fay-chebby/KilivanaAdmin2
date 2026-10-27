@@ -1,7 +1,8 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CurrencyKshPipe } from '../../../../shared/pipes/currency-kes-pipe';
 import { PLATFORM_FEE_RATE } from '../../../orders/models/order.model';
 import { Dispute, Outcome } from '../../models/dispute.model';
+import { DisputeService } from '../../services/dispute.service';
 
 export interface ResolveResult {
   outcome: Outcome;
@@ -16,6 +17,7 @@ export interface ResolveResult {
   styleUrl: './resolve-dispute-dialog.scss',
 })
 export class ResolveDisputeDialog {
+  protected readonly service = inject(DisputeService);
   readonly dispute = input.required<Dispute>();
   readonly resolved = output<ResolveResult>();
   readonly cancelled = output<void>();
@@ -50,17 +52,22 @@ export class ResolveDisputeDialog {
     {
       id: 'refund_buyer' as Outcome,
       title: 'Refund the buyer',
+      disabled: false,
       sub: 'The order is cancelled and the full amount goes back to the buyer.',
     },
     {
       id: 'pay_farmer' as Outcome,
       title: 'Pay the farmer',
+      disabled: false,
       sub: "The buyer's claim is rejected and the farmer is paid after the platform fee.",
     },
     {
       id: 'partial_refund' as Outcome,
       title: 'Partial refund',
-      sub: 'Split the money: part back to the buyer, the rest to the farmer.',
+      disabled: !this.service.caps.partialRefund,
+      sub: this.service.caps.partialRefund
+        ? 'Split the money: part back to the buyer, the rest to the farmer.'
+        : 'Not available yet. The server can only refund in full or pay the farmer in full.',
     },
   ]);
 
