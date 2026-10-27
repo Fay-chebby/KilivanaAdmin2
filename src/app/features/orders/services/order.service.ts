@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { ApiResponse, Order, OrderPage, OrderStatus } from '../models/order.model';
 
+import { API_BASE } from '../../../core/config/api.config';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -13,9 +15,7 @@ export class OrderService {
   // BACKEND
   // =========================================================
 
-  private readonly API_BASE_URL = 'https://either-juvenile-progeny.ngrok-free.dev/api/v1';
-
-  private readonly ORDERS_URL = `${this.API_BASE_URL}/orders`;
+  private readonly ORDERS_URL = `${API_BASE}/orders`;
 
   // =========================================================
   // STATE
@@ -229,16 +229,12 @@ export class OrderService {
   assignDriver(orderId: number, driverId: number) {
     const params = new HttpParams().set('driverId', driverId);
 
-    return this.http.post<ApiResponse<Order>>(
-      `${this.API_BASE_URL}/admin/orders/${orderId}/assign`,
-      null,
-      {
-        params,
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-        },
+    return this.http.post<ApiResponse<Order>>(`${API_BASE}/admin/orders/${orderId}/assign`, null, {
+      params,
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
       },
-    );
+    });
   }
   // =========================================================
   // REFRESH
