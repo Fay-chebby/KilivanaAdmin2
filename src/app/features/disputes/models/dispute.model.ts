@@ -54,12 +54,15 @@ export interface Resolution {
 }
 
 export interface Dispute {
-  id: number; // same as the order id
-  code: string; // DSP-041
-  orderId: number;
+  id: string; // the backend dispute id
+  code: string; // DSP-041, made from the id
+  orderId: string;
   orderCode: string;
   buyer: { name: string; phone: string; type: string };
   farmer: { name: string; phone: string };
+  buyerId: string;
+  farmerId: string;
+  raisedBy: 'buyer' | 'farmer';
   amountKes: number;
   issue: string;
   category: Category;
