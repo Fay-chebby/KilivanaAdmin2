@@ -1,9 +1,17 @@
 <nav class="crumbs" aria-label="Breadcrumb">
-  <a routerLink="/">AgriAdmin</a> / <a routerLink="/disputes">Disputes</a> /
+  <a routerLink="/">Dashboard</a> / <a routerLink="/disputes">Disputes</a> /
   <span>{{ dispute()?.code ?? id }}</span>
 </nav>
 <a class="back" routerLink="/disputes">← Back to disputes</a>
 
+@if (state.error()) {
+  <p class="empty" role="alert">
+    {{ state.error() }} <button type="button" (click)="state.load()">Try again</button>
+  </p>
+}
+@if (state.warning()) {
+  <p class="empty" role="status">{{ state.warning() }}</p>
+}
 @if (dispute(); as d) {
   <div class="wrap"><app-dispute-panel [dispute]="d" (resolveClick)="resolving.set(true)" /></div>
   @if (resolving()) {
@@ -15,7 +23,10 @@
   }
 } @else {
   <p class="empty">
-    Dispute not found. Disputes are created when an order is marked as disputed.
-    <a routerLink="/disputes">Back to disputes</a>
+    @if (state.loading() || !state.loaded()) {
+      Loading this dispute…
+    } @else {
+      Dispute not found. <a routerLink="/disputes">Back to disputes</a>
+    }
   </p>
 }
