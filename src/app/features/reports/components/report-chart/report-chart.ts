@@ -86,6 +86,6 @@ export class ReportChart {
 
   full(v: number) {
     const s = v.toLocaleString('en');
-    return this.valueType() === 'currency' ? `kSH${s}` : s;
+    return this.valueType() === 'currency' ? `KES ${s}` : s;
   }
 }

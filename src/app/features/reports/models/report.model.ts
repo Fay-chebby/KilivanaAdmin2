@@ -17,8 +17,9 @@ export interface Kpi {
   label: string;
   value: number;
   format: 'currency' | 'number' | 'percent';
-  /** % change vs previous period. For `invertTrend` KPIs (e.g. disputes) a drop is good. */
-  change: number;
+  /** % change vs previous period, or null when there is no previous data. */
+  change: number | null;
+  /** For KPIs where a drop is good (e.g. disputes). */
   invertTrend?: boolean;
 }
 
@@ -36,6 +37,8 @@ export interface ReportDefinition {
   tint: string;
   /** Route to the detailed report page. Leave undefined until the page exists. */
   route?: string;
+  /** False when the backend has no data source for this report yet. */
+  exportable: boolean;
 }
 
 export const RANGE_PRESETS: { value: RangePreset; label: string; days: number }[] = [

@@ -3,31 +3,35 @@
     <a routerLink="/">AgriAdmin</a> / <a routerLink="/products">Products</a> /
     <span>{{ p.code }}</span>
   </nav>
-  <a class="back" routerLink="/products">← Back to products</a>
-  <!-- <app-api-banner
-    [error]="service.error()"
-    [warning]="service.warning()"
-    (retry)="service.load()"
-  /> -->
 
+  <a class="back" routerLink="/products">← Back to products</a>
+
+  <!-- Product header -->
   <div class="head">
     <div>
       <h1>{{ p.name }}</h1>
       <p class="sub">{{ p.category }} · listed {{ p.createdAt }}</p>
+
       <div class="badges">
-        <span class="badge" [attr.data-tone]="meta[p.status].tone">{{ meta[p.status].label }}</span>
+        <span class="badge" [attr.data-tone]="meta[p.status].tone">
+          {{ meta[p.status].label }}
+        </span>
+
         @if (vis(); as v) {
-          <span class="badge" [attr.data-tone]="v.live ? 'green' : 'grey'">{{
-            v.live ? 'Live in shop' : 'Hidden from customers'
-          }}</span>
+          <span class="badge" [attr.data-tone]="v.live ? 'green' : 'grey'">
+            {{ v.live ? 'Live in shop' : 'Hidden from customers' }}
+          </span>
         }
+
         @if (p.verifiedAt) {
-          <span class="badge" data-tone="green">Verified {{ p.verifiedAt }}</span>
+          <span class="badge" data-tone="green"> Verified {{ p.verifiedAt }} </span>
         }
       </div>
     </div>
+
     <div class="actions">
-      <a class="btn ghost" [routerLink]="['/products', p.id, 'edit']">Edit</a>
+      <a class="btn ghost" [routerLink]="['/products', p.id, 'edit']"> Edit </a>
+
       @if (p.status === 'active') {
         <button
           type="button"
@@ -38,46 +42,155 @@
           Suspend
         </button>
       }
+
       @if (p.status === 'suspended') {
         <button type="button" class="btn ghost" [disabled]="service.busy()" (click)="reactivate()">
           Reactivate
         </button>
       }
+
       @if (p.status === 'active' || p.status === 'rejected' || p.status === 'suspended') {
         <button type="button" class="btn ghost" (click)="modal.set('resubmit')">
           {{ p.status === 'rejected' ? 'Resubmit for verification' : 'Re-verify' }}
         </button>
       }
+
       <button type="button" class="btn danger" (click)="modal.set('delete')">Delete</button>
     </div>
   </div>
 
+  <!-- Product status alerts -->
   @if ((p.status === 'suspended' || p.status === 'rejected') && p.statusReason) {
     <div class="alert" role="status">
-      <strong>{{ p.status === 'suspended' ? 'Suspended' : 'Rejected' }}:</strong>
+      <strong> {{ p.status === 'suspended' ? 'Suspended' : 'Rejected' }}: </strong>
       {{ p.statusReason }}
     </div>
   }
+
   @if (p.status === 'pending') {
     <div class="alert info" role="status">
       This product is hidden from customers until it passes on-site verification.
     </div>
   }
 
+  <!-- Main page layout -->
   <div class="layout">
+    <!-- Main content column -->
     <div class="main">
+      <!-- 1. Verification panel -->
       <app-verification-panel [product]="p" />
+
+      <!-- 2. Product photos -->
       <app-farm-gallery
         [images]="p.images"
         [sellerLabel]="p.sellerType === 'farmer' ? 'Farmer' : 'Supplier'"
       />
+
+      <!-- 3. Pricing and stock below photos -->
+
+      <div class="card pricing-card">
+        <h2>Pricing and stock</h2>
+
+        <dl class="pricing-grid">
+          <div class="pricing-item">
+            <dt>Price</dt>
+            <dd>{{ p.priceKes | currencyKsh }} per {{ p.unit }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>In stock</dt>
+            <dd [attr.data-stock]="stock(p)">
+              {{ num(p.stock) }} {{ p.unit
+              }}{{ stock(p) === 'out' ? ' (out of stock)' : stock(p) === 'low' ? ' (low)' : '' }}
+            </dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Stock value</dt>
+            <dd>{{ p.priceKes * p.stock | currencyKsh }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Minimum order</dt>
+            <dd>{{ p.minOrder }} {{ p.unit }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Low stock alert</dt>
+            <dd>{{ p.lowStockAt }} {{ p.unit }} or less</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Quality grade</dt>
+            <dd>{{ grade(p.grade) }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Harvested</dt>
+            <dd>{{ p.harvestDate || 'Not set' }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Sold so far</dt>
+            <dd>{{ num(p.soldQty) }} {{ p.unit }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- 4. Seller and description in one row -->
+      <div class="details-row">
+        <!-- Seller card -->
+        <div class="card">
+          <h2>Seller</h2>
+
+          <dl>
+            <dt>{{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}</dt>
+            <dd>{{ p.sellerName }}</dd>
+
+            <dt>Phone</dt>
+            <dd>
+              <a [href]="'tel:' + p.sellerPhone">
+                {{ p.sellerPhone }}
+              </a>
+            </dd>
+
+            <dt>Stock location</dt>
+            <dd>
+              {{ p.county ? p.county + ' County' : 'Not set' }}
+            </dd>
+
+            @if (p.farmName) {
+              <dt>Source farm</dt>
+              <dd>
+                {{ p.farmName }}
+
+                <span class="badge" [attr.data-tone]="p.farmCertified ? 'green' : 'amber'">
+                  {{ p.farmCertified ? 'Certified' : 'Not certified' }}
+                </span>
+              </dd>
+            }
+          </dl>
+        </div>
+
+        <!-- Description card -->
+        <div class="card">
+          <h2>Description</h2>
+
+          <p class="desc">
+            {{ p.description || 'No description provided.' }}
+          </p>
+        </div>
+      </div>
     </div>
 
+    <!-- Right column: Shop preview -->
     <aside class="side">
       <div class="card">
         <h2>Shop preview</h2>
         <p class="hint">How customers will see this product.</p>
+
         <div class="preview" [class.off]="!vis()?.live">
+          <!-- Product cover image -->
           <div class="pimg">
             @if (loadedCover()) {
               <img [src]="loadedCover()" [alt]="p.name" />
@@ -86,88 +199,47 @@
             }
 
             @if (!vis()?.live) {
-              <span class="veil"><strong>Not visible to customers</strong>{{ vis()?.reason }}</span>
+              <span class="veil">
+                <strong>Not visible to customers</strong>
+                {{ vis()?.reason }}
+              </span>
             }
           </div>
+
+          <!-- Product information -->
           <div class="pbody">
             <small class="cat">{{ p.category }}</small>
+
             <h3>{{ p.name }}</h3>
+
             <p class="by">{{ p.sellerName }} · {{ p.county }}</p>
+
             <div class="price">
-              <strong>{{ p.priceKes | currencyKsh }}</strong
-              ><span>/ {{ p.unit }}</span>
+              <strong>{{ p.priceKes | currencyKsh }}</strong>
+              <span>/ {{ p.unit }}</span>
             </div>
+
             <div class="meta">
-              <span class="grade">{{ grade(p.grade) }}</span
-              ><span>{{ num(p.stock) }} {{ p.unit }} available</span>
+              <span class="grade">{{ grade(p.grade) }}</span>
+              <span>{{ num(p.stock) }} {{ p.unit }} available</span>
             </div>
+
             @if (p.farmName) {
-              <span class="vtag farm"
-                >{{ p.farmCertified ? '✓ Certified farm: ' : 'From ' }}{{ p.farmName }}</span
-              >
+              <span class="vtag farm">
+                {{ p.farmCertified ? '✓ Certified farm: ' : 'From ' }}{{ p.farmName }}
+              </span>
             }
+
             @if (p.verifiedAt) {
               <span class="vtag">✓ Verified by AgriAdmin</span>
             }
           </div>
         </div>
       </div>
-
-      <div class="card">
-        <h2>Pricing and stock</h2>
-        <dl>
-          <dt>Price</dt>
-          <dd>{{ p.priceKes | currencyKsh }} per {{ p.unit }}</dd>
-          <dt>In stock</dt>
-          <dd [attr.data-stock]="stock(p)">
-            {{ num(p.stock) }} {{ p.unit
-            }}{{ stock(p) === 'out' ? ' (out of stock)' : stock(p) === 'low' ? ' (low)' : '' }}
-          </dd>
-          <dt>Stock value</dt>
-          <dd>{{ p.priceKes * p.stock | currencyKsh }}</dd>
-          <dt>Minimum order</dt>
-          <dd>{{ p.minOrder }} {{ p.unit }}</dd>
-          <dt>Low stock alert</dt>
-          <dd>at {{ p.lowStockAt }} {{ p.unit }} or less</dd>
-          <dt>Quality grade</dt>
-          <dd>{{ grade(p.grade) }}</dd>
-          <dt>Harvested</dt>
-          <dd>{{ p.harvestDate || 'Not set' }}</dd>
-          <dt>Sold so far</dt>
-          <dd>{{ num(p.soldQty) }} {{ p.unit }}</dd>
-        </dl>
-      </div>
-
-      <div class="card">
-        <h2>Seller</h2>
-        <dl>
-          <dt>{{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}</dt>
-          <dd>{{ p.sellerName }}</dd>
-          <dt>Phone</dt>
-          <dd>
-            <a [href]="'tel:' + p.sellerPhone">{{ p.sellerPhone }}</a>
-          </dd>
-          <dt>Stock location</dt>
-          <dd>{{ p.county ? p.county + ' County' : 'Not set' }}</dd>
-          @if (p.farmName) {
-            <dt>Source farm</dt>
-            <dd>
-              {{ p.farmName }}
-              <span class="badge" [attr.data-tone]="p.farmCertified ? 'green' : 'amber'">{{
-                p.farmCertified ? 'Certified' : 'Not certified'
-              }}</span>
-            </dd>
-          }
-        </dl>
-      </div>
-
-      <div class="card">
-        <h2>Description</h2>
-        <p class="desc">{{ p.description }}</p>
-      </div>
     </aside>
   </div>
 
+  <!-- Confirmation modals -->
   @switch (modal()) {
     @case ('suspend') {
       <app-confirm-modal
@@ -180,6 +252,7 @@
         (cancelled)="modal.set(null)"
       />
     }
+
     @case ('delete') {
       <app-confirm-modal
         title="Delete product?"
@@ -190,6 +263,7 @@
         (cancelled)="modal.set(null)"
       />
     }
+
     @case ('resubmit') {
       <app-confirm-modal
         title="Send back for verification?"
@@ -201,5 +275,8 @@
     }
   }
 } @else {
-  <p class="empty">Product not found. <a routerLink="/products">Back to products</a></p>
+  <p class="empty">
+    Product not found.
+    <a routerLink="/products">Back to products</a>
+  </p>
 }
