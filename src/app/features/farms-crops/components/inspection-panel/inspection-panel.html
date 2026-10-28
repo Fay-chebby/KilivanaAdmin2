@@ -1,6 +1,8 @@
+
 <section class="card panel">
   <header>
     <h2>Inspection</h2>
+
     <span class="badge" [attr.data-tone]="meta().tone">
       {{ meta().label }}
     </span>
@@ -9,17 +11,39 @@
   @if (loading()) {
     <p>Loading inspection...</p>
   } @else {
+    <!-- Inspection progress -->
     <ol class="steps" [attr.data-result]="insp().status">
       @for (step of steps; track step; let i = $index) {
-        <li [class.done]="i < meta().step" [class.current]="i === meta().step">
+        <li
+          [class.done]="
+            i < meta().step ||
+            (i === 3 &&
+              (insp().status === 'approved' ||
+                insp().status === 'rejected'))
+          "
+          [class.current]="
+            i === meta().step &&
+            insp().status !== 'approved' &&
+            insp().status !== 'rejected'
+          "
+        >
           <span class="dot">
-            {{ i < meta().step ? '✓' : i + 1 }}
+            {{
+              i < meta().step ||
+              (i === 3 &&
+                (insp().status === 'approved' ||
+                  insp().status === 'rejected'))
+                ? '✓'
+                : i + 1
+            }}
           </span>
+
           <span class="txt">{{ step }}</span>
         </li>
       }
     </ol>
 
+    <!-- Error message -->
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>
     }
@@ -27,66 +51,102 @@
     @if (!inspection()) {
       <div class="state">
         <p>
-          No inspection is loaded for this farm. Assign an inspector to create an inspection record.
+          No inspection is loaded for this farm. Assign an inspector to
+          create an inspection record.
         </p>
-        <button type="button" class="btn" (click)="showAssign.set(true)">Assign inspector</button>
+
+        <button
+          type="button"
+          class="btn"
+          (click)="showAssign.set(true)"
+        >
+          Assign inspector
+        </button>
       </div>
     } @else {
       @switch (insp().status) {
+        <!-- UNASSIGNED -->
         @case ('unassigned') {
           <div class="state">
             <p>No inspector has been assigned to this farm yet.</p>
-            <button type="button" class="btn" (click)="showAssign.set(true)">
+
+            <button
+              type="button"
+              class="btn"
+              (click)="showAssign.set(true)"
+            >
               Assign inspector
             </button>
           </div>
         }
 
+        <!-- ASSIGNED -->
         @case ('assigned') {
           <div class="who">
             <span class="avatar">
               {{ inspection()?.inspectorId ?? '?' }}
             </span>
+
             <div>
-              <strong>Inspector ID: {{ inspection()?.inspectorId }}</strong>
+              <strong>
+                Inspector ID: {{ inspection()?.inspectorId }}
+              </strong>
               <small>Inspection assigned</small>
             </div>
           </div>
 
           <div class="row">
-            <button type="button" class="btn" [disabled]="saving()" (click)="start()">
+            <button
+              type="button"
+              class="btn"
+              [disabled]="saving()"
+              (click)="start()"
+            >
               Start on-site review
             </button>
           </div>
         }
 
+        <!-- INSPECTION IN PROGRESS -->
         @case ('in_review') {
           <div class="who">
             <span class="avatar">
               {{ inspection()?.inspectorId ?? '?' }}
             </span>
+
             <div>
-              <strong>Inspector ID: {{ inspection()?.inspectorId }}</strong>
+              <strong>
+                Inspector ID: {{ inspection()?.inspectorId }}
+              </strong>
               <small>On-site inspection in progress</small>
             </div>
           </div>
 
+          <!-- Checklist -->
           <h3>
-            Checklist <span>{{ checked() }}/{{ checklist().length }}</span>
+            Checklist
+            <span>{{ checked() }}/{{ checklist().length }}</span>
           </h3>
+
           <ul class="check">
             @for (item of checklist(); track item.key) {
               <li>
                 <label>
-                  <input type="checkbox" [checked]="item.checked" (change)="toggle(item.key)" />
+                  <input
+                    type="checkbox"
+                    [checked]="item.checked"
+                    (change)="toggle(item.key)"
+                  />
                   {{ item.label }}
                 </label>
               </li>
             }
           </ul>
 
+          <!-- Upload inspection photos -->
           <h3>
-            On-site photos <span>{{ photos().length }}/10</span>
+            On-site photos
+            <span>{{ photos().length }}/10</span>
           </h3>
 
           <label
@@ -103,32 +163,60 @@
               multiple
               (change)="onPick($event)"
             />
+
             <strong>Add photos taken at the farm</strong>
             <span>Choose or capture images. Maximum 10 photos.</span>
           </label>
 
-          @if (photos().length) {
-            <ul class="thumbs">
-              @for (photo of photos(); track photo.id) {
-                <li>
-                  <img
-                    [src]="photo.url"
-                    [alt]="photo.name ?? 'Inspection evidence'"
-                    (error)="onImageError(photo)"
-                  />
-                  <button
-                    type="button"
-                    (click)="removePhoto(photo.id)"
-                    [attr.aria-label]="'Remove ' + (photo.name ?? 'photo')"
-                  >
-                    ×
-                  </button>
-                </li>
+          <!-- INSPECTOR PHOTOS -->
+          <section class="inspection-evidence">
+            <h3>
+              Inspector's photos
+              @if (!evidenceLoading()) {
+                <span>{{ photos().length }} photo(s)</span>
               }
-            </ul>
-          }
+            </h3>
 
-          <label class="lbl" for="inspection-notes"> Inspector notes </label>
+            @if (evidenceLoading()) {
+              <div class="photos-loading" role="status">
+                <span class="spinner"></span>
+
+                <div>
+                  <strong>Loading inspection photos...</strong>
+                  <p>
+                    Please wait while the inspector's photos are retrieved.
+                  </p>
+                </div>
+              </div>
+            } @else if (photos().length > 0) {
+              <div class="inspection-photos">
+                @for (photo of photos(); track photo.id) {
+                  <figure class="inspection-photo">
+                    <img
+                      [src]="photo.url"
+                      [alt]="photo.name ?? 'Inspection evidence'"
+                      loading="lazy"
+                      (error)="onImageError(photo)"
+                    />
+
+                    <figcaption>
+                      {{ photo.name ?? 'Inspection photo' }}
+                    </figcaption>
+                  </figure>
+                }
+              </div>
+            } @else {
+              <p class="muted">
+                No inspection photos have been uploaded yet.
+              </p>
+            }
+          </section>
+
+          <!-- Inspector notes -->
+          <label class="lbl" for="inspection-notes">
+            Inspector notes
+          </label>
+
           <textarea
             id="inspection-notes"
             rows="3"
@@ -137,6 +225,7 @@
             (input)="updateNotes($any($event.target).value)"
           ></textarea>
 
+          <!-- Approve or reject -->
           <div class="row end">
             <button
               type="button"
@@ -146,21 +235,33 @@
             >
               Reject farm
             </button>
-            <button type="button" class="btn" [disabled]="saving()" (click)="decide('approved')">
+
+            <button
+              type="button"
+              class="btn"
+              [disabled]="saving()"
+              (click)="decide('approved')"
+            >
               Approve and certify
             </button>
           </div>
         }
 
+        <!-- COMPLETED, APPROVED, REJECTED OR OTHER FINAL STATUS -->
         @default {
           <div class="who">
             <span class="avatar">
               {{ inspection()?.inspectorId ?? '?' }}
             </span>
+
             <div>
-              <strong>Inspector ID: {{ inspection()?.inspectorId }}</strong>
+              <strong>
+                Inspector ID: {{ inspection()?.inspectorId }}
+              </strong>
+
               <small>
                 {{ meta().label }}
+
                 @if (inspection()?.inspectedAt) {
                   on {{ inspection()?.inspectedAt }}
                 }
@@ -168,19 +269,70 @@
             </div>
           </div>
 
+          <!-- Saved inspection notes -->
           @if (inspection()?.notes) {
             <blockquote [attr.data-tone]="meta().tone">
               {{ inspection()?.notes }}
             </blockquote>
           }
 
+          <!-- INSPECTOR PHOTOS REMAIN VISIBLE AFTER COMPLETION -->
+          <section class="inspection-evidence">
+            <h3>
+              Inspector's photos
+              @if (!evidenceLoading()) {
+                <span>{{ photos().length }} photo(s)</span>
+              }
+            </h3>
+
+            @if (evidenceLoading()) {
+              <div class="photos-loading" role="status">
+                <span class="spinner"></span>
+
+                <div>
+                  <strong>Loading inspection photos...</strong>
+                  <p>
+                    Please wait while the inspector's photos are retrieved.
+                  </p>
+                </div>
+              </div>
+            } @else if (photos().length > 0) {
+              <div class="inspection-photos">
+                @for (photo of photos(); track photo.id) {
+                  <figure class="inspection-photo">
+                    <img
+                      [src]="photo.url"
+                      [alt]="photo.name ?? 'Inspection evidence'"
+                      loading="lazy"
+                      (error)="onImageError(photo)"
+                    />
+
+                    <figcaption>
+                      {{ photo.name ?? 'Inspection photo' }}
+                    </figcaption>
+                  </figure>
+                }
+              </div>
+            } @else {
+              <p class="muted">
+                No inspection photos have been uploaded for this inspection.
+              </p>
+            }
+          </section>
+
+          <!-- Inspection summary -->
           <p class="sum">
-            {{ checked() }} of {{ checklist().length }} checks passed ·
-            {{ photos().length }} on-site photo(s)
+            {{ checked() }} of {{ checklist().length }} checks passed
+            · {{ photos().length }} on-site photo(s)
           </p>
 
           <div class="row">
-            <button type="button" class="btn ghost" [disabled]="saving()" (click)="reopen()">
+            <button
+              type="button"
+              class="btn ghost"
+              [disabled]="saving()"
+              (click)="reopen()"
+            >
               Reopen review
             </button>
           </div>
@@ -190,6 +342,7 @@
   }
 </section>
 
+<!-- Assign inspector dialog -->
 @if (showAssign()) {
   <app-assign-inspector-dialog
     [county]="farm().county ?? ''"

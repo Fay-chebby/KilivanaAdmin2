@@ -308,9 +308,28 @@ export class FarmService {
    * Resolves relative image URLs against the backend API host
    * instead of the Angular frontend at localhost:4200.
    */
+  /**
+   * Downloads an inspection evidence image.
+   * Supports full URLs and relative URLs returned by the backend.
+   */
   getInspectionImageBlob(url: string): Observable<Blob> {
-    const apiUrl = new URL(API_BASE);
-    const imageUrl = new URL(url, apiUrl.origin);
+    if (!url?.trim()) {
+      throw new Error('Inspection image URL is empty.');
+    }
+
+    let imageUrl: URL;
+
+    try {
+      imageUrl = new URL(url, `${API_BASE.replace(/\/+$/, '')}/`);
+    } catch {
+      throw new Error(`Invalid inspection image URL: ${url}`);
+    }
+
+    if (!['http:', 'https:'].includes(imageUrl.protocol)) {
+      throw new Error('Unsupported inspection image URL protocol.');
+    }
+
+    console.log('[Inspection image] Requesting:', imageUrl.href);
 
     return this.http.get(imageUrl.href, {
       headers: NGROK_HEADERS,
@@ -350,17 +369,23 @@ export class FarmService {
 
   /**
    * PUT /admin/inspections/{id}/status
+   *//**
+   * PUT /admin/inspections/{id}/status?status=COMPLETED
    */
   updateInspectionStatus(inspectionId: number, status: string): Observable<InspectionResponse> {
     return this.http
-      .put<
-        ApiEnvelope<InspectionResponse>
-      >(`${this.inspectionUrl}/${inspectionId}/status`, { status }, HTTP_OPTIONS)
+      .put<ApiEnvelope<InspectionResponse>>(`${this.inspectionUrl}/${inspectionId}/status`, null, {
+        ...HTTP_OPTIONS,
+        params: { status },
+      })
       .pipe(map((response) => response.data));
   }
-
   /**
    * POST /admin/inspections/{id}/result
+   */
+  /**
+   * POST /admin/inspections/{id}/result?result=PASS
+   * Submits an inspection result.
    */
   submitInspectionResult(
     inspectionId: number,
@@ -368,9 +393,14 @@ export class FarmService {
     notes: string,
   ): Observable<InspectionResponse> {
     return this.http
-      .post<
-        ApiEnvelope<InspectionResponse>
-      >(`${this.inspectionUrl}/${inspectionId}/result`, { result, notes }, HTTP_OPTIONS)
+      .post<ApiEnvelope<InspectionResponse>>(
+        `${this.inspectionUrl}/${inspectionId}/result`,
+        { notes },
+        {
+          ...HTTP_OPTIONS,
+          params: { result },
+        },
+      )
       .pipe(map((response) => response.data));
   }
 

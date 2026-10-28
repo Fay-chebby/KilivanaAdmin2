@@ -7,10 +7,12 @@ $line: #e6ebe8;
   display: block;
   color: $ink;
 }
+
 h2 {
   margin: 0;
   font-size: 15px;
 }
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -26,36 +28,45 @@ h2 {
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.15s;
+
   &:hover {
     background: #00692b;
   }
+
   &.ghost {
     background: #eef1ef;
     color: #22302a;
+
     &:hover {
       background: #e3e8e5;
     }
   }
+
   &.danger {
     background: #fde8e6;
     color: #b42318;
+
     &:hover {
       background: #fbd5d1;
     }
   }
+
   &.sm {
     padding: 6px 11px;
     font-size: 12px;
   }
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
+
   &:focus-visible {
     outline: 2px solid $green;
     outline-offset: 2px;
   }
 }
+
 .card {
   background: #fff;
   border-radius: 14px;
@@ -64,6 +75,7 @@ h2 {
     0 1px 2px rgba(16, 24, 20, 0.05),
     0 4px 14px rgba(16, 24, 20, 0.04);
 }
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -73,6 +85,7 @@ h2 {
   padding: 3px 9px;
   border-radius: 999px;
   white-space: nowrap;
+
   &::before {
     content: '';
     width: 6px;
@@ -80,38 +93,47 @@ h2 {
     border-radius: 50%;
     background: currentColor;
   }
+
   &[data-tone='green'] {
     background: #e6f7ed;
     color: #007a33;
   }
+
   &[data-tone='amber'] {
     background: #fff4e0;
     color: #b45309;
   }
+
   &[data-tone='red'] {
     background: #fde8e6;
     color: #b42318;
   }
+
   &[data-tone='grey'] {
     background: #eceeed;
     color: #5b6660;
   }
+
   &[data-tone='blue'] {
     background: #e8f0fe;
     color: #1d4ed8;
   }
 }
+
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   margin-bottom: 18px;
 }
+
 .steps {
   list-style: none;
   margin: 0 0 22px;
   padding: 0;
   display: flex;
+
   li {
     flex: 1;
     display: flex;
@@ -120,6 +142,7 @@ header {
     gap: 6px;
     position: relative;
     text-align: center;
+
     &:not(:first-child)::before {
       content: '';
       position: absolute;
@@ -129,11 +152,13 @@ header {
       height: 2px;
       background: $line;
     }
+
     &.done:not(:first-child)::before,
     &.current:not(:first-child)::before {
       background: $green;
     }
   }
+
   .dot {
     position: relative;
     z-index: 1;
@@ -147,36 +172,45 @@ header {
     background: #eef1ef;
     color: $muted;
   }
+
   .txt {
     font-size: 11.5px;
     color: $muted;
   }
+
   .done .dot {
     background: $green;
     color: #fff;
   }
+
   .done .txt,
   .current .txt {
     color: $ink;
     font-weight: 600;
   }
+
   .current .dot {
     background: #fff;
     color: $green;
     box-shadow: 0 0 0 2px $green;
   }
+
   &[data-result='rejected'] li:last-child {
     .dot {
       background: #d92d20;
+      color: #fff;
     }
+
     &::before {
       background: #d92d20;
     }
   }
 }
+
 .state {
   text-align: center;
   padding: 8px 0 4px;
+
   p {
     font-size: 13px;
     color: $muted;
@@ -184,25 +218,32 @@ header {
     line-height: 1.5;
   }
 }
+
 .who {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+
   div {
     flex: 1;
+    min-width: 0;
   }
+
   strong {
     display: block;
     font-size: 14px;
   }
+
   small {
     color: $muted;
     font-size: 12px;
   }
+
   .avatar {
     width: 38px;
     height: 38px;
+    flex-shrink: 0;
     border-radius: 50%;
     display: grid;
     place-items: center;
@@ -211,33 +252,45 @@ header {
     font-weight: 700;
   }
 }
+
 .late {
   color: #b42318;
   font-weight: 600;
 }
+
 .row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+
   &.end {
     justify-content: flex-end;
     margin-top: 14px;
   }
 }
+
 h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   font-size: 13px;
   margin: 20px 0 10px;
+
   span {
     color: $muted;
     font-weight: 400;
+    white-space: nowrap;
   }
 }
+
 .check {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
   gap: 4px;
+
   label {
     display: flex;
     gap: 10px;
@@ -246,16 +299,21 @@ h3 {
     padding: 8px 10px;
     border-radius: 8px;
     cursor: pointer;
+
     &:hover {
       background: #f6f8f7;
     }
   }
+
   input {
     accent-color: $green;
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
   }
 }
+
+/* Photo upload area */
 .drop {
   position: relative;
   display: flex;
@@ -270,19 +328,24 @@ h3 {
   transition:
     background 0.15s,
     border-color 0.15s;
+
   input {
     position: absolute;
     width: 1px;
     height: 1px;
     opacity: 0;
+    overflow: hidden;
   }
+
   strong {
     font-size: 13px;
   }
+
   span {
     font-size: 12px;
     color: $muted;
   }
+
   &:hover,
   &.over,
   &:focus-within {
@@ -290,6 +353,8 @@ h3 {
     border-color: $green;
   }
 }
+
+/* Existing thumbnail grid */
 .thumbs {
   list-style: none;
   margin: 12px 0 0;
@@ -297,18 +362,22 @@ h3 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
   gap: 8px;
+
   li {
     position: relative;
     aspect-ratio: 1;
     border-radius: 10px;
     overflow: hidden;
+    background: #f3f4f6;
   }
+
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
   }
+
   button {
     position: absolute;
     top: 4px;
@@ -323,12 +392,108 @@ h3 {
     line-height: 1;
   }
 }
+
+/* Inspector's inspection evidence */
+.inspection-evidence {
+  margin-top: 20px;
+  min-width: 0;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+}
+
+.inspection-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.inspection-photo {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid $line;
+  border-radius: 10px;
+  background: #fff;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(16, 24, 20, 0.08);
+  }
+
+  img {
+    display: block;
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: #f3f4f6;
+  }
+
+  figcaption {
+    padding: 9px;
+    color: $muted;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+  }
+}
+
+/* Loading indicator while photos are fetched */
+.photos-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  color: $muted;
+  font-size: 13px;
+
+  strong {
+    color: $ink;
+    font-size: 13px;
+  }
+
+  p {
+    margin: 4px 0 0;
+    line-height: 1.5;
+  }
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 3px solid #dcfce7;
+  border-top-color: $green;
+  border-radius: 50%;
+  animation: photo-spin 0.8s linear infinite;
+}
+
+@keyframes photo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.muted {
+  color: $muted;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 8px 0;
+}
+
+/* Inspector notes */
 .lbl {
   display: block;
   font-size: 12px;
   font-weight: 600;
   margin: 18px 0 6px;
 }
+
 textarea {
   width: 100%;
   box-sizing: border-box;
@@ -338,16 +503,21 @@ textarea {
   font: inherit;
   font-size: 13px;
   resize: vertical;
+
   &:focus {
     outline: 2px solid $green;
     outline-offset: 1px;
   }
 }
+
+/* Error messages */
 .error {
   color: #d92d20;
   font-size: 12.5px;
   margin: 10px 0 0;
 }
+
+/* Completed inspection notes */
 blockquote {
   margin: 0 0 12px;
   padding: 12px 14px;
@@ -356,18 +526,43 @@ blockquote {
   line-height: 1.5;
   border-left: 4px solid $green;
   background: #f1faf4;
+  overflow-wrap: anywhere;
+
   &[data-tone='red'] {
     border-color: #d92d20;
     background: #fdf1f0;
   }
 }
+
+/* Inspection summary */
 .sum {
   font-size: 12px;
   color: $muted;
-  margin: 0 0 14px;
+  margin: 14px 0;
+  line-height: 1.5;
 }
+
+/* Responsive layout */
 @media (max-width: 560px) {
+  .card {
+    padding: 16px;
+  }
+
   .steps .txt {
     font-size: 10px;
+  }
+
+  .inspection-photos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .inspection-photo img {
+    height: 120px;
+  }
+
+  .photos-loading {
+    gap: 10px;
+    padding: 16px 0;
   }
 }

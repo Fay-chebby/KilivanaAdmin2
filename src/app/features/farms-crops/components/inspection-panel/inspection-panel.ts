@@ -38,6 +38,7 @@ export class InspectionPanel implements OnDestroy {
   protected readonly inspection = signal<InspectionResponse | null>(null);
   protected readonly evidence = signal<InspectionPhoto[]>([]);
   protected readonly loading = signal(false);
+  protected readonly evidenceLoading = signal(false);
   protected readonly saving = signal(false);
 
   protected readonly showAssign = signal(false);
@@ -137,6 +138,7 @@ export class InspectionPanel implements OnDestroy {
    * Map backend inspection statuses and results into the values
    * expected by inspection-panel.html.
    */
+
   private normaliseStatus(current: InspectionResponse | null): PanelStatus {
     if (!current) {
       return 'unassigned';
@@ -149,16 +151,12 @@ export class InspectionPanel implements OnDestroy {
       return 'cancelled';
     }
 
-    if (status === 'COMPLETED') {
-      if (['PASSED', 'APPROVED', 'ACCEPTED'].includes(result)) {
-        return 'approved';
-      }
-
-      if (['FAILED', 'REJECTED'].includes(result)) {
-        return 'rejected';
-      }
-
+    if (result === 'APPROVED') {
       return 'approved';
+    }
+
+    if (result === 'REJECTED') {
+      return 'rejected';
     }
 
     if (status === 'IN_PROGRESS') {
@@ -167,6 +165,10 @@ export class InspectionPanel implements OnDestroy {
 
     if (status === 'ASSIGNED' || status === 'PENDING') {
       return current.inspectorId ? 'assigned' : 'unassigned';
+    }
+
+    if (status === 'COMPLETED') {
+      return 'in_review';
     }
 
     return 'unassigned';
@@ -221,33 +223,46 @@ export class InspectionPanel implements OnDestroy {
    * This method is also used after uploading photos, so both initial
    * loading and refreshing follow the same image-loading process.
    */
+
   private async loadEvidence(inspectionId: number): Promise<void> {
+    this.evidenceLoading.set(true);
+    this.error.set('');
+
     try {
       const images: InspectionEvidenceImage[] = await firstValueFrom(
         this.service.getInspectionEvidence(inspectionId),
       );
 
-      // Release URLs from the previous evidence list.
+      console.log('Inspection ID:', inspectionId);
+      console.log('Evidence records returned by backend:', images);
+
+      for (const image of images ?? []) {
+        console.log('Inspection image details:', {
+          id: image.id,
+          url: image.url,
+          sortOrder: image.sortOrder,
+        });
+      }
+
+      // Release old browser-created image URLs.
       this.releaseImageObjectUrls();
 
-      const validImages = images.filter((image) => !!image.url);
+      const validImages = (images ?? []).filter((image) => !!image.url);
 
-      // Clear old photos while the latest saved images are processed.
-      this.evidence.set([]);
-
+      // Show the loading indicator while images are downloaded.
       const loadedPhotos = await Promise.all(
-        validImages.map(async (image): Promise<InspectionPhoto> => {
+        validImages.map(async (image, index): Promise<InspectionPhoto> => {
           const photo: InspectionPhoto = {
             id: image.id,
             url: image.url,
-            name: `Inspection photo ${image.sortOrder + 1}`,
+            name: `Inspection photo ${image.sortOrder + 1 || index + 1}`,
           };
 
           try {
             const blob = await firstValueFrom(this.service.getInspectionImageBlob(image.url));
 
             if (!blob.type.startsWith('image/')) {
-              console.error(`Backend did not return image content for evidence ${image.id}.`, {
+              console.error(`The response for inspection photo ${image.id} is not an image.`, {
                 url: image.url,
                 contentType: blob.type,
               });
@@ -265,7 +280,7 @@ export class InspectionPanel implements OnDestroy {
           } catch (err) {
             console.error(`Could not download inspection image ${image.id}:`, err);
 
-            // Keep the saved evidence record and original backend URL.
+            // Keep the original URL as a fallback.
             return photo;
           }
         }),
@@ -276,6 +291,9 @@ export class InspectionPanel implements OnDestroy {
       console.error('Could not load inspection evidence:', err);
       this.evidence.set([]);
       this.error.set(apiError(err));
+    } finally {
+      // Always stop loading, whether the request succeeds or fails.
+      this.evidenceLoading.set(false);
     }
   }
 
@@ -482,24 +500,34 @@ export class InspectionPanel implements OnDestroy {
 
   protected decide(status: 'approved' | 'rejected'): void {
     const current = this.inspection();
-    const notes = this.notes().trim();
 
     if (!current) {
       this.error.set('No inspection is loaded.');
       return;
     }
 
+    if (this.saving()) {
+      return;
+    }
+
+    const notes = this.notes().trim();
+
+    // Approval requires every checklist item to be checked.
     if (status === 'approved') {
       if (!this.allChecked()) {
         this.error.set('Tick every checklist item before approving.');
         return;
       }
 
+      // Approval also requires at least one evidence photo.
       if (this.photos().length === 0) {
         this.error.set('Add at least one on-site photo before approving.');
         return;
       }
-    } else if (!notes) {
+    }
+
+    // Rejection requires an explanation.
+    if (status === 'rejected' && !notes) {
       this.error.set('Add a note explaining why the farm was rejected.');
       return;
     }
@@ -507,9 +535,8 @@ export class InspectionPanel implements OnDestroy {
     this.saving.set(true);
     this.error.set('');
 
-    // PASSED is supported by the previously observed backend response.
-    // Confirm FAILED against the backend InspectionResult enum.
-    const result = status === 'approved' ? 'PASSED' : 'FAILED';
+    // These values must match the backend InspectionResult enum.
+    const result = status === 'approved' ? 'APPROVED' : 'REJECTED';
 
     this.service.submitInspectionResult(current.id, result, notes).subscribe({
       next: (updated) => {
