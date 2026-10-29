@@ -16,6 +16,7 @@ export class StatsRow {
 
   protected readonly cards = computed(() => {
     const s = this.stats();
+
     return [
       this.toView(s.totalFarmers, 'user'),
       this.toView(s.totalBuyers, 'cart'),
@@ -25,17 +26,24 @@ export class StatsRow {
   });
 
   private toView(card: StatCardData, icon: string) {
-    const up = card.changePct >= 0;
+    // Use 0 when changePct is undefined.
+    const changePct = card.changePct ?? 0;
+
+    const up = changePct >= 0;
+
     return {
       label: card.label,
       icon,
+
       value:
         card.format === 'currency'
           ? this.ksh.transform(card.value, true)
           : card.value.toLocaleString('en-US'),
+
       delta: card.deltaText
         ? `↑ ${card.deltaText}`
-        : `${up ? '↑' : '↓'} ${Math.abs(card.changePct)}% vs last month`,
+        : `${up ? '↑' : '↓'} ${Math.abs(changePct)}% vs last month`,
+
       positive: up,
     };
   }

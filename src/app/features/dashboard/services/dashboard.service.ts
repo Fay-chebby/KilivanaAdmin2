@@ -1,5 +1,12 @@
-import { Injectable } from '@angular/core';
-import { Observable, delay, forkJoin, of } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
+
+import { API_BASE } from '../../../core/config/api.config';
+import { ApiResponse, SpringPage } from '../../../core/models/api-response.model';
+
+import { AuditLogResponse, DashboardStatsResponse } from '../models/Dashboard api.model';
+
 import {
   ActivityItem,
   AlertItem,
@@ -9,104 +16,199 @@ import {
   OrderTrendPoint,
 } from '../models/dashboard.model';
 
-/**
- * MOCK DATA for now. When your API is ready, inject HttpClient and replace each
- * method body with e.g. `return this.http.get<DashboardStats>('/api/dashboard/stats');`
- * Nothing else in the feature needs to change.
- */
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
+  private readonly http = inject(HttpClient);
+
+  /**
+   * Headers shared by dashboard API requests.
+   *
+   * The auth interceptor should add the JWT token if configured.
+   * The Ngrok header suppresses its browser warning page.
+   */
+  private readonly headers = new HttpHeaders({
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+  });
+
   getDashboard(): Observable<DashboardData> {
     return forkJoin({
-      stats: this.getStats(),
-      orderTrend: this.getOrderTrend(),
-      cropMix: this.getCropMix(),
+      stats: this.http
+        .get<
+          ApiResponse<DashboardStatsResponse>
+        >(`${API_BASE}/admin/dashboard/stats`, { headers: this.headers })
+        .pipe(map((res) => res.data)),
+
       activity: this.getActivity(),
-      alerts: this.getAlerts(),
+    }).pipe(
+      map(({ stats, activity }) => ({
+        stats: this.toStats(stats),
+        orderTrend: this.toOrderTrend(stats),
+        cropMix: this.toCropMix(stats),
+        activity,
+        alerts: this.toAlerts(stats),
+      })),
+    );
+  }
+
+  /**
+   * Uses audit logs for recent activity.
+   * If the audit-log request fails, the dashboard still loads.
+   */
+  private getActivity(): Observable<ActivityItem[]> {
+    return this.http
+      .get<ApiResponse<SpringPage<AuditLogResponse>>>(`${API_BASE}/admin/audit-logs`, {
+        headers: this.headers,
+        params: {
+          page: 0,
+          size: 5,
+          sort: 'createdAt,desc',
+        },
+      })
+      .pipe(
+        map((res) => (res.data?.content ?? []).map((log) => this.toActivity(log))),
+        catchError(() => of([])),
+      );
+  }
+
+  /**
+   * Converts backend dashboard statistics into frontend card data.
+   */
+  private toStats(s: DashboardStatsResponse): DashboardStats {
+    const month = new Date(s.updatedAt).toLocaleString('en-US', {
+      month: 'short',
+    });
+
+    return {
+      totalFarmers: {
+        label: 'Total Farmers',
+        value: s.totalFarmers,
+        changePct: 0,
+        format: 'number',
+      },
+
+      totalBuyers: {
+        label: 'Total Buyers',
+        value: s.totalBuyers,
+        changePct: 0,
+        format: 'number',
+      },
+
+      activeOrders: {
+        label: 'Active Orders',
+        value: s.activeOrders,
+        changePct: 0,
+        format: 'number',
+      },
+
+      monthlyRevenue: {
+        label: `${month} Revenue`,
+        value: s.monthlyRevenue,
+        changePct: 0,
+        format: 'currency',
+        deltaText: `${s.monthlyOrders} orders this month`,
+      },
+
+      pendingVerifications: s.pendingVerifications,
+      openDisputes: s.openDisputes,
+      avgOrderValue: s.averageOrderValue,
+      updatedAt: s.updatedAt,
+    };
+  }
+
+  /**
+   * Converts the backend order trend into the format required by the chart.
+   */
+  private toOrderTrend(s: DashboardStatsResponse): OrderTrendPoint[] {
+    return (s.orderTrend ?? []).map((p) => {
+      const date = new Date(p.date);
+
+      return {
+        month: date.toLocaleDateString('en-US', {
+          month: 'short',
+        }),
+
+        label: date.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+        }),
+
+        orders: p.orders,
+        revenue: p.revenue,
+      };
     });
   }
 
-  getStats(): Observable<DashboardStats> {
-    return of<DashboardStats>({
-      totalFarmers: { label: 'Total Farmers', value: 8452, changePct: 12.4, format: 'number' },
-      totalBuyers: { label: 'Total Buyers', value: 3891, changePct: 8.7, format: 'number' },
-      activeOrders: {
-        label: 'Active Orders',
-        value: 142,
-        changePct: 0,
-        format: 'number',
-        deltaText: '23 new today vs last month',
-      },
-      monthlyRevenue: { label: 'Sep Revenue', value: 284600, changePct: 21.3, format: 'currency' },
-      pendingVerifications: 23,
-      openDisputes: 8,
-      avgOrderValue: 2004,
-      updatedAt: new Date().toISOString(),
-    }).pipe(delay(400));
+  /**
+   * Converts category order counts into percentages for the donut chart.
+   */
+  private toCropMix(s: DashboardStatsResponse): CropSlice[] {
+    const categories = s.topCategories ?? [];
+
+    const total = categories.reduce((sum, category) => sum + category.orders, 0);
+
+    return categories.map((category) => ({
+      category: category.category,
+      percent: total ? Math.round((category.orders / total) * 1000) / 10 : 0,
+    }));
   }
 
-  getOrderTrend(): Observable<OrderTrendPoint[]> {
-    const orders = [45, 62, 72, 88, 100, 126, 148];
-    const months = ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
-    return of(
-      months.map((month, i) => ({ month, orders: orders[i], revenue: orders[i] * 2004 })),
-    ).pipe(delay(400));
-  }
+  /**
+   * Creates alerts using counts already provided by the backend.
+   */
+  private toAlerts(s: DashboardStatsResponse): AlertItem[] {
+    const alerts: AlertItem[] = [];
 
-  getCropMix(): Observable<CropSlice[]> {
-    return of<CropSlice[]>([
-      { category: 'Cocoa', percent: 31 },
-      { category: 'Grains', percent: 22 },
-      { category: 'Root Crops', percent: 18 },
-      { category: 'Vegetables', percent: 14 },
-      { category: 'Tree Fruits', percent: 10 },
-      { category: 'Other', percent: 5 },
-    ]).pipe(delay(400));
-  }
-
-  getActivity(): Observable<ActivityItem[]> {
-    const minsAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
-    return of<ActivityItem[]>([
-      {
-        id: '1',
-        type: 'order',
-        text: 'New order ORD-2851 placed by AgriMart Ltd',
-        createdAt: minsAgo(2),
-        link: '/orders',
-      },
-      {
-        id: '2',
-        type: 'kyc',
-        text: 'Adjoa Boateng submitted KYC documents for review',
-        createdAt: minsAgo(18),
-        link: '/kyc',
-      },
-      {
-        id: '3',
-        type: 'dispute',
-        text: 'Dispute DSP-041 opened on order ORD-2849',
-        createdAt: minsAgo(34),
-        link: '/disputes',
-      },
-    ]).pipe(delay(400));
-  }
-
-  getAlerts(): Observable<AlertItem[]> {
-    return of<AlertItem[]>([
-      {
-        id: '1',
+    if (s.openDisputes > 0) {
+      alerts.push({
+        id: 'disputes',
         severity: 'high',
-        title: 'Escalated Dispute',
-        detail: 'DSP-039 overdue SLA — 19 Sep deadline',
+        title: `${s.openDisputes} Open Dispute${s.openDisputes > 1 ? 's' : ''}`,
+        detail: 'Open or in progress — review and resolve',
         link: '/disputes',
-      },
-      {
-        id: '2',
+      });
+    }
+
+    if (s.pendingVerifications > 0) {
+      alerts.push({
+        id: 'verifications',
         severity: 'medium',
-        title: '23 Pending KYCs',
-        detail: '4 flagged as high priority — review needed',
+        title: `${s.pendingVerifications} Pending Verification${
+          s.pendingVerifications > 1 ? 's' : ''
+        }`,
+        detail: 'Accounts waiting for approval — review needed',
         link: '/kyc',
-      },
-    ]).pipe(delay(400));
+      });
+    }
+
+    return alerts;
+  }
+
+  /**
+   * Converts an audit log entry into a dashboard activity item.
+   */
+  private toActivity(log: AuditLogResponse): ActivityItem {
+    const entity = (log.entityType ?? '').toLowerCase();
+
+    const type: ActivityItem['type'] = entity.includes('order')
+      ? 'order'
+      : entity.includes('dispute')
+        ? 'dispute'
+        : entity.includes('kyc') || entity.includes('verification')
+          ? 'kyc'
+          : 'other';
+
+    const action = (log.action ?? 'UNKNOWN_ACTION').replace(/_/g, ' ').toLowerCase();
+
+    const target = log.entityType
+      ? ` — ${log.entityType}${log.entityId != null ? ` #${log.entityId}` : ''}`
+      : '';
+
+    return {
+      id: String(log.id),
+      type,
+      text: `${action.charAt(0).toUpperCase()}${action.slice(1)}${target}`,
+      createdAt: log.createdAt,
+    };
   }
 }

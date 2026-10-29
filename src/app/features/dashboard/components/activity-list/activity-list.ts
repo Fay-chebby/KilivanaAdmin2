@@ -9,7 +9,7 @@ import { ActivityItem } from '../../models/dashboard.model';
   selector: 'app-activity-list',
   imports: [Panel, Icon, RouterLink, TimeAgoPipe],
   templateUrl: './activity-list.html',
-  styleUrl: './activity-list.scss'
+  styleUrl: './activity-list.scss',
 })
 export class ActivityList {
   readonly items = input.required<ActivityItem[]>();
@@ -17,6 +17,10 @@ export class ActivityList {
   protected readonly meta: Record<ActivityItem['type'], { icon: string; tone: string }> = {
     order: { icon: 'cart', tone: 'blue' },
     kyc: { icon: 'clock', tone: 'amber' },
-    dispute: { icon: 'alert', tone: 'red' }
+    dispute: { icon: 'alert', tone: 'red' },
+    other: {
+      icon: 'activity',
+      tone: 'gray',
+    },
   };
 }

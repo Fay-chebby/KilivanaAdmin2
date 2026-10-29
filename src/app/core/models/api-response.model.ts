@@ -11,3 +11,15 @@ export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
 }
+
+export interface SpringPage<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number; // 0-based page index
+  size: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}

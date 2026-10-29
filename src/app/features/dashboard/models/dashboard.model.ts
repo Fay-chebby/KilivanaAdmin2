@@ -1,10 +1,13 @@
+/** UI-facing models. dashboard.service maps the API responses into these. */
+
 export interface StatCardData {
   label: string;
   value: number;
-  changePct: number;
   format: 'number' | 'currency';
-  /** Optional custom delta text, e.g. "23 new today". Overrides the % text. */
+  /** Optional line under the value, e.g. "68 orders this month". */
   deltaText?: string;
+  /** Optional % change; the current API doesn't send it, so the line is simply hidden. */
+  changePct?: number;
 }
 
 export interface DashboardStats {
@@ -19,7 +22,7 @@ export interface DashboardStats {
 }
 
 export interface OrderTrendPoint {
-  month: string;
+  label: string; // "28 Oct"
   orders: number;
   revenue: number;
 }
@@ -33,7 +36,7 @@ export interface ActivityItem {
   id: string;
   text: string;
   createdAt: string;
-  type: 'order' | 'kyc' | 'dispute';
+  type: 'order' | 'kyc' | 'dispute' | 'other';
   link?: string;
 }
 
