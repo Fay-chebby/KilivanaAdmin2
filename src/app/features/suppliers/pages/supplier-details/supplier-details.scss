@@ -246,3 +246,161 @@ $amber: #d97706;
     grid-template-columns: 1fr;
   }
 }
+
+/* Supplier Products */
+.products-section {
+  margin-top: 18px;
+  overflow: hidden;
+}
+
+.products-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e7eb;
+
+  h3 {
+    margin: 0;
+    color: #16211b;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+}
+
+.products-count {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.products-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+
+  th {
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+}
+
+.product-name-cell {
+  min-width: 220px;
+}
+
+.product-name {
+  color: #16211b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.product-description {
+  max-width: 280px;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #94a3b8;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-farm {
+  margin-top: 4px;
+  color: #15803d;
+  font-size: 11px;
+}
+
+.product-number {
+  font-variant-numeric: tabular-nums;
+}
+
+.product-unit {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.product-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  &--active {
+    background: #ecfdf5;
+    color: #15803d;
+  }
+
+  &--inactive {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+}
+
+.products-state {
+  padding: 28px 20px;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+
+  p {
+    margin: 0 0 12px;
+  }
+
+  &--error {
+    color: #b91c1c;
+  }
+}
+
+@media (max-width: 600px) {
+  .products-header {
+    padding: 14px;
+  }
+
+  .products-table {
+    min-width: 850px;
+  }
+}

@@ -76,3 +76,26 @@ export interface ApiEnvelope<T> {
   data: T;
   error?: { code?: string; details?: string } | null;
 }
+
+export interface SupplierProduct {
+  id: number;
+  sellerId: number;
+  sellerType: string;
+  categoryId: number;
+  name: string;
+  description: string | null;
+  unit: string;
+  price: number;
+  stockQty: number;
+  reservedQty: number;
+  soldQty: number;
+  minimumOrderQty: number;
+  status: string;
+  qualityGrade: string | null;
+  farmId: number | null;
+  farmName: string | null;
+  categoryName: string | null;
+  isLive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

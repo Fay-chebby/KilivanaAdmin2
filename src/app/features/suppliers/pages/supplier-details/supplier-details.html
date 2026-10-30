@@ -1,6 +1,6 @@
 <div class="page">
   <div class="breadcrumb">
-    <a routerLink="/dashboard">AgriAdmin</a><span>/</span><a routerLink="/suppliers">Suppliers</a
+    <a routerLink="/dashboard">Dashboard</a><span>/</span><a routerLink="/suppliers">Suppliers</a
     ><span>/</span>Details
   </div>
 
@@ -99,6 +99,101 @@
         </div>
       </dl>
     </div>
+
+    <!-- Supplier Products -->
+    <section class="card products-section">
+      <div class="products-header">
+        <div>
+          <h3>Supplier Products</h3>
+          <p>Products listed by this supplier.</p>
+        </div>
+
+        <span class="products-count"> {{ products().length }} products </span>
+      </div>
+
+      @if (productsLoading()) {
+        <div class="products-state">Loading supplier products...</div>
+      } @else if (productsError()) {
+        <div class="products-state products-state--error">
+          <p>{{ productsError() }}</p>
+
+          <button type="button" class="btn" (click)="loadProducts(supplier()!.id)">Retry</button>
+        </div>
+      } @else if (products().length === 0) {
+        <div class="products-state">
+          <p>No products found for this supplier.</p>
+        </div>
+      } @else {
+        <div class="products-table-wrap">
+          <table class="products-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Sold</th>
+                <th>Quality</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (product of products(); track product.id) {
+                <tr>
+                  <td class="product-name-cell">
+                    <div class="product-name">
+                      {{ product.name }}
+                    </div>
+
+                    <div class="product-description">
+                      {{ product.description || 'No description available' }}
+                    </div>
+
+                    @if (product.farmName) {
+                      <div class="product-farm">
+                        {{ product.farmName }}
+                      </div>
+                    }
+                  </td>
+
+                  <td>
+                    {{ product.categoryName || '—' }}
+                  </td>
+
+                  <td class="product-number">
+                    KES {{ product.price | number: '1.2-2' }}
+                    <span class="product-unit">/ {{ product.unit }}</span>
+                  </td>
+
+                  <td class="product-number">
+                    {{ product.stockQty | number }}
+                  </td>
+
+                  <td class="product-number">
+                    {{ product.soldQty | number }}
+                  </td>
+
+                  <td>
+                    {{ product.qualityGrade || '—' }}
+                  </td>
+
+                  <td>
+                    <span
+                      class="product-status"
+                      [class.product-status--active]="product.status.toUpperCase() === 'ACTIVE'"
+                      [class.product-status--inactive]="product.status.toUpperCase() !== 'ACTIVE'"
+                    >
+                      {{ product.status }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
 
     @switch (dialog()) {
       @case ('delete') {

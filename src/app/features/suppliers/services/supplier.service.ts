@@ -9,6 +9,7 @@ import {
   SupplierCategory,
   SupplierFormValue,
   SupplierStatus,
+  SupplierProduct,
 } from '../models/supplier.model';
 
 import { API_BASE } from '../../../core/config/api.config';
@@ -127,6 +128,14 @@ export class SupplierService {
     const u = username.trim().toLowerCase();
 
     return this._suppliers().some((s) => s.id !== excludeId && s.username.toLowerCase() === u);
+  }
+
+  getProducts$(sellerId: number): Observable<SupplierProduct[]> {
+    return this.http
+      .get<
+        ApiEnvelope<SupplierProduct[]>
+      >(`${API_BASE}/sellers/${sellerId}/products`, { headers: NGROK_HEADERS })
+      .pipe(map((response) => response.data ?? []));
   }
 
   // ---------- actions ----------
