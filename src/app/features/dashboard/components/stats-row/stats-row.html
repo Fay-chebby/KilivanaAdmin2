@@ -1,5 +1,12 @@
 <div class="row">
   @for (card of cards(); track card.label) {
-    <app-stat-card [label]="card.label" [value]="card.value" [icon]="card.icon" [delta]="card.delta" [positive]="card.positive" />
+    <app-stat-card
+      [label]="card.label"
+      [value]="card.value"
+      [icon]="card.icon"
+      [delta]="card.delta"
+      [positive]="card.positive"
+      [tone]="card.tone"
+    />
   }
 </div>
