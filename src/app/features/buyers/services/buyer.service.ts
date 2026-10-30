@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import { ApiResponse, Buyer, BuyerDto, BuyerStatus, BuyerType } from '../models/buyer.model';
 import { API_BASE } from '../../../core/config/api.config';
-
+import { BuyerOrder } from '../models/buyer.model';
 @Injectable({ providedIn: 'root' })
 export class BuyerService {
   private http = inject(HttpClient);
@@ -84,6 +84,13 @@ export class BuyerService {
       .pipe(map(() => void 0));
   }
 
+  getOrdersByBuyer(buyerId: number | string): Observable<BuyerOrder[]> {
+    return this.http
+      .get<
+        ApiResponse<BuyerOrder[]>
+      >(`${API_BASE}/orders/buyer/${buyerId}`, { headers: this.headers })
+      .pipe(map((res) => res.data ?? []));
+  }
   private toBuyer(d: BuyerDto): Buyer {
     return {
       id: d.userId,

@@ -2,8 +2,9 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BuyerService } from '../../services/buyer.service';
-import { Buyer, BuyerStatus } from '../../models/buyer.model';
+import { Buyer, BuyerStatus, BuyerOrder } from '../../models/buyer.model';
 import { BuyerActionDialog } from '../../components/buyer-action-dialog/buyer-action-dialog';
+import { forkJoin } from 'rxjs';
 
 type DialogAction = 'suspend' | 'verify' | 'reactivate' | 'delete';
 
@@ -24,8 +25,11 @@ export class BuyerDetails implements OnInit {
   error = signal<string | null>(null);
   action = signal<DialogAction | null>(null);
   processing = signal(false);
+  orders = signal<BuyerOrder[]>([]);
+  ordersLoading = signal(false);
+  ordersError = signal<string | null>(null);
 
-  ngOnInit() {
+  ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
 
     if (!id) {
@@ -34,14 +38,29 @@ export class BuyerDetails implements OnInit {
       return;
     }
 
-    this.buyerService.getById(id).subscribe({
-      next: (b) => {
-        this.buyer.set(b);
+    this.loading.set(true);
+    this.error.set(null);
+    this.ordersError.set(null);
+
+    forkJoin({
+      buyer: this.buyerService.getById(id),
+      orders: this.buyerService.getOrdersByBuyer(id),
+    }).subscribe({
+      next: ({ buyer, orders }) => {
+        this.buyer.set(buyer);
+        this.orders.set(orders);
+
         this.loading.set(false);
+        this.ordersLoading.set(false);
       },
-      error: () => {
-        this.error.set('Buyer not found.');
+      error: (error) => {
+        console.error('Failed to load buyer details:', error);
+
+        this.error.set('Unable to load buyer details.');
+        this.ordersError.set('Unable to load this buyer’s orders.');
+
         this.loading.set(false);
+        this.ordersLoading.set(false);
       },
     });
   }
@@ -75,6 +94,23 @@ export class BuyerDetails implements OnInit {
       default:
         return '';
     }
+  }
+
+  loadBuyerOrders(buyerId: number | string): void {
+    this.ordersLoading.set(true);
+    this.ordersError.set(null);
+
+    this.buyerService.getOrdersByBuyer(buyerId).subscribe({
+      next: (orders) => {
+        this.orders.set(orders);
+        this.ordersLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Failed to load buyer orders:', error);
+        this.ordersError.set('Unable to load this buyer’s orders.');
+        this.ordersLoading.set(false);
+      },
+    });
   }
 
   confirm(): void {

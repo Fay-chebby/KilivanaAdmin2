@@ -2,20 +2,26 @@
   <a routerLink="/buyers" class="back">← Back to buyers</a>
 
   @if (loading()) {
-    <div class="state">Loading...</div>
+    <div class="state">Loading buyer details and orders...</div>
+    <!-- Keep the page empty while buyer details and orders load. -->
   } @else if (buyer(); as b) {
     @if (error()) {
       <div class="alert">{{ error() }}</div>
     }
 
+    <!-- Buyer header -->
     <div class="header card">
       <div class="header__left">
         <span class="avatar">{{ initials(b.name) }}</span>
+
         <div>
           <h1>{{ b.name }}</h1>
           <p>{{ b.email }}</p>
         </div>
-        <span class="badge" [class]="'badge--' + b.status">{{ b.status }}</span>
+
+        <span class="badge" [class]="'badge--' + b.status">
+          {{ b.status }}
+        </span>
       </div>
 
       <div class="header__actions">
@@ -23,60 +29,157 @@
           @case ('pending') {
             <button class="btn btn--primary" (click)="action.set('verify')">Verify</button>
           }
+
           @case ('verified') {
             <button class="btn btn--outline" (click)="action.set('suspend')">Suspend</button>
           }
+
           @case ('suspended') {
             <button class="btn btn--outline" (click)="action.set('reactivate')">Reactivate</button>
           }
         }
+
         <button class="btn btn--danger-outline" (click)="action.set('delete')">Delete</button>
       </div>
     </div>
 
+    <!-- Buyer statistics -->
     <div class="stats">
       <div class="stat">
-        <span>Orders</span><strong>{{ b.ordersCount }}</strong>
+        <span>Orders</span>
+        <strong>{{ b.ordersCount }}</strong>
       </div>
+
       <div class="stat">
-        <span>Total Spend</span><strong>GHS {{ b.totalSpend | number: '1.0-0' }}</strong>
+        <span>Total Spend</span>
+        <strong>KSh {{ b.totalSpend | number: '1.0-0' }}</strong>
       </div>
+
       <div class="stat" [class.stat--red]="b.disputesCount > 0">
-        <span>Disputes</span><strong>{{ b.disputesCount }}</strong>
+        <span>Disputes</span>
+        <strong>{{ b.disputesCount }}</strong>
       </div>
     </div>
 
+    <!-- Buyer information -->
     <div class="card info">
       <h2>Buyer Information</h2>
+
       <dl>
         <div>
           <dt>Buyer ID</dt>
-          <dd class="mono">{{ b.code }}</dd>
+          <dd class="mono">{{ b.code || b.id }}</dd>
         </div>
+
         <div>
           <dt>Type</dt>
-          <dd class="cap">{{ b.type }}</dd>
+          <dd class="cap">{{ b.type || '—' }}</dd>
         </div>
+
         <div>
           <dt>Region</dt>
-          <dd>{{ b.region }}</dd>
+          <dd>{{ b.region || '—' }}</dd>
         </div>
+
         <div>
           <dt>Phone</dt>
           <dd>{{ b.phone || '—' }}</dd>
         </div>
+
         <div>
           <dt>Address</dt>
           <dd>{{ b.address || '—' }}</dd>
         </div>
+
         <div>
           <dt>Joined</dt>
           <dd>{{ b.createdAt | date: 'mediumDate' }}</dd>
         </div>
       </dl>
     </div>
+
+    <!-- Individual orders: rendered with the buyer details -->
+    <div class="card orders-section">
+      <div class="orders-header">
+        <div>
+          <h2>Individual Orders</h2>
+          <p>Orders placed by this buyer.</p>
+        </div>
+
+        <span class="orders-count">
+          {{ orders().length }}
+          {{ orders().length === 1 ? 'order' : 'orders' }}
+        </span>
+      </div>
+
+      @if (ordersError()) {
+        <div class="alert">{{ ordersError() }}</div>
+
+        <button class="btn btn--outline" (click)="loadBuyerOrders(b.id)">Retry</button>
+      } @else if (orders().length === 0) {
+        <div class="empty-orders">
+          <h3>No orders yet</h3>
+          <p>This buyer has not placed any orders.</p>
+        </div>
+      } @else {
+        <div class="orders-table-wrap">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Date</th>
+                <th>Items</th>
+                <th>Seller</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (order of orders(); track order.id) {
+                <tr>
+                  <td class="order-number">
+                    {{ order.code }}
+                  </td>
+
+                  <td>
+                    {{ order.createdAt | date: 'mediumDate' }}
+                  </td>
+
+                  <td>
+                    {{ order.items?.length ?? 0 }}
+                  </td>
+
+                  <td>
+                    {{ order.sellerName || '—' }}
+                  </td>
+
+                  <td class="amount">KSh {{ order.total | number: '1.2-2' }}</td>
+
+                  <td>
+                    {{ order.paymentStatus || '—' }}
+                  </td>
+
+                  <td>
+                    <span
+                      class="order-status"
+                      [class]="'order-status status--' + (order.status || 'unknown').toLowerCase()"
+                    >
+                      {{ order.status || 'Unknown' }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
   } @else {
-    <div class="state">{{ error() }}</div>
+    <div class="state">
+      {{ error() || 'Unable to load buyer details.' }}
+    </div>
   }
 </div>
 

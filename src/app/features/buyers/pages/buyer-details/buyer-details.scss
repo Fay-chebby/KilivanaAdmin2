@@ -192,3 +192,132 @@ $border: #e5e7eb;
     }
   }
 }
+
+.orders-section {
+  margin-top: 16px;
+}
+
+.orders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+
+  h2 {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 12px;
+  }
+}
+
+.orders-count {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.orders-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+
+  th {
+    padding: 12px 14px;
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover {
+    background: #fafafa;
+  }
+}
+
+.order-number {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.amount {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.order-status {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  text-transform: capitalize;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status--completed,
+.status--delivered,
+.status--paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status--pending,
+.status--processing {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status--cancelled,
+.status--failed,
+.status--refunded {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.empty-orders {
+  padding: 30px 16px;
+  text-align: center;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
+  }
+
+  p {
+    margin: 0;
+    color: #64748b;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .orders-table {
+    min-width: 600px;
+  }
+}

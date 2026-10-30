@@ -52,3 +52,33 @@ export interface BuyerStats {
   suspended: number;
   totalSpend: number;
 }
+
+export interface BuyerOrderItem {
+  id: number;
+  productId: number;
+  sellerId: number;
+  productName: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface BuyerOrder {
+  id: number;
+  code: string;
+  buyerId: number;
+  status: string;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  paymentStatus: string;
+  buyerName: string;
+  sellerName: string;
+  paymentMethod: string;
+  deliveryAddress: string | null;
+  deliveryStatus: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: BuyerOrderItem[];
+}

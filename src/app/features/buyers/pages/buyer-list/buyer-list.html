@@ -64,10 +64,16 @@
         placeholder="Search buyers..."
         [value]="search()"
         (input)="onSearch($event)"
+        aria-label="Search buyers"
       />
     </div>
 
-    <select class="filter" [value]="statusFilter()" (change)="onFilter($event)">
+    <select
+      class="filter"
+      [value]="statusFilter()"
+      (change)="onFilter($event)"
+      aria-label="Filter buyers by status"
+    >
       <option value="all">All statuses</option>
       <option value="verified">Verified</option>
       <option value="pending">Pending</option>
@@ -77,20 +83,21 @@
 
   <!-- Error -->
   @if (error()) {
-    <div class="alert">
+    <div class="alert" role="alert">
       <span>{{ error() }}</span>
 
       <button type="button" class="btn btn--ghost" (click)="load()">Retry</button>
     </div>
   }
 
-  <!-- Table -->
+  <!-- Buyers Table Card -->
   <div class="card">
     @if (loading()) {
       <div class="state">Loading buyers...</div>
     } @else if (filtered().length === 0) {
       <div class="state">No buyers found.</div>
     } @else {
+      <!-- Table -->
       <div class="table-wrap">
         <table>
           <thead>
@@ -108,7 +115,7 @@
           </thead>
 
           <tbody>
-            @for (b of filtered(); track b.id) {
+            @for (b of rows(); track b.id) {
               <tr (click)="view(b)">
                 <!-- Buyer -->
                 <td>
@@ -226,6 +233,31 @@
             }
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination: inside the card, below the table -->
+      <div class="pagination">
+        <p class="pagination__info">
+          Showing
+          <strong>{{ rows().length }}</strong>
+          of
+          <strong>{{ filtered().length }}</strong>
+          buyers
+        </p>
+
+        <div class="pagination__controls">
+          @for (pageNumber of pages(); track pageNumber) {
+            <button
+              type="button"
+              class="pagination__button"
+              [class.pagination__button--active]="page() === pageNumber"
+              [attr.aria-current]="page() === pageNumber ? 'page' : null"
+              (click)="goToPage(pageNumber)"
+            >
+              {{ pageNumber }}
+            </button>
+          }
+        </div>
       </div>
     }
   </div>

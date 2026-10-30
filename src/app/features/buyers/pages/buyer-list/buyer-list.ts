@@ -27,12 +27,15 @@ export class BuyerList implements OnInit {
   search = signal('');
   statusFilter = signal<'all' | BuyerStatus>('all');
 
+  // Pagination
+  readonly pageSize = 10;
+  readonly page = signal(1);
+  readonly Math = Math;
+
   // Dialog state
   selected = signal<Buyer | null>(null);
   action = signal<DialogAction | null>(null);
   processing = signal(false);
-
-  // Suspension reason
   suspensionReason = signal('');
 
   stats = computed<BuyerStats>(() => {
@@ -58,15 +61,31 @@ export class BuyerList implements OnInit {
         !q ||
         b.name.toLowerCase().includes(q) ||
         b.email.toLowerCase().includes(q) ||
-        b.code.toLowerCase().includes(q) ||
-        b.region.toLowerCase().includes(q);
+        (b.code ?? '').toLowerCase().includes(q) ||
+        (b.region ?? '').toLowerCase().includes(q);
 
       return matchesStatus && matchesSearch;
     });
   });
 
+  // Total number of pages after filtering
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filtered().length / this.pageSize)),
+  );
+
+  // Page numbers: 1, 2, 3...
+  readonly pages = computed(() => Array.from({ length: this.totalPages() }, (_, i) => i + 1));
+
+  // Only the 10 buyers belonging to the current page
+  readonly rows = computed(() => {
+    const currentPage = Math.min(this.page(), this.totalPages());
+    const start = (currentPage - 1) * this.pageSize;
+
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+
   dialogTitle = computed(() => {
-    const map: Record<DialogAction, string> = {
+    const titles: Record<DialogAction, string> = {
       suspend: 'Suspend buyer',
       verify: 'Verify buyer',
       reactivate: 'Reactivate buyer',
@@ -75,7 +94,7 @@ export class BuyerList implements OnInit {
 
     const currentAction = this.action();
 
-    return currentAction ? map[currentAction] : '';
+    return currentAction ? titles[currentAction] : '';
   });
 
   dialogMessage = computed(() => {
@@ -84,16 +103,12 @@ export class BuyerList implements OnInit {
     switch (this.action()) {
       case 'suspend':
         return `${name} will no longer be able to place orders.`;
-
       case 'verify':
         return `Mark ${name} as a verified buyer?`;
-
       case 'reactivate':
         return `Restore access for ${name}?`;
-
       case 'delete':
         return `This permanently deletes ${name}. This cannot be undone.`;
-
       default:
         return '';
     }
@@ -110,14 +125,12 @@ export class BuyerList implements OnInit {
     this.buyerService.getAll().subscribe({
       next: (data) => {
         this.buyers.set(data);
+        this.page.set(1);
         this.loading.set(false);
       },
-
       error: (error) => {
         console.error('Failed to load buyers:', error);
-
         this.error.set(error?.error?.message || error?.message || 'Failed to load buyers.');
-
         this.loading.set(false);
       },
     });
@@ -125,10 +138,28 @@ export class BuyerList implements OnInit {
 
   onSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
+    this.page.set(1);
   }
 
   onFilter(event: Event): void {
     this.statusFilter.set((event.target as HTMLSelectElement).value as 'all' | BuyerStatus);
+    this.page.set(1);
+  }
+
+  goToPage(pageNumber: number): void {
+    if (pageNumber < 1 || pageNumber > this.totalPages()) {
+      return;
+    }
+
+    this.page.set(pageNumber);
+  }
+
+  previousPage(): void {
+    this.goToPage(this.page() - 1);
+  }
+
+  nextPage(): void {
+    this.goToPage(this.page() + 1);
   }
 
   initials(name: string): string {
@@ -136,7 +167,7 @@ export class BuyerList implements OnInit {
       .split(' ')
       .filter(Boolean)
       .slice(0, 2)
-      .map((p) => p[0])
+      .map((part) => part[0])
       .join('')
       .toUpperCase();
   }
@@ -146,8 +177,8 @@ export class BuyerList implements OnInit {
 
     let hash = 0;
 
-    for (const c of name) {
-      hash = (hash * 31 + c.charCodeAt(0)) | 0;
+    for (const char of name) {
+      hash = (hash * 31 + char.charCodeAt(0)) | 0;
     }
 
     return colors[Math.abs(hash) % colors.length];
@@ -159,18 +190,10 @@ export class BuyerList implements OnInit {
 
   openDialog(b: Buyer, action: DialogAction, event?: Event): void {
     event?.stopPropagation();
-
     this.selected.set(b);
     this.action.set(action);
-
-    // Clear old suspension reason
     this.suspensionReason.set('');
-  }
-
-  onSuspensionReasonChange(event: Event): void {
-    const value = (event.target as HTMLTextAreaElement).value;
-
-    this.suspensionReason.set(value);
+    this.error.set(null);
   }
 
   closeDialog(): void {
@@ -191,54 +214,45 @@ export class BuyerList implements OnInit {
       return;
     }
 
-    // Validate suspension reason
-    if (action === 'suspend') {
-      const reason = this.suspensionReason().trim();
-
-      if (!reason) {
-        this.error.set('Please provide a reason for suspending the buyer.');
-        return;
-      }
+    if (action === 'suspend' && !this.suspensionReason().trim()) {
+      this.error.set('Please provide a reason for suspending the buyer.');
+      return;
     }
 
     this.processing.set(true);
     this.error.set(null);
 
-    // DELETE
     if (action === 'delete') {
       this.buyerService.delete(b.id).subscribe({
         next: () => {
-          this.buyers.update((list) => list.filter((x) => x.id !== b.id));
+          this.buyers.update((list) => list.filter((buyer) => buyer.id !== b.id));
+
+          // Keep the current page valid after deleting the last row.
+          this.page.set(Math.min(this.page(), this.totalPages()));
 
           this.finish();
         },
-
         error: (error) => {
           console.error('Failed to delete buyer:', error);
-
-          const message =
+          this.fail(
             error?.error?.message ||
-            error?.error?.error?.details ||
-            error?.message ||
-            'Failed to delete buyer.';
-
-          this.fail(message);
+              error?.error?.error?.details ||
+              error?.message ||
+              'Failed to delete buyer.',
+          );
         },
       });
 
       return;
     }
 
-    // VERIFY
     if (action === 'verify') {
       this.fail('Verification is not connected to the backend yet.');
-
       return;
     }
 
     const status: BuyerStatus = action === 'suspend' ? 'suspended' : 'verified';
 
-    // SUSPEND / REACTIVATE
     const request$ =
       action === 'suspend'
         ? this.buyerService.suspend(b.id, this.suspensionReason().trim())
@@ -247,29 +261,19 @@ export class BuyerList implements OnInit {
     request$.subscribe({
       next: () => {
         this.buyers.update((list) =>
-          list.map((x) =>
-            x.id === b.id
-              ? {
-                  ...x,
-                  status,
-                }
-              : x,
-          ),
+          list.map((buyer) => (buyer.id === b.id ? { ...buyer, status } : buyer)),
         );
 
         this.finish();
       },
-
       error: (error) => {
         console.error(`Failed to ${action} buyer:`, error);
-
-        const message =
+        this.fail(
           error?.error?.message ||
-          error?.error?.error?.details ||
-          error?.message ||
-          `Failed to ${action} buyer.`;
-
-        this.fail(message);
+            error?.error?.error?.details ||
+            error?.message ||
+            `Failed to ${action} buyer.`,
+        );
       },
     });
   }
@@ -281,9 +285,9 @@ export class BuyerList implements OnInit {
     this.suspensionReason.set('');
   }
 
-  private fail(msg: string): void {
+  private fail(message: string): void {
     this.processing.set(false);
-    this.error.set(msg);
+    this.error.set(message);
     this.selected.set(null);
     this.action.set(null);
     this.suspensionReason.set('');
