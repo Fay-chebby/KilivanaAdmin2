@@ -49,6 +49,26 @@
   justify-content: center;
   background: var(--primary-soft);
   color: var(--primary-dark);
+
+  &.tone-green {
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+  }
+
+  &.tone-amber {
+    background: #fef3c7;
+    color: var(--warning);
+  }
+
+  &.tone-red {
+    background: #fee2e2;
+    color: var(--danger);
+  }
+
+  &.tone-blue {
+    background: #dbeafe;
+    color: var(--info);
+  }
 }
 
 .card__value {

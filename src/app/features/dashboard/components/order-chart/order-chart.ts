@@ -78,5 +78,8 @@ export class OrderChart {
     return this.T + innerH - (value / this.yMax()) * innerH;
   }
 
-  protected readonly ksh = new CurrencyKshPipe();
+  protected readonly money = new CurrencyKshPipe();
+
+  /** With 14 daily points, label every 2nd one so the axis stays readable. */
+  protected readonly labelEvery = computed(() => Math.ceil(this.data().length / 7));
 }

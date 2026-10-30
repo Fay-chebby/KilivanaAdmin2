@@ -1,4 +1,4 @@
-<app-panel title="Order Volume & Revenue" subtitle="Last 7 months">
+<app-panel title="Order Volume & Revenue" subtitle="Last 14 days">
   <div panel-actions class="legend">
     <span><i class="legend__line"></i>Orders</span>
     <span><i class="legend__line legend__line--light"></i>Revenue</span>
@@ -26,8 +26,12 @@
       <path [attr.d]="areaPath()" fill="url(#orderFill)" />
       <path class="line" [attr.d]="linePath()" />
 
-      @for (p of points(); track p.month) {
-        <text class="axis" text-anchor="middle" [attr.x]="p.x" [attr.y]="H - 6">{{ p.month }}</text>
+      @for (p of points(); track p.label + $index; let i = $index) {
+        @if (i % labelEvery() === 0) {
+          <text class="axis" text-anchor="middle" [attr.x]="p.x" [attr.y]="H - 6">
+            {{ p.label }}
+          </text>
+        }
       }
 
       @if (hoverPoint(); as p) {
@@ -35,7 +39,7 @@
         <circle class="dot" [attr.cx]="p.x" [attr.cy]="p.y" r="3.5" />
       }
 
-      @for (p of points(); track p.month; let i = $index) {
+      @for (p of points(); track p.label + $index; let i = $index) {
         <rect
           fill="transparent"
           [attr.x]="p.x - step() / 2"
@@ -55,9 +59,9 @@
         [style.left.%]="(p.x / W) * 100"
         [style.top.%]="(p.y / H) * 100"
       >
-        <strong>{{ p.month }}</strong>
+        <strong>{{ p.label }}</strong>
         <span>orders : {{ p.orders }}</span>
-        <span>revenue : {{ ksh.transform(p.revenue, true) }}</span>
+        <span>revenue : {{ money.transform(p.revenue, true) }}</span>
       </div>
     }
   </div>

@@ -13,29 +13,9 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
 @media (max-width: 560px) {
   .row {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-.stat-card {
-  &.tone-green {
-    --stat-accent: #15803d;
-    --stat-tint: #dcfce7;
-  }
-
-  &.tone-blue {
-    --stat-accent: #2563eb;
-    --stat-tint: #dbeafe;
-  }
-
-  &.tone-amber {
-    --stat-accent: #d97706;
-    --stat-tint: #fef3c7;
-  }
-
-  &.tone-red {
-    --stat-accent: #dc2626;
-    --stat-tint: #fee2e2;
   }
 }

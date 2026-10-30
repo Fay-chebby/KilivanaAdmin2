@@ -3,6 +3,7 @@
     <span class="mini__icon" [class]="'tone-' + tone()">
       <app-icon [name]="icon()" [size]="16" />
     </span>
+
     <div class="mini__text">
       <span class="mini__label">{{ label() }}</span>
       <span class="mini__value">{{ value() }}</span>
@@ -12,11 +13,18 @@
   <div class="card">
     <div class="card__top">
       <span class="card__label">{{ label() }}</span>
-      <span class="card__icon"><app-icon [name]="icon()" [size]="16" /></span>
+
+      <span class="card__icon" [class]="'tone-' + tone()">
+        <app-icon [name]="icon()" [size]="16" />
+      </span>
     </div>
+
     <span class="card__value">{{ value() }}</span>
+
     @if (delta()) {
-      <span class="card__delta" [class.negative]="!positive()">{{ delta() }}</span>
+      <span class="card__delta" [class.negative]="!positive()">
+        {{ delta() }}
+      </span>
     }
   </div>
 }

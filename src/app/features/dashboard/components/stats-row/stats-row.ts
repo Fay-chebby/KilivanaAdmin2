@@ -1,5 +1,7 @@
 import { Component, computed, input } from '@angular/core';
+
 import { StatCard, StatTone } from '../../../../shared/components/stat-card/stat-card';
+
 import { CurrencyKshPipe } from '../../../../shared/pipes/currency-kes-pipe';
 import { DashboardStats, StatCardData } from '../../models/dashboard.model';
 
@@ -12,7 +14,7 @@ import { DashboardStats, StatCardData } from '../../models/dashboard.model';
 export class StatsRow {
   readonly stats = input.required<DashboardStats>();
 
-  private readonly ksh = new CurrencyKshPipe();
+  private readonly money = new CurrencyKshPipe();
 
   protected readonly cards = computed(() => {
     const s = this.stats();
@@ -26,8 +28,15 @@ export class StatsRow {
   });
 
   private toView(card: StatCardData, icon: string, tone: StatTone) {
-    const changePct = card.changePct ?? 0;
-    const up = changePct >= 0;
+    let delta = '';
+    let positive = true;
+
+    if (card.deltaText) {
+      delta = card.deltaText;
+    } else if (card.changePct !== undefined) {
+      positive = card.changePct >= 0;
+      delta = `${positive ? '↑' : '↓'} ${Math.abs(card.changePct)}% vs last month`;
+    }
 
     return {
       label: card.label,
@@ -35,14 +44,10 @@ export class StatsRow {
       tone,
       value:
         card.format === 'currency'
-          ? this.ksh.transform(card.value, true)
+          ? this.money.transform(card.value, true)
           : card.value.toLocaleString('en-US'),
-      delta: card.deltaText
-        ? `↑ ${card.deltaText}`
-        : changePct === 0
-          ? 'No comparison data available'
-          : `${up ? '↑' : '↓'} ${Math.abs(changePct)}% vs last month`,
-      positive: up,
+      delta,
+      positive,
     };
   }
 }
