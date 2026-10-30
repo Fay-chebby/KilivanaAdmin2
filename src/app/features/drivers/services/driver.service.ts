@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { Driver, DriverFormValue } from '../models/driver.model';
+import { Driver, DriverFormValue, DriverJob } from '../models/driver.model';
 
 import { API_BASE } from '../../../core/config/api.config';
 
@@ -282,6 +282,17 @@ export class DriverService {
     });
   }
 
+  // ============================================================
+  // GET DRIVER JOBS
+  // ============================================================
+  getJobsByDriver(driverId: number): Observable<ApiResponse<DriverJob[]>> {
+    return this.http.get<ApiResponse<DriverJob[]>>(
+      `${API_BASE}/logistics/jobs/driver/${driverId}`,
+      {
+        headers: NGROK_HEADERS,
+      },
+    );
+  }
   // ============================================================
   // UPDATE DRIVER PROFILE
   // ============================================================

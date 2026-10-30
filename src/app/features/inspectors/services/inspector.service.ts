@@ -124,11 +124,28 @@ export class InspectorService {
     return forkJoin({
       user: this.getUser(id),
       profile: this.getProfile(id).pipe(catchError(() => of(null))),
-      inspections: this.getInspectorInspections(id).pipe(catchError(() => of(null))),
-    }).pipe(
-      map(({ user, profile, inspections }) =>
-        this.mapInspector(user.data, profile?.data ?? null, inspections?.data ?? []),
+      inspections: this.getInspectorInspections(id).pipe(
+        catchError((error) => {
+          console.error('Failed to load inspector inspections:', error);
+          return of(null);
+        }),
       ),
+    }).pipe(
+      map(({ user, profile, inspections }) => {
+        const inspectionList = inspections?.data ?? [];
+
+        const inspector = this.mapInspector(user.data, profile?.data ?? null, inspectionList);
+
+        // Add the inspector's inspections to the shared assignments list.
+        const assignments = inspectionList.map((inspection) => this.mapAssignment(inspection));
+
+        this._assignments.update((current) => [
+          ...current.filter((item) => item.inspectorId !== id),
+          ...assignments,
+        ]);
+
+        return inspector;
+      }),
 
       tap((inspector) => {
         this._inspectors.update((list) => {
@@ -413,17 +430,25 @@ export class InspectorService {
 
   loadAssignments(inspectorId: number): Observable<FarmAssignment[]> {
     return this.getInspectorInspections(inspectorId).pipe(
-      map((response) => (response.data ?? []).map((inspection) => this.mapAssignment(inspection))),
+      map((response) => {
+        const inspections = response.data ?? [];
+
+        return inspections.map((inspection) => this.mapAssignment(inspection));
+      }),
 
       tap((assignments) => {
         this._assignments.update((current) => [
           ...current.filter((item) => item.inspectorId !== inspectorId),
           ...assignments,
         ]);
+
+        console.log(
+          `Loaded ${assignments.length} inspections for inspector ${inspectorId}`,
+          assignments,
+        );
       }),
     );
   }
-
   // =========================================================
   // UPDATE INSPECTION STATUS
   // =========================================================
@@ -589,9 +614,13 @@ export class InspectorService {
   }
 
   completedFor(inspector: Inspector): FarmAssignment[] {
-    return this.assignmentsFor(inspector.id).filter(
-      (assignment) => assignment.inspectionStatus === 'COMPLETED',
-    );
+    return this.assignmentsFor(inspector.id).filter((assignment) => {
+      return (
+        assignment.inspectionStatus?.toUpperCase() === 'COMPLETED' ||
+        assignment.status === 'verified' ||
+        assignment.status === 'rejected'
+      );
+    });
   }
 
   // =========================================================
@@ -688,51 +717,47 @@ export class InspectorService {
   // =========================================================
   // MAP ASSIGNMENT
   // =========================================================
-
   private mapAssignment(inspection: InspectionResponse): FarmAssignment {
+    const farm = inspection.targetFarm;
+
+    const evidenceUrls: string[] = Array.isArray(inspection.evidenceUrls)
+      ? inspection.evidenceUrls
+      : typeof inspection.evidenceUrls === 'string'
+        ? inspection.evidenceUrls.split(',')
+        : [];
+
+    const photos: FarmPhoto[] = evidenceUrls
+      .map((url: string) => url.trim())
+      .filter((url: string) => url.length > 0)
+      .map((url: string, index: number) => ({
+        id: `${inspection.id}-${index}`,
+        url: url.startsWith('/api/') ? `${API_BASE.replace(/\/api\/v1$/, '')}${url}` : url,
+        caption: '',
+        takenAt: inspection.inspectedAt ?? inspection.createdAt,
+      }));
+
     return {
       id: String(inspection.id),
-
       inspectionId: inspection.id,
-
       inspectorId: inspection.inspectorId,
 
-      farmerName: `Target #${inspection.targetId}`,
-
-      farmName: `${inspection.targetType} #${inspection.targetId}`,
-
-      location: '',
-
-      crop: '',
-
-      sizeAcres: 0,
+      farmerName: farm?.farmer?.name ?? `Target #${inspection.targetId}`,
+      farmName: farm?.name ?? `${inspection.targetType} #${inspection.targetId}`,
+      location: [farm?.address, farm?.county].filter(Boolean).join(', '),
+      crop: farm?.description ?? '',
+      sizeAcres: farm?.sizeAcres ?? 0,
 
       dueDate: inspection.inspectedAt ?? inspection.createdAt,
-
       status: this.toVerificationStatus(inspection),
-
       inspectionStatus: inspection.status,
-
       result: inspection.result,
-
       notes: inspection.notes ?? '',
-
-      photos: (inspection.evidenceUrls ?? []).map((url, index) => ({
-        id: `${inspection.id}-${index}`,
-
-        url,
-
-        caption: '',
-
-        takenAt: inspection.inspectedAt ?? inspection.createdAt,
-      })),
+      photos,
 
       targetType: inspection.targetType,
-
       targetId: inspection.targetId,
     };
   }
-
   private updateAssignmentFromInspection(inspection: InspectionResponse): void {
     const assignment = this.mapAssignment(inspection);
 

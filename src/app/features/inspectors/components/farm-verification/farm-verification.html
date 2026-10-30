@@ -92,7 +92,17 @@
     </div>
   } @else {
     @if (a.notes) {
-      <p class="result-note">{{ a.notes }}</p>
+      <div class="result-notes">
+        <h4>Inspector Notes</h4>
+
+        <ul>
+          @for (note of a.notes.split('\n'); track $index) {
+            @if (note.trim()) {
+              <li>{{ note.trim() }}</li>
+            }
+          }
+        </ul>
+      </div>
     }
     <button type="button" class="link" (click)="reopen()">Reopen verification</button>
   }

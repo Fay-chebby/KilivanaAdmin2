@@ -103,3 +103,35 @@ export interface DriverFormValue {
   plateNumber: string;
   vehicleMake: string;
 }
+
+export interface DriverJob {
+  id: number;
+  orderId: number;
+
+  pickupAddress: string;
+  destinationAddress: string;
+
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
+  destinationLatitude: number | null;
+  destinationLongitude: number | null;
+
+  cargoDescription: string;
+  quantity: number;
+  payoutAmount: number;
+
+  scheduledPickupAt: string | null;
+  scheduledDropoffAt: string | null;
+
+  distanceKm: number;
+  estimatedMinutes: number;
+
+  deliveryOtpVerified: boolean;
+  status: string;
+  driverId: number;
+
+  cancellationReason: string | null;
+
+  createdAt: string;
+  updatedAt: string;
+}

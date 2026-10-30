@@ -1,15 +1,24 @@
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { DriverActionDialog } from '../../components/driver-action-dialog/driver-action-dialog';
 import { DriverStatusBadge } from '../../components/driver-status-badge/driver-status-badge';
 import { VehicleInfoCard } from '../../components/vehicle-info-card/vehicle-info-card';
 import { DriverService } from '../../services/driver.service';
+import { DriverJob } from '../../models/driver.model';
 
 @Component({
   selector: 'app-driver-details',
-  imports: [RouterLink, DriverStatusBadge, VehicleInfoCard, DriverActionDialog],
+  standalone: true,
+  imports: [
+    RouterLink,
+    DatePipe,
+    CurrencyPipe,
+    DriverStatusBadge,
+    VehicleInfoCard,
+    DriverActionDialog,
+  ],
   templateUrl: './driver-details.html',
   styleUrl: './driver-details.scss',
 })
@@ -19,44 +28,79 @@ export class DriverDetails implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  /**
-   * Backend driver IDs are Long values, therefore number on the frontend.
-   *
-   * The route parameter is originally a string, so convert it to number.
-   */
+  // Read the driver ID from the route.
   readonly id = Number(this.route.snapshot.paramMap.get('id'));
 
+  // Dialog state.
   readonly dialog = signal<'delete' | 'suspend' | 'activate' | null>(null);
 
+  // Notifications from DriverService.
   readonly notice = this.svc.notice;
 
-  readonly driver = computed(() => {
-    return this.svc.drivers().find((d) => d.id === this.id) ?? null;
-  });
+  // Driver details.
+  readonly driver = computed(() => this.svc.drivers().find((d) => d.id === this.id) ?? null);
 
+  // Driver delivery jobs.
+  readonly jobs = signal<DriverJob[]>([]);
+  readonly jobsLoading = signal(false);
+  readonly jobsError = signal<string | null>(null);
+
+  // Licence expiry.
   readonly licenceExpired = computed(() => {
-    const d = this.driver();
+    const driver = this.driver();
 
-    if (!d) {
+    if (!driver?.licenceExpiry) {
       return false;
     }
 
-    return new Date(d.licenceExpiry) < new Date();
+    const expiry = new Date(driver.licenceExpiry);
+
+    return !Number.isNaN(expiry.getTime()) && expiry < new Date();
   });
 
-  ngOnInit(): void {
-    this.loadDriver();
-  }
+  // Pending jobs.
+  readonly pendingJobs = computed(
+    () =>
+      this.jobs().filter((job) =>
+        ['PENDING_ASSIGNMENT', 'ASSIGNED', 'PENDING'].includes(job.status?.toUpperCase()),
+      ).length,
+  );
 
-  private loadDriver(): void {
-    if (!Number.isFinite(this.id)) {
+  // Jobs currently being handled.
+  readonly activeJobs = computed(
+    () =>
+      this.jobs().filter((job) =>
+        ['ACCEPTED', 'IN_PROGRESS', 'PICKED_UP'].includes(job.status?.toUpperCase()),
+      ).length,
+  );
+
+  // Completed jobs.
+  readonly completedJobs = computed(
+    () =>
+      this.jobs().filter((job) => ['COMPLETED', 'DELIVERED'].includes(job.status?.toUpperCase()))
+        .length,
+  );
+
+  ngOnInit(): void {
+    if (!Number.isInteger(this.id) || this.id <= 0) {
+      this.router.navigate(['/drivers']);
       return;
     }
 
+    this.loadDriver();
+    this.loadDriverJobs();
+  }
+
+  // Fetch driver details.
+  private loadDriver(): void {
     this.svc.getById(this.id).subscribe({
       next: (response) => {
-        const driver = this.svc.mapApiDriver(response.data);
+        if (!response.success || !response.data) {
+          console.error('Driver details were not returned by the API.');
+          return;
+        }
 
+        const driver = this.svc.mapApiDriver(response.data);
         this.svc.setDriver(driver);
       },
 
@@ -66,6 +110,34 @@ export class DriverDetails implements OnInit {
     });
   }
 
+  // Fetch jobs assigned to this driver.
+  loadDriverJobs(): void {
+    this.jobsLoading.set(true);
+    this.jobsError.set(null);
+
+    this.svc.getJobsByDriver(this.id).subscribe({
+      next: (response) => {
+        if (!response.success) {
+          this.jobs.set([]);
+          this.jobsError.set(response.message || 'Failed to load delivery jobs.');
+          this.jobsLoading.set(false);
+          return;
+        }
+
+        this.jobs.set(response.data ?? []);
+        this.jobsLoading.set(false);
+      },
+
+      error: (error) => {
+        console.error('Failed to load driver jobs:', error);
+
+        this.jobsError.set('Could not load this driver’s orders.');
+        this.jobsLoading.set(false);
+      },
+    });
+  }
+
+  // Generate initials for the driver avatar.
   initials(name: string): string {
     return name
       .split(' ')
@@ -76,12 +148,8 @@ export class DriverDetails implements OnInit {
       .toUpperCase();
   }
 
+  // KYC update still requires a confirmed backend endpoint.
   toggleKyc(): void {
-    /*
-     * KYC update endpoint/request schema has not been provided yet.
-     *
-     * Do not call the old setKyc() local-storage method.
-     */
     console.warn('KYC update requires the backend KYC endpoint contract.');
   }
 
@@ -89,6 +157,7 @@ export class DriverDetails implements OnInit {
     this.dialog.set(type);
   }
 
+  // Handle confirmation from the action dialog.
   confirm(reason: string): void {
     const type = this.dialog();
 
@@ -98,13 +167,12 @@ export class DriverDetails implements OnInit {
 
     this.dialog.set(null);
 
-    /*
-     * Delete is supported by the confirmed backend contract.
-     */
     if (type === 'delete') {
       this.svc.delete(this.id).subscribe({
-        next: () => {
-          this.router.navigate(['/drivers']);
+        next: (response) => {
+          if (response.success) {
+            this.router.navigate(['/drivers']);
+          }
         },
 
         error: (error) => {
@@ -115,19 +183,22 @@ export class DriverDetails implements OnInit {
       return;
     }
 
-    /*
-     * Suspend/activate endpoints have not yet been supplied
-     * with their exact request/response contracts.
-     *
-     * Keep these disabled until we confirm the backend API.
-     */
     if (type === 'suspend') {
-      console.warn('Driver suspension requires the backend status endpoint contract.', reason);
+      this.svc.suspend(this.id, reason).subscribe({
+        error: (error) => {
+          console.error('Failed to suspend driver:', error);
+        },
+      });
+
       return;
     }
 
     if (type === 'activate') {
-      console.warn('Driver activation requires the backend status endpoint contract.');
+      this.svc.unsuspend(this.id).subscribe({
+        error: (error) => {
+          console.error('Failed to reinstate driver:', error);
+        },
+      });
     }
   }
 }

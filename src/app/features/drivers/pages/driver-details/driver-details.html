@@ -180,4 +180,111 @@
       <a class="btn" routerLink="/drivers">Back to delivery agents</a>
     </div>
   }
+  <section class="card orders">
+    <div class="orders-header">
+      <div>
+        <h3>Driver Orders</h3>
+        <p>Delivery jobs assigned to {{ driver()?.fullName ?? 'this driver' }}.</p>
+      </div>
+
+      <span class="orders-count">{{ jobs().length }} jobs</span>
+    </div>
+
+    @if (jobsLoading()) {
+      <p class="orders-message">Loading delivery jobs...</p>
+    } @else if (jobsError()) {
+      <p class="orders-error">{{ jobsError() }}</p>
+
+      <button type="button" class="btn btn-sm" (click)="loadDriverJobs()">Try again</button>
+    } @else if (jobs().length > 0) {
+      <div class="orders-table-wrap">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th>Order</th>
+              <th>Delivery details</th>
+              <th>Pickup schedule</th>
+              <th>Drop-off schedule</th>
+              <th>Payout</th>
+              <th>OTP</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (job of jobs(); track job.id) {
+              <tr>
+                <td class="mono">#{{ job.id }}</td>
+
+                <td class="mono">#{{ job.orderId }}</td>
+
+                <td class="delivery-details">
+                  <div>
+                    <span class="field-label">Pickup</span>
+                    <span>{{ job.pickupAddress || '—' }}</span>
+                  </div>
+
+                  <div>
+                    <span class="field-label">Destination</span>
+                    <span>{{ job.destinationAddress || '—' }}</span>
+                  </div>
+
+                  <div>
+                    <span class="field-label">Cargo</span>
+                    <span>{{ job.cargoDescription || '—' }}</span>
+                  </div>
+
+                  <div>
+                    <span class="field-label">Quantity</span>
+                    <span>{{ job.quantity }}</span>
+                  </div>
+
+                  <div>
+                    <span class="field-label">Distance</span>
+                    <span>{{ job.distanceKm }} km</span>
+                  </div>
+                </td>
+
+                <td>
+                  {{ job.scheduledPickupAt ? (job.scheduledPickupAt | date: 'medium') : '—' }}
+                </td>
+
+                <td>
+                  {{ job.scheduledDropoffAt ? (job.scheduledDropoffAt | date: 'medium') : '—' }}
+                </td>
+
+                <td class="payout">
+                  {{ job.payoutAmount | currency: 'KES ' : 'symbol' : '1.2-2' }}
+                </td>
+
+                <td>
+                  <span class="otp-status" [class.otp-verified]="job.deliveryOtpVerified">
+                    {{ job.deliveryOtpVerified ? 'Verified' : 'Pending' }}
+                  </span>
+                </td>
+
+                <td>
+                  <span
+                    class="job-status"
+                    [attr.data-status]="job.status.toLowerCase().replace('_', '-')"
+                  >
+                    {{ job.status.replace('_', ' ') }}
+                  </span>
+
+                  @if (job.cancellationReason) {
+                    <p class="cancellation-reason">
+                      {{ job.cancellationReason }}
+                    </p>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="orders-message">No delivery jobs have been assigned to this driver yet.</p>
+    }
+  </section>
 </div>

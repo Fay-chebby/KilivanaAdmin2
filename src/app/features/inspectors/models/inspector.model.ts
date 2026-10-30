@@ -168,15 +168,33 @@ export interface InspectionResponse {
   inspectorId: number;
   targetType: string;
   targetId: number;
-  status: InspectionStatus | string;
-  result: InspectionResult | string | null;
+
+  targetFarm?: {
+    id: number;
+    name: string;
+    address: string | null;
+    county: string | null;
+    sizeAcres: number | null;
+    description: string | null;
+    farmer?: {
+      id?: number;
+      name: string;
+      email?: string;
+      phone?: string;
+    } | null;
+  } | null;
+
+  status: InspectionStatus;
+  result: string | null;
   notes: string | null;
-  evidenceUrls: string[];
+
+  // The API may return a comma-separated string or an array.
+  evidenceUrls: string | string[] | null;
+
   inspectedAt: string | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
-
 /* =========================================================
    FARM
 ========================================================= */
