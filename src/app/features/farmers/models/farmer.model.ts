@@ -728,6 +728,36 @@ export const avatarColor = (seed: string) => {
   return COLORS[h % COLORS.length];
 };
 
+export interface ApiFarmerProduct {
+  id: number;
+  sellerId: number;
+  sellerType: string;
+  categoryId: number;
+  name: string;
+  description: string;
+  unit: string;
+  price: number;
+  stockQty: number;
+  reservedQty: number;
+  soldQty: number;
+  minimumOrderQty: number;
+  status: string;
+  qualityGrade: string | null;
+  harvestDate: string | null;
+  lowStockThreshold: number;
+  farmId: number | null;
+  warehouseId: number | null;
+  statusReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sellerName: string | null;
+  categoryName: string | null;
+  farmName: string | null;
+  farmCertified: boolean;
+  isLive: boolean;
+}
+
+export interface FarmerProduct extends ApiFarmerProduct {}
 /* =========================================================
    KENYAN COUNTIES
    ========================================================= */

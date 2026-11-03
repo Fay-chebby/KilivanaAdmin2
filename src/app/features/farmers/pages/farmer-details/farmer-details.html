@@ -41,8 +41,6 @@
           <div class="head-actions">
             <a class="btn ghost" routerLink="/farmers">← Back</a>
 
-            <!-- <a class="btn plain" [routerLink]="['/farmers', f.id, 'edit']">Edit</a> -->
-
             @switch (f.status) {
               @case ('pending') {
                 <button type="button" class="btn reject" (click)="ask('reject')">Reject</button>
@@ -160,18 +158,12 @@
 
                     @if (p.farmDetails) {
                       <h3 class="label sub">About the farm</h3>
-
-                      <p class="text">
-                        {{ p.farmDetails }}
-                      </p>
+                      <p class="text">{{ p.farmDetails }}</p>
                     }
 
                     @if (p.verificationInfo) {
                       <h3 class="label sub">Verification notes</h3>
-
-                      <p class="text">
-                        {{ p.verificationInfo }}
-                      </p>
+                      <p class="text">{{ p.verificationInfo }}</p>
                     }
 
                     <div class="card">
@@ -235,7 +227,7 @@
                 } @else {
                   <div class="card empty">
                     <strong>No farms yet</strong>
-                    <span>Farms registered by this farmer will appear here.</span>
+                    <span> Farms registered by this farmer will appear here. </span>
                   </div>
                 }
               }
@@ -274,7 +266,127 @@
                 } @else {
                   <div class="card empty">
                     <strong>No documents uploaded</strong>
-                    <span>KYC documents from this farmer will appear here.</span>
+                    <span> KYC documents from this farmer will appear here. </span>
+                  </div>
+                }
+              }
+
+              @case ('products') {
+                <div class="products-header">
+                  <div>
+                    <h2>Farmer's products</h2>
+                    <p class="note">Products listed by {{ f.name }}.</p>
+                  </div>
+
+                  <span class="product-count">
+                    {{ f.products.length }}
+                    {{ f.products.length === 1 ? 'product' : 'products' }}
+                  </span>
+                </div>
+
+                @if (f.products.length) {
+                  <div class="products-grid">
+                    @for (product of f.products; track product.id) {
+                      <article class="card product-card">
+                        <div class="product-top">
+                          <div class="product-heading">
+                            <h3>{{ product.name }}</h3>
+
+                            <span class="product-category">
+                              {{ product.categoryName || 'Uncategorised' }}
+                            </span>
+                          </div>
+
+                          <span
+                            class="product-status"
+                            [class.status-active]="product.status.toLowerCase() === 'active'"
+                            [class.status-pending]="product.status.toLowerCase() === 'pending'"
+                            [class.status-rejected]="product.status.toLowerCase() === 'rejected'"
+                            [class.status-suspended]="product.status.toLowerCase() === 'suspended'"
+                          >
+                            {{ titleCase(product.status) }}
+                          </span>
+                        </div>
+
+                        @if (product.description) {
+                          <p class="product-description">
+                            {{ product.description }}
+                          </p>
+                        }
+
+                        <div class="product-price">
+                          {{ product.price | currency: 'KES' : 'code' : '1.2-2' }}
+                          <span>/ {{ product.unit }}</span>
+                        </div>
+
+                        <div class="product-details">
+                          <div>
+                            <span>Available stock</span>
+                            <strong>
+                              {{ product.stockQty - product.reservedQty }}
+                              {{ product.unit }}
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span>Total stock</span>
+                            <strong> {{ product.stockQty }} {{ product.unit }} </strong>
+                          </div>
+
+                          <div>
+                            <span>Sold</span>
+                            <strong> {{ product.soldQty }} {{ product.unit }} </strong>
+                          </div>
+
+                          <div>
+                            <span>Minimum order</span>
+                            <strong> {{ product.minimumOrderQty }} {{ product.unit }} </strong>
+                          </div>
+
+                          @if (product.qualityGrade) {
+                            <div>
+                              <span>Quality grade</span>
+                              <strong>{{ product.qualityGrade }}</strong>
+                            </div>
+                          }
+
+                          @if (product.harvestDate) {
+                            <div>
+                              <span>Harvest date</span>
+                              <strong>
+                                {{ product.harvestDate | date: 'mediumDate' }}
+                              </strong>
+                            </div>
+                          }
+
+                          @if (product.farmName) {
+                            <div>
+                              <span>Farm</span>
+                              <strong>{{ product.farmName }}</strong>
+                            </div>
+                          }
+
+                          <div>
+                            <span>Listed on</span>
+                            <strong>
+                              {{ product.createdAt | date: 'mediumDate' }}
+                            </strong>
+                          </div>
+                        </div>
+
+                        @if (product.statusReason) {
+                          <div class="product-status-reason">
+                            <strong>Status reason:</strong>
+                            {{ product.statusReason }}
+                          </div>
+                        }
+                      </article>
+                    }
+                  </div>
+                } @else {
+                  <div class="card empty">
+                    <strong>No products listed</strong>
+                    <span> This farmer has not listed any products yet. </span>
                   </div>
                 }
               }

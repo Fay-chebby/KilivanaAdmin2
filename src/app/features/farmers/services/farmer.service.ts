@@ -23,6 +23,8 @@ import {
   toFarmer,
   toProfile,
   toProfileImage,
+  ApiFarmerProduct,
+  FarmerProduct,
 } from '../models/farmer.model';
 import { API_BASE } from '../../../core/config/api.config';
 
@@ -593,5 +595,27 @@ export class FarmerService {
 
   private patchLocal(farmer: Farmer): void {
     this._farmers.update((list) => list.map((item) => (item.id === farmer.id ? farmer : item)));
+  }
+  /**
+   * GET /api/v1/products/seller/{sellerId}
+   *
+   * Retrieves products posted by one farmer.
+   */
+  getProductsBySeller(sellerId: string | number): Observable<FarmerProduct[]> {
+    return this.http
+      .get<ApiEnvelope<ApiFarmerProduct[]>>(`${API_BASE}/products/seller/${sellerId}`, {
+        headers: apiHeaders(),
+      })
+      .pipe(
+        map((response) => {
+          return Array.isArray(response.data) ? response.data : [];
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Failed to load farmer products:', apiError(error));
+
+          // Keep the farmer details page working if products fail to load.
+          return of([] as FarmerProduct[]);
+        }),
+      );
   }
 }
