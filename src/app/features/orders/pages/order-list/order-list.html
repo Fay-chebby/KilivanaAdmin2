@@ -3,15 +3,20 @@
   <span>Orders</span>
 </nav>
 
+<!-- Page Header -->
 <div class="head">
   <h1>Order Management</h1>
 
   <div class="tools">
-    <button type="button" class="btn ghost" (click)="refresh()">Refresh</button>
+    <button type="button" class="btn ghost" (click)="refresh()" [disabled]="loading()">
+      Refresh
+    </button>
 
     <button type="button" class="btn ghost" (click)="clearFilters()">Clear filters</button>
 
-    <button type="button" class="btn ghost" (click)="exportCsv()">Export CSV</button>
+    <button type="button" class="btn ghost" (click)="exportCsv()" [disabled]="loading()">
+      Export CSV
+    </button>
   </div>
 </div>
 
@@ -28,11 +33,11 @@
   <app-stat-card label="Cancelled" [value]="'' + stats().cancelled" icon="ban" tone="red" />
 </div>
 
-<!-- Search and filters -->
+<!-- Search and Filters -->
 <div class="filters">
   <input
     type="search"
-    placeholder="Search orders, buyers, products…"
+    placeholder="Search orders, buyers, products, pickup stations..."
     aria-label="Search orders"
     [value]="search()"
     (input)="setSearch($any($event.target).value)"
@@ -41,23 +46,23 @@
   <app-order-status-select [status]="status()" (changed)="setStatus($event)" />
 </div>
 
-<!-- Loading -->
+<!-- Loading State -->
 @if (loading()) {
-  <div class="card loading">Loading orders...</div>
+  <div class="card loading" role="status">Loading orders...</div>
 }
 
-<!-- Error -->
+<!-- Error State -->
 @if (error()) {
-  <div class="card error">
+  <div class="card error" role="alert">
     <strong>Unable to load orders</strong>
 
     <p>{{ error() }}</p>
 
-    <button type="button" class="btn" (click)="refresh()">Try again</button>
+    <button type="button" class="btn" (click)="refresh()" [disabled]="loading()">Try again</button>
   </div>
 }
 
-<!-- Orders table -->
+<!-- Orders Table -->
 @if (!loading() && !error()) {
   <div class="card table-wrap">
     <table>
@@ -69,6 +74,7 @@
           <th>Qty</th>
           <th>Subtotal</th>
           <th>Delivery</th>
+          <th>Pickup Station</th>
           <th>Total</th>
           <th>Status</th>
           <th>Payment</th>
@@ -80,89 +86,136 @@
       <tbody>
         @for (o of rows(); track o.id) {
           <tr>
+            <!-- Order ID -->
             <td>
               <a class="code" [routerLink]="['/orders', o.id]">
                 {{ o.code }}
               </a>
             </td>
 
+            <!-- Buyer -->
             <td>
               <strong>Buyer #{{ o.buyerId }}</strong>
             </td>
 
-            <td>{{ productSummary(o) }}</td>
-
-            <td class="mono">{{ qtySummary(o) }}</td>
-
-            <td class="mono">{{ o.subtotal | currencyKsh }}</td>
-
-            <td class="mono">{{ o.deliveryFee | currencyKsh }}</td>
-
-            <td class="mono">
-              <strong>{{ o.total | currencyKsh }}</strong>
+            <!-- Product -->
+            <td>
+              {{ productSummary(o) }}
             </td>
 
+            <!-- Quantity -->
+            <td class="mono">
+              {{ qtySummary(o) }}
+            </td>
+
+            <!-- Subtotal -->
+            <td class="mono">
+              {{ o.subtotal | currencyKsh }}
+            </td>
+
+            <!-- Delivery Fee -->
+            <td class="mono">
+              {{ o.deliveryFee | currencyKsh }}
+            </td>
+
+            <!-- Pickup Station -->
+            <td>
+              @if (o.pickupLocation) {
+                <span class="pickup-location" [title]="o.pickupLocation">
+                  {{ o.pickupLocation }}
+                </span>
+              } @else {
+                <span class="muted"> Not specified </span>
+              }
+            </td>
+
+            <!-- Total -->
+            <td class="mono">
+              <strong>
+                {{ o.total | currencyKsh }}
+              </strong>
+            </td>
+
+            <!-- Order Status -->
             <td>
               <span class="badge" [attr.data-tone]="meta[o.status]?.tone">
                 {{ meta[o.status]?.label ?? formatStatus(o.status) }}
               </span>
             </td>
 
+            <!-- Payment Status -->
             <td>
               <span class="badge flat" [attr.data-tone]="getPaymentStatusClass(o.paymentStatus)">
                 {{ formatPaymentStatus(o.paymentStatus) }}
               </span>
             </td>
 
+            <!-- Date Placed -->
             <td class="mono muted">
               {{ formatDate(o.createdAt) }}
             </td>
 
+            <!-- Actions -->
             <td class="r">
               <div class="acts">
-                <button type="button" (click)="router.navigate(['/orders', o.id])">View</button>
+                <button
+                  type="button"
+                  (click)="router.navigate(['/orders', o.id])"
+                  [disabled]="loading()"
+                >
+                  View
+                </button>
               </div>
             </td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="11" class="empty">
-              No orders match your search or selected status. Try clearing the filters.
+            <td colspan="12" class="empty">
+              @if (search() || status()) {
+                No orders match your search or selected status. Try clearing the filters.
+              } @else {
+                No orders found on this page.
+              }
             </td>
           </tr>
         }
       </tbody>
     </table>
 
-    <!-- Pagination -->
+    <!-- Backend Pagination -->
     <div class="foot">
-      <span> Showing {{ from() }}–{{ to() }} of {{ filtered().length }} orders </span>
+      <span> Showing {{ from() }}–{{ to() }} of {{ totalOrders() }} orders </span>
 
-      @if (pageCount() > 1) {
-        <nav class="pager" aria-label="Pagination">
+      @if (totalPages() > 1) {
+        <nav class="pager" aria-label="Orders pagination">
+          <!-- Previous Page -->
           <button
             type="button"
-            [disabled]="page() === 1"
+            [disabled]="currentPage() <= 1 || loading()"
             (click)="previousPage()"
             aria-label="Previous page"
           >
             ‹
           </button>
 
+          <!-- Page Numbers -->
           @for (p of pages(); track p) {
             <button
               type="button"
-              [class.on]="p === page()"
+              [class.on]="p === currentPage()"
+              [disabled]="loading()"
               (click)="goToPage(p)"
-              [attr.aria-current]="p === page() ? 'page' : null"
+              [attr.aria-current]="p === currentPage() ? 'page' : null"
+              [attr.aria-label]="'Go to page ' + p"
             >
               {{ p }}
             </button>
           }
 
+          <!-- Next Page -->
           <button
             type="button"
-            [disabled]="page() === pageCount()"
+            [disabled]="currentPage() >= totalPages() || loading()"
             (click)="nextPage()"
             aria-label="Next page"
           >
@@ -174,7 +227,7 @@
   </div>
 }
 
-<!-- Assign driver dialog -->
+<!-- Assign Driver Dialog -->
 @if (toAssign(); as o) {
   <app-assign-driver-dialog
     [order]="o"

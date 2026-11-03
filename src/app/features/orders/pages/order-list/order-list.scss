@@ -268,3 +268,11 @@ tbody tr:hover {
     }
   }
 }
+
+.pickup-location {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

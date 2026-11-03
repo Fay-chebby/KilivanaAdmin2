@@ -12,7 +12,7 @@ import {
 import { ORDER_STATUS_META, Order } from '../../models/order.model';
 import { OrderService } from '../../services/order.service';
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 @Component({
   selector: 'app-order-list',
@@ -28,7 +28,9 @@ export class OrderList implements OnInit {
   protected readonly search = signal('');
   protected readonly status = signal<OrderStatusFilter>('ALL');
 
+  // UI pages start at 1; backend pages start at 0.
   protected readonly page = signal(1);
+  protected readonly currentPage = this.page;
   protected readonly toAssign = signal<Order | null>(null);
 
   protected readonly orders = this.service.orders;
@@ -37,12 +39,18 @@ export class OrderList implements OnInit {
   protected readonly stats = this.service.stats;
   protected readonly meta = ORDER_STATUS_META;
 
+  // Pagination metadata supplied by the backend.
+  protected readonly totalOrders = this.service.totalElements;
+  protected readonly totalPages = this.service.totalPages;
+
+  // Filter the orders returned for the current backend page.
   protected readonly filtered = computed(() => {
     const query = this.search().trim().toLowerCase();
     const selectedStatus = this.status();
 
     return this.orders().filter((order) => {
-      const matchesStatus = selectedStatus === 'ALL' || order.status === selectedStatus;
+      const matchesStatus =
+        selectedStatus === 'ALL' || String(order.status ?? '').toUpperCase() === selectedStatus;
 
       const matchesSearch =
         !query ||
@@ -55,6 +63,9 @@ export class OrderList implements OnInit {
         String(order.buyerId ?? '')
           .toLowerCase()
           .includes(query) ||
+        String(order.pickupLocation ?? '')
+          .toLowerCase()
+          .includes(query) ||
         (order.items ?? []).some((item) =>
           String(item.productName ?? '')
             .toLowerCase()
@@ -64,38 +75,34 @@ export class OrderList implements OnInit {
       return matchesStatus && matchesSearch;
     });
   });
-  protected clearFilters(): void {
-    this.search.set('');
-    this.status.set('ALL');
-    this.page.set(1);
-  }
 
-  protected readonly pageCount = computed(() =>
-    Math.max(1, Math.ceil(this.filtered().length / PAGE_SIZE)),
-  );
+  // The backend has already paginated the orders.
+  // Do not slice the returned page a second time.
+  protected readonly rows = computed(() => this.filtered());
+
+  // Use the backend page count, not filtered().length.
+  protected readonly pageCount = computed(() => this.totalPages());
 
   protected readonly pages = computed(() =>
     Array.from({ length: this.pageCount() }, (_, index) => index + 1),
   );
 
-  protected readonly rows = computed(() => {
-    const currentPage = Math.min(this.page(), this.pageCount());
-    const start = (currentPage - 1) * PAGE_SIZE;
-
-    return this.filtered().slice(start, start + PAGE_SIZE);
-  });
-
+  // Display the range for the current backend page.
   protected readonly from = computed(() => {
-    const total = this.filtered().length;
-
-    if (total === 0) {
+    if (this.filtered().length === 0) {
       return 0;
     }
 
-    return (Math.min(this.page(), this.pageCount()) - 1) * PAGE_SIZE + 1;
+    return (this.page() - 1) * PAGE_SIZE + 1;
   });
 
-  protected readonly to = computed(() => Math.min(this.page() * PAGE_SIZE, this.filtered().length));
+  protected readonly to = computed(() => {
+    if (this.filtered().length === 0) {
+      return 0;
+    }
+
+    return Math.min((this.page() - 1) * PAGE_SIZE + this.filtered().length, this.totalOrders());
+  });
 
   ngOnInit(): void {
     this.loadOrders();
@@ -109,18 +116,35 @@ export class OrderList implements OnInit {
     this.loadOrders();
   }
 
+  protected clearFilters(): void {
+    this.search.set('');
+    this.status.set('ALL');
+    this.page.set(1);
+    this.loadOrders();
+  }
+
   protected setSearch(value: string): void {
     this.search.set(value);
-    this.page.set(1);
+
+    // Start from the first backend page after changing the search.
+    if (this.page() !== 1) {
+      this.page.set(1);
+      this.loadOrders();
+    }
   }
 
   protected setStatus(value: string): void {
     this.status.set(value as OrderStatusFilter);
-    this.page.set(1);
+
+    // Start from the first backend page after changing the status.
+    if (this.page() !== 1) {
+      this.page.set(1);
+      this.loadOrders();
+    }
   }
 
   protected goToPage(page: number): void {
-    if (page < 1 || page > this.pageCount()) {
+    if (page < 1 || page > this.totalPages() || page === this.page() || this.loading()) {
       return;
     }
 
@@ -129,16 +153,14 @@ export class OrderList implements OnInit {
   }
 
   protected previousPage(): void {
-    if (this.page() > 1) {
-      this.page.update((current) => current - 1);
-      this.loadOrders();
+    if (this.page() > 1 && !this.loading()) {
+      this.goToPage(this.page() - 1);
     }
   }
 
   protected nextPage(): void {
-    if (this.page() < this.pageCount()) {
-      this.page.update((current) => current + 1);
-      this.loadOrders();
+    if (this.page() < this.totalPages() && !this.loading()) {
+      this.goToPage(this.page() + 1);
     }
   }
 
@@ -228,7 +250,7 @@ export class OrderList implements OnInit {
       return;
     }
 
-    // TODO: Replace with the actual backend driver-assignment API.
+    // TODO: Connect this to the backend driver-assignment API.
     console.log('Assign driver', {
       orderId: order.id,
       agentId,
@@ -245,6 +267,7 @@ export class OrderList implements OnInit {
       'Qty',
       'Subtotal',
       'Delivery Fee',
+      'Pickup Station',
       'Total (KSh)',
       'Status',
       'Payment',
@@ -260,6 +283,7 @@ export class OrderList implements OnInit {
       this.qtySummary(order),
       this.subtotal(order),
       order.deliveryFee,
+      order.pickupLocation ?? '',
       order.total,
       this.formatStatus(order.status),
       this.formatPaymentStatus(order.paymentStatus),

@@ -1,4 +1,3 @@
-
 /* -----------------------------
    Order status types
 ----------------------------- */
@@ -47,6 +46,7 @@ export interface Order {
   items: OrderItem[];
   createdAt: string;
   updatedAt: string;
+  pickupLocation?: string | null;
 
   /*
    * Optional driver information.
@@ -100,10 +100,7 @@ export interface ApiResponse<T> {
    Order status UI metadata
 ----------------------------- */
 
-export const ORDER_STATUS_META: Record<
-  OrderStatus,
-  { label: string; tone: Tone }
-> = {
+export const ORDER_STATUS_META: Record<OrderStatus, { label: string; tone: Tone }> = {
   PLACED: {
     label: 'Placed',
     tone: 'amber',
@@ -155,10 +152,7 @@ export const STATUS_OPTIONS: Array<{
    Payment UI metadata
 ----------------------------- */
 
-export const PAYMENT_META: Record<
-  PaymentStatus,
-  { label: string; tone: Tone }
-> = {
+export const PAYMENT_META: Record<PaymentStatus, { label: string; tone: Tone }> = {
   pending: {
     label: 'Pending',
     tone: 'amber',
@@ -201,9 +195,7 @@ export function productSummary(order: Order): string {
     return order.items[0].productName;
   }
 
-  return `${order.items[0].productName} + ${
-    order.items.length - 1
-  } more`;
+  return `${order.items[0].productName} + ${order.items.length - 1} more`;
 }
 
 export function qtySummary(order: Order): string {
@@ -211,12 +203,7 @@ export function qtySummary(order: Order): string {
     return '0';
   }
 
-  return String(
-    order.items.reduce(
-      (total, item) => total + Number(item.quantity || 0),
-      0,
-    ),
-  );
+  return String(order.items.reduce((total, item) => total + Number(item.quantity || 0), 0));
 }
 
 /*
