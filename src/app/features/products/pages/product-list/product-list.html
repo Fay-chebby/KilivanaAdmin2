@@ -1,30 +1,51 @@
 <nav class="crumbs" aria-label="Breadcrumb">
-  <a routerLink="/">Kilivana</a> / <span>Products</span>
+  <a routerLink="/dashboard" class="crumb-link">Dashboard</a>
+  <span class="sep">/</span>
+  <span class="cur" aria-current="page">Products</span>
 </nav>
+<!-- Page heading and actions -->
+<header class="head">
+  <div class="head-copy">
+    <h1>Product Catalog</h1>
+    <p class="subtitle">Manage products, review verification requests, and monitor stock levels.</p>
+  </div>
 
-<div class="head">
-  <h1>Product Catalog</h1>
-
-  <div class="tools">
-    @if (stats().pending) {
-      <button type="button" class="pill" (click)="setStatus('pending')">
+  <div class="head-actions">
+    @if (stats().pending > 0) {
+      <button type="button" class="btn ghost" (click)="setStatus('pending')">
+        <span class="action-dot"></span>
         {{ stats().pending }} awaiting verification
       </button>
     }
 
-    <div class="seg" role="group" aria-label="View">
-      <button type="button" [class.on]="view() === 'table'" (click)="view.set('table')">
+    <div class="seg" role="group" aria-label="Product view">
+      <button
+        type="button"
+        [class.on]="view() === 'table'"
+        [attr.aria-pressed]="view() === 'table'"
+        (click)="view.set('table')"
+      >
         Table
       </button>
 
-      <button type="button" [class.on]="view() === 'grid'" (click)="view.set('grid')">Grid</button>
+      <button
+        type="button"
+        [class.on]="view() === 'grid'"
+        [attr.aria-pressed]="view() === 'grid'"
+        (click)="view.set('grid')"
+      >
+        Grid
+      </button>
     </div>
 
-    <a class="btn" routerLink="/products/new">+ Add Product</a>
+    <a class="btn primary" routerLink="/products/new">
+      <span aria-hidden="true">+</span>
+      Add Product
+    </a>
   </div>
-</div>
+</header>
 
-<!-- API status banner can be enabled here if needed. -->
+<!-- API status banner: enable if your component is available -->
 <!--
 <app-api-banner
   [loading]="service.loading()"
@@ -34,8 +55,8 @@
 />
 -->
 
-<!-- Original statistics cards -->
-<div class="stats">
+<!-- Product statistics -->
+<section class="stats" aria-label="Product statistics">
   <app-stat-card
     label="Total products"
     [value]="'' + stats().total"
@@ -69,17 +90,20 @@
     delta="Low or out of stock"
     [positive]="false"
   />
-</div>
+</section>
 
 <!-- Search and filters -->
-<div class="filters">
-  <input
-    type="search"
-    placeholder="Search product, seller, county…"
-    aria-label="Search products"
-    [value]="search()"
-    (input)="setSearch($any($event.target).value)"
-  />
+<section class="filters" aria-label="Filter products">
+  <div class="search-box">
+    <span class="search-icon" aria-hidden="true">⌕</span>
+    <input
+      type="search"
+      placeholder="Search products, sellers, counties..."
+      aria-label="Search products"
+      [value]="search()"
+      (input)="setSearch($any($event.target).value)"
+    />
+  </div>
 
   <select
     aria-label="Filter by category"
@@ -104,7 +128,7 @@
   </select>
 
   <select
-    aria-label="Filter by status"
+    aria-label="Filter by product status"
     [value]="status()"
     (change)="setStatus($any($event.target).value)"
   >
@@ -114,242 +138,371 @@
       <option [value]="s">{{ meta[s].label }}</option>
     }
   </select>
-</div>
+
+  @if (search() || category() || sellerType() || status()) {
+    <button
+      type="button"
+      class="btn ghost clear-filters"
+      (click)="setSearch(''); setCategory(''); setSellerType(''); setStatus('')"
+    >
+      Clear filters
+    </button>
+  }
+</section>
 
 <!-- Empty state -->
 @if (rows().length === 0) {
-  <div class="card empty">
-    {{
-      service.loaded()
-        ? 'No products match your filters. Clear them or add a new product.'
-        : 'Waiting for the server…'
-    }}
-  </div>
-} @else if (view() === 'table') {
-  <!-- Table view -->
-  <div class="card table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Seller</th>
-          <th>Price</th>
-          <th>Stock</th>
-          <th>Quality</th>
-          <th>Status</th>
-          <th class="r">Actions</th>
-        </tr>
-      </thead>
+  <section class="card empty">
+    <div class="empty-icon" aria-hidden="true">□</div>
 
-      <tbody>
+    <h2>
+      {{ service.loaded() ? 'No products found' : 'Loading products' }}
+    </h2>
+
+    <p>
+      {{
+        service.loaded()
+          ? 'No products match your current filters. Try changing your search or add a new product.'
+          : 'Please wait while the product catalog loads.'
+      }}
+    </p>
+
+    @if (service.loaded() && (search() || category() || sellerType() || status())) {
+      <button
+        type="button"
+        class="btn ghost"
+        (click)="setSearch(''); setCategory(''); setSellerType(''); setStatus('')"
+      >
+        Clear filters
+      </button>
+    }
+
+    @if (service.loaded() && !search() && !category() && !sellerType() && !status()) {
+      <a class="btn primary" routerLink="/products/new"> Add Product </a>
+    }
+  </section>
+} @else {
+  <!-- TABLE VIEW -->
+  @if (view() === 'table') {
+    <section class="card table-card">
+      <div class="table-heading">
+        <div>
+          <h2>All Products</h2>
+          <p>Review product details, stock, and verification status.</p>
+        </div>
+
+        <span class="result-count">
+          {{ rows().length }} {{ rows().length === 1 ? 'product' : 'products' }}
+        </span>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Seller</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Quality</th>
+              <th>Status</th>
+              <th class="r">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (p of paginatedRows(); track p.id) {
+              <tr>
+                <!-- Product -->
+                <td>
+                  <a class="prod" [routerLink]="['/products', p.id]">
+                    @if (loadedCovers()[p.id]) {
+                      <img [src]="loadedCovers()[p.id]" [alt]="p.name" />
+                    } @else {
+                      <span class="thumb ph">
+                        {{ p.name.charAt(0) }}
+                      </span>
+                    }
+
+                    <span class="product-info">
+                      <strong>{{ p.name }}</strong>
+                      <small>{{ p.code }} · {{ p.category }}</small>
+                    </span>
+                  </a>
+                </td>
+
+                <!-- Seller -->
+                <td>
+                  <span class="cell-primary">{{ p.sellerName }}</span>
+                  <small class="sub">
+                    {{ p.county || 'No county' }} ·
+                    {{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}
+                  </small>
+                </td>
+
+                <!-- Price -->
+                <td class="num">
+                  <strong>{{ p.priceKes | currencyKsh }}</strong>
+                  <small class="sub">per {{ p.unit }}</small>
+                </td>
+
+                <!-- Stock -->
+                <td class="num" [attr.data-stock]="stock(p)">
+                  <strong>{{ num(p.stock) }}</strong>
+                  {{ p.unit }}
+
+                  @if (stock(p) === 'out') {
+                    <small class="sub stock-warning">Out of stock</small>
+                  } @else if (stock(p) === 'low') {
+                    <small class="sub stock-warning">Low stock</small>
+                  }
+                </td>
+
+                <!-- Quality -->
+                <td>
+                  <span class="grade">{{ grade(p.grade) }}</span>
+                </td>
+
+                <!-- Status -->
+                <td>
+                  <span class="badge" [attr.data-tone]="meta[p.status].tone">
+                    {{ meta[p.status].label }}
+                  </span>
+
+                  @if (p.status === 'pending' && p.verification.inspectorName) {
+                    <small class="sub">
+                      {{ p.verification.inspectorName }}
+                    </small>
+                  }
+
+                  @if ((p.status === 'suspended' || p.status === 'rejected') && p.statusReason) {
+                    <small class="sub reason" [title]="p.statusReason">
+                      {{ p.statusReason }}
+                    </small>
+                  }
+                </td>
+
+                <!-- Actions -->
+                <td class="r">
+                  <div class="acts">
+                    @if (p.status === 'pending') {
+                      <a class="btn small" [routerLink]="['/products', p.id]"> Verify </a>
+                    }
+
+                    <button type="button" (click)="router.navigate(['/products', p.id, 'edit'])">
+                      Edit
+                    </button>
+
+                    @if (p.status === 'active') {
+                      <button type="button" (click)="action.set({ type: 'suspend', product: p })">
+                        Suspend
+                      </button>
+                    }
+
+                    @if (p.status === 'suspended') {
+                      <button type="button" (click)="service.reactivate(p.id)">Reactivate</button>
+                    }
+
+                    <button
+                      type="button"
+                      class="del"
+                      (click)="action.set({ type: 'delete', product: p })"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination footer, similar to Payments & Finance -->
+      <footer class="foot">
+        <div class="range">
+          Showing <strong>{{ startItem() }}–{{ endItem() }}</strong> of
+          <strong>{{ rows().length }}</strong> products
+        </div>
+
+        <div class="pager">
+          <label for="page-size">Rows per page</label>
+
+          <select
+            id="page-size"
+            aria-label="Products per page"
+            [value]="pageSize()"
+            (change)="setPageSize(+$any($event.target).value)"
+          >
+            @for (size of pageSizes; track size) {
+              <option [value]="size">{{ size }}</option>
+            }
+          </select>
+
+          <button
+            type="button"
+            class="page-btn"
+            aria-label="Previous page"
+            [disabled]="page() === 1"
+            (click)="goToPage(page() - 1)"
+          >
+            Previous
+          </button>
+
+          @for (number of pageNumbers(); track number) {
+            <button
+              type="button"
+              class="page-btn"
+              [class.current]="page() === number"
+              [attr.aria-current]="page() === number ? 'page' : null"
+              [attr.aria-label]="'Page ' + number"
+              (click)="goToPage(number)"
+            >
+              {{ number }}
+            </button>
+          }
+
+          <button
+            type="button"
+            class="page-btn"
+            aria-label="Next page"
+            [disabled]="page() === totalPages()"
+            (click)="goToPage(page() + 1)"
+          >
+            Next
+          </button>
+        </div>
+      </footer>
+    </section>
+  } @else {
+    <!-- GRID VIEW -->
+    <section class="card grid-card">
+      <div class="table-heading">
+        <div>
+          <h2>All Products</h2>
+          <p>Browse product photos, prices, and availability.</p>
+        </div>
+
+        <span class="result-count">
+          {{ rows().length }} {{ rows().length === 1 ? 'product' : 'products' }}
+        </span>
+      </div>
+
+      <div class="cards">
         @for (p of paginatedRows(); track p.id) {
-          <tr>
-            <!-- Product -->
-            <td>
-              <a class="prod" [routerLink]="['/products', p.id]">
-                @if (loadedCovers()[p.id]) {
-                  <img [src]="loadedCovers()[p.id]" [alt]="p.name" />
-                } @else {
-                  <span class="thumb ph">{{ p.name.charAt(0) }}</span>
-                }
-
-                <span>
-                  <strong>{{ p.name }}</strong>
-                  <small>{{ p.code }} · {{ p.category }}</small>
-                </span>
-              </a>
-            </td>
-
-            <!-- Seller -->
-            <td>
-              {{ p.sellerName }}
-              <small class="sub">
-                {{ p.county || 'No county' }} ·
-                {{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}
-              </small>
-            </td>
-
-            <!-- Price -->
-            <td class="num">
-              <strong>{{ p.priceKes | currencyKsh }}</strong>
-              <small class="sub">per {{ p.unit }}</small>
-            </td>
-
-            <!-- Stock -->
-            <td class="num" [attr.data-stock]="stock(p)">
-              {{ num(p.stock) }} {{ p.unit }}
-
-              @if (stock(p) === 'out') {
-                <small class="sub">Out of stock</small>
-              } @else if (stock(p) === 'low') {
-                <small class="sub">Low stock</small>
+          <article class="tile" [class.hidden]="!vis(p).live">
+            <a
+              class="cover"
+              [routerLink]="['/products', p.id]"
+              [attr.aria-label]="'Open ' + p.name"
+            >
+              @if (loadedCovers()[p.id]) {
+                <img [src]="loadedCovers()[p.id]" [alt]="p.name" />
+              } @else {
+                <span class="ph">{{ p.name.charAt(0) }}</span>
               }
-            </td>
 
-            <!-- Quality -->
-            <td>
-              <span class="grade">{{ grade(p.grade) }}</span>
-            </td>
-
-            <!-- Status -->
-            <td>
-              <span class="badge" [attr.data-tone]="meta[p.status].tone">
+              <span class="badge over" [attr.data-tone]="meta[p.status].tone">
                 {{ meta[p.status].label }}
               </span>
 
-              @if (p.status === 'pending' && p.verification.inspectorName) {
-                <small class="sub">{{ p.verification.inspectorName }}</small>
+              @if (!vis(p).live) {
+                <span class="veil">Hidden from customers</span>
               }
+            </a>
 
-              @if ((p.status === 'suspended' || p.status === 'rejected') && p.statusReason) {
-                <small class="sub reason" [title]="p.statusReason">
-                  {{ p.statusReason }}
-                </small>
-              }
-            </td>
+            <div class="body">
+              <small class="cat">{{ p.category }}</small>
 
-            <!-- Actions -->
-            <td class="r">
-              <div class="acts">
-                @if (p.status === 'pending') {
-                  <a class="btn sm" [routerLink]="['/products', p.id]"> Verify </a>
-                }
+              <h3>
+                <a [routerLink]="['/products', p.id]">
+                  {{ p.name }}
+                </a>
+              </h3>
 
-                <button type="button" (click)="router.navigate(['/products', p.id, 'edit'])">
-                  Edit
-                </button>
+              <p>{{ p.sellerName }}{{ p.county ? ' · ' + p.county : '' }}</p>
 
-                @if (p.status === 'active') {
-                  <button type="button" (click)="action.set({ type: 'suspend', product: p })">
-                    Suspend
-                  </button>
-                }
-
-                @if (p.status === 'suspended') {
-                  <button type="button" (click)="service.reactivate(p.id)">Reactivate</button>
-                }
-
-                <button
-                  type="button"
-                  class="del"
-                  (click)="action.set({ type: 'delete', product: p })"
-                >
-                  Delete
-                </button>
+              <div class="price">
+                <strong>{{ p.priceKes | currencyKsh }}</strong>
+                <span>/ {{ p.unit }}</span>
+                <span class="grade">{{ grade(p.grade) }}</span>
               </div>
-            </td>
-          </tr>
+
+              <div class="foot">
+                <span [attr.data-stock]="stock(p)"> {{ num(p.stock) }} {{ p.unit }} </span>
+
+                <div class="acts">
+                  @if (p.status === 'pending') {
+                    <a class="btn small" [routerLink]="['/products', p.id]"> Verify </a>
+                  }
+
+                  <button type="button" (click)="router.navigate(['/products', p.id, 'edit'])">
+                    Edit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
         }
-      </tbody>
-    </table>
-  </div>
-} @else {
-  <!-- Grid view -->
-  <div class="cards">
-    @for (p of paginatedRows(); track p.id) {
-      <article class="tile" [class.hidden]="!vis(p).live">
-        <a class="cover" [routerLink]="['/products', p.id]" [attr.aria-label]="'Open ' + p.name">
-          @if (loadedCovers()[p.id]) {
-            <img [src]="loadedCovers()[p.id]" [alt]="p.name" />
-          } @else {
-            <span class="ph">{{ p.name.charAt(0) }}</span>
-          }
+      </div>
 
-          <span class="badge over" [attr.data-tone]="meta[p.status].tone">
-            {{ meta[p.status].label }}
-          </span>
-
-          @if (!vis(p).live) {
-            <span class="veil">Hidden from customers</span>
-          }
-        </a>
-
-        <div class="body">
-          <small class="cat">{{ p.category }}</small>
-
-          <h3>
-            <a [routerLink]="['/products', p.id]">{{ p.name }}</a>
-          </h3>
-
-          <p>{{ p.sellerName }}{{ p.county ? ' · ' + p.county : '' }}</p>
-
-          <div class="price">
-            <strong>{{ p.priceKes | currencyKsh }}</strong>
-            <span>/ {{ p.unit }}</span>
-            <span class="grade">{{ grade(p.grade) }}</span>
-          </div>
-
-          <div class="foot">
-            <span [attr.data-stock]="stock(p)"> {{ num(p.stock) }} {{ p.unit }} </span>
-
-            <span class="acts">
-              @if (p.status === 'pending') {
-                <a class="btn sm" [routerLink]="['/products', p.id]"> Verify </a>
-              }
-
-              <button type="button" (click)="router.navigate(['/products', p.id, 'edit'])">
-                Edit
-              </button>
-            </span>
-          </div>
+      <!-- Same pagination footer in grid view -->
+      <footer class="foot">
+        <div class="range">
+          Showing <strong>{{ startItem() }}–{{ endItem() }}</strong> of
+          <strong>{{ rows().length }}</strong> products
         </div>
-      </article>
-    }
-  </div>
-}
 
-<!-- Pagination: shared by table and grid views -->
-@if (rows().length > 0) {
-  <div class="pagination">
-    <div class="pagination-info">
-      Showing {{ startItem() }}–{{ endItem() }} of {{ rows().length }} products
-    </div>
+        <div class="pager">
+          <label for="grid-page-size">Rows per page</label>
 
-    <div class="pagination-controls">
-      <label for="page-size">Rows per page</label>
+          <select
+            id="grid-page-size"
+            aria-label="Products per page"
+            [value]="pageSize()"
+            (change)="setPageSize(+$any($event.target).value)"
+          >
+            @for (size of pageSizes; track size) {
+              <option [value]="size">{{ size }}</option>
+            }
+          </select>
 
-      <select
-        id="page-size"
-        aria-label="Products per page"
-        [value]="pageSize()"
-        (change)="setPageSize(+$any($event.target).value)"
-      >
-        @for (size of pageSizes; track size) {
-          <option [value]="size">{{ size }}</option>
-        }
-      </select>
+          <button
+            type="button"
+            class="page-btn"
+            aria-label="Previous page"
+            [disabled]="page() === 1"
+            (click)="goToPage(page() - 1)"
+          >
+            Previous
+          </button>
 
-      <button
-        type="button"
-        aria-label="Previous page"
-        [disabled]="page() === 1"
-        (click)="goToPage(page() - 1)"
-      >
-        Previous
-      </button>
+          @for (number of pageNumbers(); track number) {
+            <button
+              type="button"
+              class="page-btn"
+              [class.current]="page() === number"
+              [attr.aria-current]="page() === number ? 'page' : null"
+              [attr.aria-label]="'Page ' + number"
+              (click)="goToPage(number)"
+            >
+              {{ number }}
+            </button>
+          }
 
-      @for (number of pageNumbers(); track number) {
-        <button
-          type="button"
-          [class.current]="page() === number"
-          [attr.aria-current]="page() === number ? 'page' : null"
-          [attr.aria-label]="'Page ' + number"
-          (click)="goToPage(number)"
-        >
-          {{ number }}
-        </button>
-      }
-
-      <button
-        type="button"
-        aria-label="Next page"
-        [disabled]="page() === totalPages()"
-        (click)="goToPage(page() + 1)"
-      >
-        Next
-      </button>
-    </div>
-  </div>
+          <button
+            type="button"
+            class="page-btn"
+            aria-label="Next page"
+            [disabled]="page() === totalPages()"
+            (click)="goToPage(page() + 1)"
+          >
+            Next
+          </button>
+        </div>
+      </footer>
+    </section>
+  }
 }
 
 <!-- Confirmation modals -->
