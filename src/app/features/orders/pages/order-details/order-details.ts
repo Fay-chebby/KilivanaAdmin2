@@ -175,9 +175,21 @@ export class OrderDetails {
           this.service.refresh();
         },
         error: (err) => {
-          console.error('Driver assignment failed:', err);
+          console.error('Driver assignment failed:', {
+            status: err.status,
+            url: err.url,
+            backendError: err.error,
+            message: err.error?.message,
+            details: err.error?.error?.details,
+          });
 
-          this.error.set(err?.error?.message || 'Unable to assign the driver. Please try again.');
+          const message =
+            err.error?.error?.details ||
+            err.error?.message ||
+            err.error?.error?.message ||
+            'Unable to assign the driver. Please try again.';
+
+          this.error.set(typeof message === 'string' ? message : JSON.stringify(message));
         },
       });
   }
