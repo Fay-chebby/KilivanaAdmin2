@@ -316,46 +316,56 @@ export class FarmerService {
    * KYC documents and profile images remain completely
    * separate.
    */
+
+  /**
+   * Gets all information needed by the farmer details page.
+   *
+   * Requests:
+   *
+   * 1. GET /admin/farmers/{id}
+   * 2. GET /profiles/farmers/{id}
+   * 3. GET /profiles/farmers/{id}/images
+   * 4. GET /admin/kyc
+   * 5. GET /products/seller/{sellerId}
+   */
   getDetail(id: string): Observable<FarmerDetail> {
     return forkJoin({
-      /* -----------------------------------------------
-         Farmer
-         ----------------------------------------------- */
-
+      // Farmer information
       farmer: this.fetchFarmer(id),
 
-      /* -----------------------------------------------
-         Farmer profile
-         ----------------------------------------------- */
-
+      // Farmer profile
       profile: this.getProfile(id),
 
-      /* -----------------------------------------------
-         Profile images
-         ----------------------------------------------- */
-
+      // Profile images
       profileImages: this.getProfileImages(id),
 
-      /* -----------------------------------------------
-         KYC documents
-         ----------------------------------------------- */
-
+      // KYC documents
       documents: this.getKycDocuments(id),
+
+      // Products posted by this farmer
+      products: this.getProductsBySeller(id),
     }).pipe(
-      map(({ farmer, profile, profileImages, documents }) => {
+      map(({ farmer, profile, profileImages, documents, products }) => {
         const base = toFarmer(farmer);
 
-        // Prefer the gallery returned with the farmer; fall back to the separate images call
+        // Prefer images returned with the farmer.
         const gallery = (farmer.profileImages ?? [])
           .map(toProfileImage)
           .sort((a, b) => a.sortOrder - b.sortOrder);
 
         return {
           ...base,
+
           farms: (farmer.farms ?? []).map(toFarm),
+
           profile,
+
           documents,
+
           profileImages: gallery.length ? gallery : profileImages,
+
+          // Include the products in FarmerDetail
+          products,
         };
       }),
     );

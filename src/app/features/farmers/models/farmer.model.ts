@@ -374,6 +374,7 @@ export interface FarmerDetail extends Farmer {
    * GET /api/v1/profiles/farmers/{userId}/images
    */
   profileImages: FarmerProfileImage[];
+  products: FarmerProduct[];
 }
 
 /* =========================================================
