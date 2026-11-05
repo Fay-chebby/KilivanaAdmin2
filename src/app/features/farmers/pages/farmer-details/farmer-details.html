@@ -62,6 +62,7 @@
         </header>
 
         <div class="layout">
+          <!-- LEFT SIDEBAR -->
           <aside>
             <div class="card profile">
               <span class="avatar lg" [style.background]="avatarColor(f.name)">
@@ -123,7 +124,9 @@
             </div>
           </aside>
 
+          <!-- MAIN CONTENT -->
           <div class="main">
+            <!-- TABS -->
             <div class="tabs" role="tablist">
               @for (t of tabs; track t.id) {
                 <button
@@ -139,6 +142,7 @@
             </div>
 
             @switch (tab()) {
+              <!-- OVERVIEW TAB -->
               @case ('overview') {
                 @if (f.profile; as p) {
                   <div class="card">
@@ -217,6 +221,7 @@
                 </div>
               }
 
+              <!-- FARMS TAB -->
               @case ('farms') {
                 @if (f.farms.length) {
                   <div class="farm-grid">
@@ -232,6 +237,7 @@
                 }
               }
 
+              <!-- DOCUMENTS TAB -->
               @case ('documents') {
                 @if (f.documents.length) {
                   <div class="card">
@@ -271,6 +277,7 @@
                 }
               }
 
+              <!-- PRODUCTS TAB -->
               @case ('products') {
                 <div class="products-header">
                   <div>
@@ -285,103 +292,92 @@
                 </div>
 
                 @if (f.products.length) {
-                  <div class="products-grid">
-                    @for (product of f.products; track product.id) {
-                      <article class="card product-card">
-                        <div class="product-top">
-                          <div class="product-heading">
-                            <h3>{{ product.name }}</h3>
+                  <div class="card products-table-card">
+                    <div class="scroll">
+                      <table class="products-table">
+                        <thead>
+                          <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Available stock</th>
+                            <th>Sold</th>
+                            <th>Grade</th>
+                            <th>Status</th>
+                            <th>Listed on</th>
+                          </tr>
+                        </thead>
 
-                            <span class="product-category">
-                              {{ product.categoryName || 'Uncategorised' }}
-                            </span>
-                          </div>
+                        <tbody>
+                          @for (product of f.products; track product.id) {
+                            <tr>
+                              <td>
+                                <div class="product-name">
+                                  <strong>{{ product.name }}</strong>
 
-                          <span
-                            class="product-status"
-                            [class.status-active]="product.status.toLowerCase() === 'active'"
-                            [class.status-pending]="product.status.toLowerCase() === 'pending'"
-                            [class.status-rejected]="product.status.toLowerCase() === 'rejected'"
-                            [class.status-suspended]="product.status.toLowerCase() === 'suspended'"
-                          >
-                            {{ titleCase(product.status) }}
-                          </span>
-                        </div>
+                                  <small>
+                                    {{ product.farmName || 'No farm specified' }}
+                                  </small>
+                                </div>
+                              </td>
 
-                        @if (product.description) {
-                          <p class="product-description">
-                            {{ product.description }}
-                          </p>
-                        }
+                              <td>
+                                {{ product.categoryName || 'Uncategorised' }}
+                              </td>
 
-                        <div class="product-price">
-                          {{ product.price | currency: 'KES' : 'code' : '1.2-2' }}
-                          <span>/ {{ product.unit }}</span>
-                        </div>
+                              <td class="mono">
+                                {{ product.price | currency: 'KES' : 'code' : '1.2-2' }}
+                                <small>/ {{ product.unit }}</small>
+                              </td>
 
-                        <div class="product-details">
-                          <div>
-                            <span>Available stock</span>
-                            <strong>
-                              {{ product.stockQty - product.reservedQty }}
-                              {{ product.unit }}
-                            </strong>
-                          </div>
+                              <td>
+                                <strong>
+                                  {{ product.stockQty - product.reservedQty }}
+                                </strong>
+                                {{ product.unit }}
+                              </td>
 
-                          <div>
-                            <span>Total stock</span>
-                            <strong> {{ product.stockQty }} {{ product.unit }} </strong>
-                          </div>
+                              <td>{{ product.soldQty }} {{ product.unit }}</td>
 
-                          <div>
-                            <span>Sold</span>
-                            <strong> {{ product.soldQty }} {{ product.unit }} </strong>
-                          </div>
+                              <td>
+                                {{ product.qualityGrade || '—' }}
+                              </td>
 
-                          <div>
-                            <span>Minimum order</span>
-                            <strong> {{ product.minimumOrderQty }} {{ product.unit }} </strong>
-                          </div>
+                              <td>
+                                <span
+                                  class="product-status"
+                                  [class.status-active]="product.status.toLowerCase() === 'active'"
+                                  [class.status-pending]="
+                                    product.status.toLowerCase() === 'pending'
+                                  "
+                                  [class.status-rejected]="
+                                    product.status.toLowerCase() === 'rejected'
+                                  "
+                                  [class.status-suspended]="
+                                    product.status.toLowerCase() === 'suspended'
+                                  "
+                                >
+                                  {{ titleCase(product.status) }}
+                                </span>
+                              </td>
 
-                          @if (product.qualityGrade) {
-                            <div>
-                              <span>Quality grade</span>
-                              <strong>{{ product.qualityGrade }}</strong>
-                            </div>
+                              <td class="mono">
+                                {{ product.createdAt | date: 'yyyy-MM-dd' }}
+                              </td>
+                            </tr>
+
+                            @if (product.statusReason) {
+                              <tr class="reason-row">
+                                <td colspan="8">
+                                  <strong>Status reason:</strong>
+                                  {{ product.statusReason }}
+                                </td>
+                              </tr>
+                            }
                           }
-
-                          @if (product.harvestDate) {
-                            <div>
-                              <span>Harvest date</span>
-                              <strong>
-                                {{ product.harvestDate | date: 'mediumDate' }}
-                              </strong>
-                            </div>
-                          }
-
-                          @if (product.farmName) {
-                            <div>
-                              <span>Farm</span>
-                              <strong>{{ product.farmName }}</strong>
-                            </div>
-                          }
-
-                          <div>
-                            <span>Listed on</span>
-                            <strong>
-                              {{ product.createdAt | date: 'mediumDate' }}
-                            </strong>
-                          </div>
-                        </div>
-
-                        @if (product.statusReason) {
-                          <div class="product-status-reason">
-                            <strong>Status reason:</strong>
-                            {{ product.statusReason }}
-                          </div>
-                        }
-                      </article>
-                    }
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 } @else {
                   <div class="card empty">
@@ -395,6 +391,7 @@
         </div>
       </section>
 
+      <!-- ACTION DIALOG -->
       @if (dialog(); as action) {
         <app-farmer-action-dialog
           [farmer]="f"
