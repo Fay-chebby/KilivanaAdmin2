@@ -1,4 +1,6 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
+
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { InspectorService } from '../../services/inspector.service';
 
@@ -25,6 +27,15 @@ export class FarmVerification {
   protected readonly preview = signal<FarmPhoto | null>(null);
 
   protected readonly error = signal<string | null>(null);
+  private readonly destroyRef = inject(DestroyRef);
+
+  protected readonly previewUrls = signal<Record<string, string>>({});
+
+  protected readonly failedPhotos = signal<Record<string, boolean>>({});
+
+  private readonly loadingPhotos = new Set<string>();
+
+  private activePhotoKeys = new Set<string>();
 
   protected addPhotos(files: FileList | File[]): void {
     const assignment = this.assignment();
@@ -151,6 +162,104 @@ export class FarmVerification {
         this.error.set('Failed to remove image.');
       },
     });
+  }
+
+  constructor() {
+    effect(() => {
+      const assignment = this.assignment();
+
+      // Do not make the effect depend on changes to previewUrls.
+      untracked(() => {
+        this.loadPhotoPreviews(assignment);
+      });
+    });
+
+    // Release temporary browser image URLs when the component is destroyed.
+    this.destroyRef.onDestroy(() => {
+      for (const url of Object.values(this.previewUrls())) {
+        URL.revokeObjectURL(url);
+      }
+    });
+  }
+
+  private photoKey(photo: FarmPhoto): string {
+    return `${this.assignment().inspectionId}-${photo.id}`;
+  }
+
+  protected displayUrl(photo: FarmPhoto): string | null {
+    const key = this.photoKey(photo);
+
+    return this.previewUrls()[key] ?? null;
+  }
+
+  protected photoFailed(photo: FarmPhoto): boolean {
+    return this.failedPhotos()[this.photoKey(photo)] ?? false;
+  }
+
+  private loadPhotoPreviews(assignment: FarmAssignment): void {
+    const photos = assignment.photos ?? [];
+
+    const activeKeys = new Set(photos.map((photo) => `${assignment.inspectionId}-${photo.id}`));
+
+    this.activePhotoKeys = activeKeys;
+
+    // Remove image URLs belonging to photos no longer displayed.
+    for (const [key, url] of Object.entries(this.previewUrls())) {
+      if (!activeKeys.has(key)) {
+        URL.revokeObjectURL(url);
+
+        this.previewUrls.update((current) => {
+          const updated = { ...current };
+          delete updated[key];
+          return updated;
+        });
+      }
+    }
+
+    for (const photo of photos) {
+      const key = `${assignment.inspectionId}-${photo.id}`;
+
+      if (this.previewUrls()[key] || this.loadingPhotos.has(key) || this.failedPhotos()[key]) {
+        continue;
+      }
+
+      this.loadingPhotos.add(key);
+
+      this.service
+        .getEvidenceImageBlob(photo.url)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (blob) => {
+            this.loadingPhotos.delete(key);
+
+            const objectUrl = URL.createObjectURL(blob);
+
+            // Ignore responses for an assignment that is no longer displayed.
+            if (!this.activePhotoKeys.has(key)) {
+              URL.revokeObjectURL(objectUrl);
+              return;
+            }
+
+            this.previewUrls.update((current) => ({
+              ...current,
+              [key]: objectUrl,
+            }));
+          },
+
+          error: (error) => {
+            this.loadingPhotos.delete(key);
+
+            console.error('Failed to load inspection image:', photo.url, error);
+
+            if (this.activePhotoKeys.has(key)) {
+              this.failedPhotos.update((current) => ({
+                ...current,
+                [key]: true,
+              }));
+            }
+          },
+        });
+    }
   }
 
   protected decide(status: 'verified' | 'rejected'): void {

@@ -566,10 +566,36 @@ export class InspectorService {
       )
       .pipe(map(() => undefined));
   }
+  ////// images
+  getEvidenceImageBlob(url: string): Observable<Blob> {
+    const imageUrl = this.resolveEvidenceUrl(url);
 
-  // =========================================================
+    return this.http.get(imageUrl, {
+      headers: this.ngrokHeaders,
+      responseType: 'blob',
+    });
+  }
+  private resolveEvidenceUrl(url: string): string {
+    const trimmedUrl = url.trim();
+
+    // Already an absolute URL
+    if (/^https?:\/\//i.test(trimmedUrl)) {
+      return trimmedUrl;
+    }
+
+    // Remove trailing slashes from API_BASE
+    const base = API_BASE.replace(/\/+$/, '');
+
+    // Get the backend origin without /api/v1
+    const origin = base.replace(/\/api\/v1$/i, '');
+
+    const path = trimmedUrl.startsWith('/') ? trimmedUrl : `/${trimmedUrl}`;
+
+    return `${origin}${path}`;
+  }
+  // =============
   // INSPECTOR IMAGES
-  // =========================================================
+  // ==============
 
   getInspectorImages(userId: number): Observable<InspectorImage[]> {
     return this.http
@@ -727,14 +753,21 @@ export class InspectorService {
         : [];
 
     const photos: FarmPhoto[] = evidenceUrls
-      .map((url: string) => url.trim())
-      .filter((url: string) => url.length > 0)
-      .map((url: string, index: number) => ({
-        id: `${inspection.id}-${index}`,
-        url: url.startsWith('/api/') ? `${API_BASE.replace(/\/api\/v1$/, '')}${url}` : url,
-        caption: '',
-        takenAt: inspection.inspectedAt ?? inspection.createdAt,
-      }));
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+      .map((url, index) => {
+        const imageUrl = this.resolveEvidenceUrl(url);
+
+        // Extract the actual image ID, e.g. /images/70 -> 70
+        const imageId = imageUrl.match(/\/images\/(\d+)(?:[/?#]|$)/i)?.[1];
+
+        return {
+          id: imageId ?? `${inspection.id}-${index}`,
+          url: imageUrl,
+          caption: `Inspection evidence ${index + 1}`,
+          takenAt: inspection.inspectedAt ?? inspection.createdAt,
+        };
+      });
 
     return {
       id: String(inspection.id),
