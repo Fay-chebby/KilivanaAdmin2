@@ -44,6 +44,54 @@ export const ICONS: Record<string, string[]> = {
   farm: ['M3 21V10l9-7 9 7v11', 'M7 21v-6h10v6', 'M9 15v6', 'M15 15v6'],
 
   map: ['M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z', 'M9 3v15', 'M15 6v15'],
+
+  // Verification and KYC icons
+  file: ['M6 2h8l5 5v15H6z', 'M14 2v6h5', 'M9 13h7', 'M9 17h7'],
+
+  'file-check': ['M6 2h8l5 5v15H6z', 'M14 2v6h5', 'M9 14l2 2 4-4'],
+
+  'file-text': ['M6 2h8l5 5v15H6z', 'M14 2v6h5', 'M9 13h7', 'M9 17h5'],
+
+  'user-check': [circle(9, 8, 4), 'M3 21c1-4 3-6 6-6 2 0 3.5 1 4.5 2.5', 'M16 18l2 2 4-4'],
+
+  'shield-alert': ['M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z', 'M12 8v5', 'M12 16h.01'],
+
+  'user-x': [circle(9, 8, 4), 'M3 21c1-4 3-6 6-6', 'M16 16l5 5', 'M21 16l-5 5'],
+
+  eye: ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z', circle(12, 12, 3)],
+
+  download: ['M12 3v12', 'M7 10l5 5 5-5', 'M4 21h16'],
+
+  upload: ['M12 16V4', 'M7 9l5-5 5 5', 'M4 20h16'],
+
+  calendar: ['M4 5h16v16H4z', 'M8 3v4', 'M16 3v4', 'M4 10h16'],
+
+  filter: ['M4 5h16', 'M7 12h10', 'M10 19h4'],
+
+  refresh: [
+    'M20 7v5h-5',
+    'M4 17v-5h5',
+    'M5.5 9a7 7 0 0 1 12-2L20 12',
+    'M4 12l2.5 5a7 7 0 0 0 12-2',
+  ],
+
+  'arrow-left': ['M19 12H5', 'M12 19l-7-7 7-7'],
+
+  'arrow-right': ['M5 12h14', 'M12 5l7 7-7 7'],
+
+  'external-link': ['M14 3h7v7', 'M10 14L21 3', 'M18 13v7H4V6h7'],
+
+  'more-horizontal': [circle(5, 12, 1), circle(12, 12, 1), circle(19, 12, 1)],
+
+  building: [
+    'M3 21h18',
+    'M5 21V5l7-3 7 3v16',
+    'M9 9h1',
+    'M14 9h1',
+    'M9 13h1',
+    'M14 13h1',
+    'M10 21v-4h4v4',
+  ],
 };
 
 @Component({

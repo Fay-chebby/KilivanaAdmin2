@@ -14,11 +14,11 @@ import {
   unviewedCount,
 } from '../../models/kyc.model';
 import { KycService } from '../../services/kyc.service';
-
+import { Icon } from '../../../../shared/components/icon/icon';
 @Component({
   selector: 'app-kyc-list',
   standalone: true,
-  imports: [DatePipe, RouterLink, StatCard, ApprovalActions, DocumentViewer],
+  imports: [DatePipe, RouterLink, StatCard, ApprovalActions, DocumentViewer, Icon],
   templateUrl: './kyc-list.html',
   styleUrl: './kyc-list.scss',
 })

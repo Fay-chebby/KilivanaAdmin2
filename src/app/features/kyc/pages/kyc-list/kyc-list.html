@@ -1,12 +1,23 @@
 <nav class="crumbs" aria-label="Breadcrumb">
-  <span>AgriAdmin</span><span class="sep">/</span><span class="cur">Verification</span>
+  <span>AgriAdmin</span>
+  <span class="sep">/</span>
+  <span class="cur">Verification</span>
 </nav>
+
 <header class="head">
   <h1>KYC &amp; Verification</h1>
-  <span class="pending-pill">{{ stats().pending }} pending review</span>
+
+  <span class="pending-pill">
+    <app-icon name="clock" [size]="14" />
+    {{ stats().pending }} pending review
+  </span>
 </header>
+
 @if (loadError(); as e) {
-  <p class="error" role="alert">{{ e }}</p>
+  <p class="error" role="alert">
+    <app-icon name="alert" [size]="15" />
+    {{ e }}
+  </p>
 }
 
 <section class="stats">
@@ -16,12 +27,15 @@
     icon="clock"
     tone="amber"
   />
-  <app-stat-card label="Farmers" [value]="stats().farmers.toString()" icon="shield" tone="green" />
-  <app-stat-card label="Buyers" [value]="stats().buyers.toString()" icon="shield" tone="blue" />
+
+  <app-stat-card label="Farmers" [value]="stats().farmers.toString()" icon="users" tone="green" />
+
+  <app-stat-card label="Buyers" [value]="stats().buyers.toString()" icon="user" tone="blue" />
+
   <app-stat-card
     label="Suppliers / Inspectors"
     [value]="stats().suppliersInspectors.toString()"
-    icon="shield"
+    icon="suppliers"
     tone="blue"
   />
 </section>
@@ -56,70 +70,85 @@
             <th>Actions</th>
           </tr>
         </thead>
+
         <tbody>
           @for (a of rows(); track a.id) {
             <tr [class.sel]="a.id === selectedId()" (click)="select(a.id)">
               <td>
-                <a class="name" [routerLink]="['/kyc', a.id]" (click)="$event.stopPropagation()">{{
-                  a.name
-                }}</a>
+                <a class="name" [routerLink]="['/kyc', a.id]" (click)="$event.stopPropagation()">
+                  {{ a.name }}
+                </a>
                 <span class="mono id">{{ a.id }}</span>
               </td>
+
               <td>
-                <span [class]="'tag ' + a.type">{{ typeLabel[a.type] }}</span>
+                <span [class]="'tag ' + a.type">
+                  {{ typeLabel[a.type] }}
+                </span>
               </td>
-              <td>{{ a.documents.length }}</td>
+
               <td>
-                <span [class]="'prio ' + a.priority">{{ a.priority }}</span>
+                <span class="doc-count">
+                  <app-icon name="file" [size]="14" />
+                  {{ a.documents.length }}
+                </span>
               </td>
+
               <td>
-                <span [class]="'status ' + a.status">{{ statusLabel[a.status] }}</span>
+                <span [class]="'prio ' + a.priority">
+                  {{ a.priority }}
+                </span>
               </td>
-              <td class="mono muted">{{ a.submittedAt | date: 'yyyy-MM-dd' }}</td>
+
+              <td>
+                <span [class]="'status ' + a.status">
+                  {{ statusLabel[a.status] }}
+                </span>
+              </td>
+
+              <td class="mono muted">
+                {{ a.submittedAt | date: 'yyyy-MM-dd' }}
+              </td>
+
               <td class="actions">
                 @if (isOpen(a)) {
                   <button
                     type="button"
                     class="icon green"
                     aria-label="Review and approve {{ a.name }}"
+                    title="Quick approve"
                     (click)="$event.stopPropagation(); quickApprove(a)"
                   >
-                    <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
-                      <path
-                        d="M7 12.5l3.2 3.2L17 8.5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.4"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
+                    <app-icon name="check" [size]="14" />
                   </button>
+
                   <button
                     type="button"
                     class="icon red"
                     aria-label="Reject {{ a.name }}"
+                    title="Reject application"
                     (click)="$event.stopPropagation(); select(a.id, 'reject')"
                   >
-                    <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
-                      <path
-                        d="M8 8l8 8M16 8l-8 8"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.4"
-                        stroke-linecap="round"
-                      />
-                    </svg>
+                    <app-icon name="ban" [size]="14" />
                   </button>
                 } @else {
-                  <span class="muted">Decided</span>
+                  <span class="muted decided">
+                    <app-icon name="shield-check" [size]="14" />
+                    Decided
+                  </span>
                 }
               </td>
             </tr>
           } @empty {
             <tr>
               <td colspan="7" class="empty">
-                {{ loading() ? 'Loading applications…' : 'No applications in this category.' }}
+                @if (loading()) {
+                  <app-icon name="refresh" [size]="16" />
+                  Loading applications…
+                } @else {
+                  <app-icon name="file" [size]="16" />
+                  No applications in this category.
+                }
               </td>
             </tr>
           }
@@ -132,20 +161,34 @@
     @if (selected(); as a) {
       <div class="p-head">
         <strong>{{ a.name }}</strong>
-        <span [class]="'tag ' + a.type">{{ typeLabel[a.type] }}</span>
+        <span [class]="'tag ' + a.type">
+          {{ typeLabel[a.type] }}
+        </span>
       </div>
-      <p class="sub">Submitted documents ({{ a.documents.length }})</p>
+
+      <p class="sub">
+        <app-icon name="file-text" [size]="15" />
+        Submitted documents ({{ a.documents.length }})
+      </p>
 
       <ul class="docs">
         @for (d of a.documents; track d.id) {
           <li [class.active]="d.id === activeDocId()">
-            <span
-              >{{ d.name }}
+            <span>
+              <app-icon name="file" [size]="15" />
+              {{ d.name }}
+
               @if (d.viewed) {
-                <em class="seen" title="Opened">&#10003;</em>
+                <em class="seen" title="Opened">
+                  <app-icon name="check" [size]="12" />
+                </em>
               }
             </span>
-            <button type="button" class="view" (click)="viewDoc(d.id)">View</button>
+
+            <button type="button" class="view" (click)="viewDoc(d.id)">
+              <app-icon name="eye" [size]="14" />
+              View
+            </button>
           </li>
         }
       </ul>
@@ -164,19 +207,35 @@
         </div>
       } @else if (a.decision; as dec) {
         <p class="decision" [class.bad]="dec.status === 'rejected'">
-          {{ dec.status === 'approved' ? 'Approved' : 'Rejected' }} on
-          {{ dec.at | date: 'd MMM y, h:mm a' }}.
+          <app-icon [name]="dec.status === 'approved' ? 'shield-check' : 'ban'" [size]="15" />
+
+          {{ dec.status === 'approved' ? 'Approved' : 'Rejected' }}
+          on {{ dec.at | date: 'd MMM y, h:mm a' }}.
+
           @if (dec.reason) {
-            <br />Reason: {{ dec.reason }}
+            <br />
+            Reason: {{ dec.reason }}
           }
         </p>
       }
+
       @if (notice()) {
-        <p class="notice" role="status">{{ notice() }}</p>
+        <p class="notice" role="status">
+          <app-icon name="check" [size]="14" />
+          {{ notice() }}
+        </p>
       }
-      <a class="more" [routerLink]="['/kyc', a.id]">Open full review</a>
+
+      <a class="more" [routerLink]="['/kyc', a.id]">
+        <app-icon name="external-link" [size]="14" />
+        Open full review
+        <app-icon name="arrow-right" [size]="14" />
+      </a>
     } @else {
-      <p class="empty">Select an applicant to review their documents.</p>
+      <p class="empty">
+        <app-icon name="file-text" [size]="18" />
+        Select an applicant to review their documents.
+      </p>
     }
   </aside>
 </div>
