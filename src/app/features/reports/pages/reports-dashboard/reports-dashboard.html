@@ -1,8 +1,11 @@
 <section class="reports">
+  <!-- Page header -->
   <header class="head">
     <div>
       <p class="crumbs">AgriAdmin / Reports</p>
+
       <h1>Reports &amp; analytics</h1>
+
       <p class="subtitle">Monitor platform performance and explore your reports.</p>
     </div>
 
@@ -23,6 +26,7 @@
   @if (error(); as msg) {
     <div class="banner error" role="alert">
       <span>{{ msg }}</span>
+
       <button type="button" (click)="retry()">Try again</button>
     </div>
   }
@@ -31,6 +35,7 @@
   @if (notice(); as msg) {
     <div class="banner" role="status">
       <span>{{ msg }}</span>
+
       <button type="button" (click)="notice.set(null)">Dismiss</button>
     </div>
   }
@@ -40,7 +45,9 @@
     @if (overview(); as o) {
       @for (k of o.kpis; track k.label) {
         <article class="kpi" [class.loading]="loading()">
-          <span class="kpi-label">{{ k.label }}</span>
+          <span class="kpi-label">
+            {{ k.label }}
+          </span>
 
           <strong class="kpi-value">
             {{ kpiValue(k) }}
@@ -64,6 +71,7 @@
 
   <!-- Charts -->
   <div class="charts">
+    <!-- Sales trend -->
     <article class="panel" [class.loading]="loading()">
       <h2>Sales trend</h2>
 
@@ -79,6 +87,7 @@
       }
     </article>
 
+    <!-- Orders -->
     <article class="panel" [class.loading]="loading()">
       <h2>Orders</h2>
 
@@ -100,7 +109,8 @@
     <div class="section-heading">
       <div>
         <h2>Available reports</h2>
-        <p>Preview a report or download its data.</p>
+
+        <p>View detailed reports or download their data.</p>
       </div>
     </div>
 
@@ -112,20 +122,14 @@
           </span>
 
           <h3>{{ r.title }}</h3>
+
           <p>{{ r.description }}</p>
 
           <footer>
-            <button
-              type="button"
-              class="view"
-              [disabled]="reportLoading() && selectedReport() === r.id"
-              (click)="viewReport(r.id)"
-            >
-              @if (reportLoading() && selectedReport() === r.id) {
-                Loading...
-              } @else {
-                View report
-              }
+            <button type="button" class="view" (click)="viewReport(r.id)">
+              View report
+
+              <span aria-hidden="true">→</span>
             </button>
 
             @if (r.exportable) {
@@ -135,7 +139,7 @@
                 (exportRequested)="onExport(r.id, $event)"
               />
             } @else {
-              <span class="soon">Export coming soon</span>
+              <span class="soon"> Export coming soon </span>
             }
           </footer>
         </article>
@@ -144,89 +148,4 @@
       }
     </div>
   </section>
-
-  <!-- Inline report preview -->
-  @if (viewingReport()) {
-    <section class="report-preview" aria-labelledby="preview-title">
-      <header class="preview-header">
-        <div>
-          <p class="crumbs">AgriAdmin / Reports / Preview</p>
-          <h2 id="preview-title">Report preview</h2>
-          <p>Review the report data for the selected date range.</p>
-        </div>
-
-        <div class="preview-actions">
-          @if (selectedReport(); as reportId) {
-            <button
-              type="button"
-              class="view"
-              (click)="refreshReport()"
-              [disabled]="reportLoading()"
-            >
-              Refresh
-            </button>
-
-            <app-export-button
-              [formats]="['csv']"
-              [loading]="exporting() === reportId"
-              (exportRequested)="onExport(reportId, $event)"
-            />
-          }
-
-          <button type="button" class="close-button" (click)="closeReport()">Close</button>
-        </div>
-      </header>
-
-      <!-- Preview error -->
-      @if (reportError(); as msg) {
-        <div class="banner error" role="alert">
-          <span>{{ msg }}</span>
-
-          <button type="button" (click)="refreshReport()" [disabled]="reportLoading()">
-            Try again
-          </button>
-        </div>
-      } @else if (reportLoading()) {
-        <div class="preview-loading" role="status">Loading report data...</div>
-      } @else if (reportData(); as report) {
-        @if (report.columns.length > 0) {
-          <div class="report-table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  @for (column of report.columns; track column) {
-                    <th scope="col">
-                      {{ formatColumn(column) }}
-                    </th>
-                  }
-                </tr>
-              </thead>
-
-              <tbody>
-                @for (row of report.rows; track $index) {
-                  <tr>
-                    @for (column of report.columns; track $index) {
-                      <td>
-                        {{ getCellValue(row, $index) }}
-                      </td>
-                    }
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td [attr.colspan]="report.columns.length">
-                      No report data found for this date range.
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        } @else {
-          <p class="empty-state">This report has no columns to display.</p>
-        }
-      } @else {
-        <p class="empty-state">No report data is available.</p>
-      }
-    </section>
-  }
 </section>

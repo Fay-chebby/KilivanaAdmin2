@@ -1,1 +1,229 @@
-<p>report-details works!</p>
+<section class="report-details">
+  <!-- Page heading -->
+  <header class="page-header">
+    <div class="heading-content">
+      <p class="breadcrumbs">
+        <button type="button" (click)="backToReports()">AgriAdmin</button>
+
+        <span>/</span>
+
+        <button type="button" (click)="backToReports()">Reports</button>
+
+        <span>/</span>
+
+        <span>{{ report()?.title }}</span>
+      </p>
+
+      <div class="title-row">
+        <div class="report-icon" [style.background]="report()?.tint">
+          {{ report()?.icon }}
+        </div>
+
+        <div>
+          <h1>{{ report()?.title }}</h1>
+
+          <p>{{ report()?.description }}</p>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="back-button" (click)="backToReports()">
+      <span aria-hidden="true">←</span>
+      Back to Reports
+    </button>
+  </header>
+
+  <!-- Report toolbar -->
+  <section class="toolbar">
+    <div class="toolbar-info">
+      <div class="status-indicator"></div>
+
+      <div>
+        <strong>Report data</strong>
+
+        <span> Review data for your selected period </span>
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <app-report-filters [range]="range()" (rangeChange)="onRangeChange($event)" />
+
+      <button type="button" class="refresh-button" (click)="refreshReport()" [disabled]="loading()">
+        <span aria-hidden="true">↻</span>
+        Refresh
+      </button>
+
+      @if (report()?.exportable) {
+        <app-export-button
+          label="Export CSV"
+          align="end"
+          [formats]="['csv']"
+          [loading]="exporting()"
+          (exportRequested)="onExport($event)"
+        />
+      }
+    </div>
+  </section>
+
+  <!-- Notification -->
+  @if (notice(); as msg) {
+    <div class="notice" role="status">
+      <span>{{ msg }}</span>
+
+      <button type="button" (click)="notice.set(null)">Dismiss</button>
+    </div>
+  }
+
+  <!-- Report summary -->
+  <section class="summary-grid">
+    <article class="summary-card">
+      <div class="summary-icon green">
+        <span>▤</span>
+      </div>
+
+      <div>
+        <span class="summary-label">Report records</span>
+
+        <strong>{{ totalRows.toLocaleString('en') }}</strong>
+
+        <span class="summary-description"> Records returned </span>
+      </div>
+    </article>
+
+    <article class="summary-card">
+      <div class="summary-icon blue">
+        <span>▥</span>
+      </div>
+
+      <div>
+        <span class="summary-label">Data columns</span>
+
+        <strong>{{ totalColumns }}</strong>
+
+        <span class="summary-description"> Available fields </span>
+      </div>
+    </article>
+
+    <article class="summary-card">
+      <div class="summary-icon amber">
+        <span>◷</span>
+      </div>
+
+      <div>
+        <span class="summary-label">Date range</span>
+
+        <strong>{{ range().preset === 'custom' ? 'Custom' : range().preset }}</strong>
+
+        <span class="summary-description"> {{ range().from }} to {{ range().to }} </span>
+      </div>
+    </article>
+  </section>
+
+  <!-- Report table panel -->
+  <section class="table-panel">
+    <header class="table-header">
+      <div>
+        <h2>Report breakdown</h2>
+
+        <p>Detailed information from the selected report.</p>
+      </div>
+
+      @if (!loading() && reportData()) {
+        <span class="record-count"> {{ totalRows }} records </span>
+      }
+    </header>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="loading-state" role="status">
+        <div class="spinner"></div>
+
+        <strong>Loading report data...</strong>
+
+        <p>Please wait while we retrieve your report.</p>
+      </div>
+    }
+
+    <!-- Error -->
+    @else if (error(); as msg) {
+      <div class="error-state" role="alert">
+        <div class="error-icon">!</div>
+
+        <h3>Unable to load report</h3>
+
+        <p>{{ msg }}</p>
+
+        <button type="button" class="retry-button" (click)="refreshReport()">Try again</button>
+      </div>
+    }
+
+    <!-- Report data -->
+    @else if (reportData(); as data) {
+      @if (data.columns.length > 0) {
+        @if (data.rows.length > 0) {
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th class="number-column">#</th>
+
+                  @for (column of data.columns; track $index) {
+                    <th scope="col">
+                      {{ formatColumn(column) }}
+                    </th>
+                  }
+                </tr>
+              </thead>
+
+              <tbody>
+                @for (row of data.rows; track $index) {
+                  <tr>
+                    <td class="row-number">
+                      {{ $index + 1 }}
+                    </td>
+
+                    @for (column of data.columns; track $index) {
+                      <td>
+                        {{ getCellValue(row, $index) }}
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <div class="empty-icon">▤</div>
+
+            <h3>No records found</h3>
+
+            <p>
+              There is no report data available for this date range. Try selecting another period.
+            </p>
+          </div>
+        }
+      } @else {
+        <div class="empty-state">
+          <h3>No report columns available</h3>
+
+          <p>This report has no data fields to display.</p>
+        </div>
+      }
+
+    } @else {
+      <div class="empty-state">
+        <h3>No report data</h3>
+
+        <p>There is currently no data available for this report.</p>
+      </div>
+    }
+  </section>
+
+  <!-- Footer -->
+  <footer class="page-footer">
+    <span> AgriAdmin Reports </span>
+
+    <span> Reporting period: {{ range().from }} — {{ range().to }} </span>
+  </footer>
+</section>

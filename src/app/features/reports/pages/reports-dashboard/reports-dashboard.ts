@@ -1,8 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
-import { catchError, combineLatest, finalize, of, switchMap, tap } from 'rxjs';
+import { Router } from '@angular/router';
+import { catchError, combineLatest, of, switchMap, tap } from 'rxjs';
 
 import { ExportButton } from '../../components/export-button/export-button';
 import { ReportChart } from '../../components/report-chart/report-chart';
@@ -11,12 +11,11 @@ import { ReportFilters } from '../../components/report-filters/report-filters';
 import { DateRange, ExportFormat, Kpi, ReportId, rangeFromPreset } from '../../models/report.model';
 
 import { ReportService } from '../../services/report.service';
-import type { ReportTable } from '../../services/report.service';
 
 const describe = (e: unknown): string => {
   if (e instanceof HttpErrorResponse) {
     if (e.status === 0) {
-      return 'Cannot reach the server. Check your connection, the API URL and CORS settings.';
+      return 'Cannot reach the server. Check your connection, API URL and CORS settings.';
     }
 
     if (e.status === 401) {
@@ -36,16 +35,16 @@ const describe = (e: unknown): string => {
 @Component({
   selector: 'app-reports-dashboard',
   standalone: true,
-  imports: [RouterLink, ReportFilters, ExportButton, ReportChart],
+  imports: [ReportFilters, ExportButton, ReportChart],
   templateUrl: './reports-dashboard.html',
   styleUrl: './reports-dashboard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReportsDashboard {
   private readonly service = inject(ReportService);
+  private readonly router = inject(Router);
 
   // Available report definitions.
-  // This is an ordinary array, not a signal.
   readonly reports = this.service.reports;
 
   // Selected date range.
@@ -53,24 +52,17 @@ export class ReportsDashboard {
 
   private readonly reloadTick = signal(0);
 
-  // Dashboard state.
+  // Dashboard loading state.
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly notice = signal<string | null>(null);
 
+  // Export state.
   readonly exporting = signal<ReportId | 'overview' | null>(null);
 
   readonly skeleton = [1, 2, 3, 4];
 
-  // Inline report preview state.
-  readonly selectedReport = signal<ReportId | null>(null);
-  readonly reportData = signal<ReportTable | null>(null);
-  readonly viewingReport = signal(false);
-  readonly reportLoading = signal(false);
-  readonly reportError = signal<string | null>(null);
-
-  // Load the overview when the date range changes
-  // or when the user retries.
+  // Load dashboard overview.
   readonly overview = toSignal(
     combineLatest([toObservable(this.range), toObservable(this.reloadTick)]).pipe(
       tap(() => {
@@ -91,7 +83,9 @@ export class ReportsDashboard {
         this.loading.set(false);
       }),
     ),
-    { initialValue: undefined },
+    {
+      initialValue: undefined,
+    },
   );
 
   // Retry dashboard loading.
@@ -99,69 +93,27 @@ export class ReportsDashboard {
     this.reloadTick.update((n) => n + 1);
   }
 
-  // Open a report preview inside this dashboard.
+  // Navigate to a separate report details page.
   viewReport(id: ReportId): void {
-    this.selectedReport.set(id);
-    this.reportData.set(null);
-    this.reportError.set(null);
-    this.reportLoading.set(true);
-    this.viewingReport.set(true);
-
-    this.service
-      .getReport(id, this.range())
-      .pipe(
-        finalize(() => {
-          this.reportLoading.set(false);
-        }),
-      )
-      .subscribe({
-        next: (report: ReportTable) => {
-          this.reportData.set(report);
-        },
-        error: (e: unknown) => {
-          this.reportError.set(describe(e));
-        },
-      });
+    this.router.navigate(['/reports/details', id]);
   }
 
-  // Close the inline preview.
-  closeReport(): void {
-    this.viewingReport.set(false);
-    this.selectedReport.set(null);
-    this.reportData.set(null);
-    this.reportError.set(null);
-    this.reportLoading.set(false);
-  }
-
-  // Reload the currently selected report.
-  refreshReport(): void {
-    const id = this.selectedReport();
-
-    if (id !== null) {
-      this.viewReport(id);
-    }
-  }
-
-  // Export the overview or an individual report.
+  // Export overview or individual reports.
   onExport(id: ReportId | 'overview', format: ExportFormat): void {
     this.exporting.set(id);
     this.notice.set(null);
 
-    this.service
-      .export(id, format, this.range())
-      .pipe(
-        finalize(() => {
-          this.exporting.set(null);
-        }),
-      )
-      .subscribe({
-        next: () => {
-          this.notice.set('Report export completed.');
-        },
-        error: (e: unknown) => {
-          this.notice.set(describe(e));
-        },
-      });
+    this.service.export(id, format, this.range()).subscribe({
+      next: () => {
+        this.exporting.set(null);
+        this.notice.set('Report export completed successfully.');
+      },
+
+      error: (e: unknown) => {
+        this.exporting.set(null);
+        this.notice.set(describe(e));
+      },
+    });
   }
 
   // Format KPI values.
@@ -185,26 +137,5 @@ export class ReportsDashboard {
     }
 
     return k.invertTrend ? k.change <= 0 : k.change >= 0;
-  }
-
-  // Format column names for the preview table.
-  formatColumn(column: string): string {
-    return column.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  // Safely retrieve a cell using its column name.
-  // This avoids implicit-any errors from row[column] in the template.
-  getCellValue(row: (string | number)[], columnIndex: number): string | number {
-    const value = row[columnIndex];
-
-    if (value === null || value === undefined || value === '') {
-      return '—';
-    }
-
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-      return value;
-    }
-
-    return JSON.stringify(value);
   }
 }
