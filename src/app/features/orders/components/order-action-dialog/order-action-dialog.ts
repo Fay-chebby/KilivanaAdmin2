@@ -9,6 +9,7 @@ export type ActionKind =
   | 'resolve_buyer'
   | 'resolve_farmer'
   | 'release';
+
 export interface ActionResult {
   reason: string;
   method: PaymentMethod;
@@ -24,6 +25,7 @@ export interface ActionResult {
 export class OrderActionDialog {
   readonly kind = input.required<ActionKind>();
   readonly order = input.required<Order>();
+
   readonly confirmed = output<ActionResult>();
   readonly cancelled = output<void>();
 
@@ -33,6 +35,7 @@ export class OrderActionDialog {
   protected readonly touched = signal(false);
 
   protected readonly total = computed(() => subtotal(this.order()));
+
   protected readonly payout = computed(() => farmerPayout(this.order()));
 
   protected readonly cfg = computed(
@@ -79,14 +82,21 @@ export class OrderActionDialog {
 
   protected readonly refOk = computed(() => {
     const r = this.reference().trim().toUpperCase();
+
     return this.method() === 'mpesa' ? /^[A-Z0-9]{10}$/.test(r) : r.length >= 4;
   });
+
   protected readonly reasonOk = computed(() => this.reason().trim().length >= 5);
 
-  protected submit() {
+  protected submit(): void {
     this.touched.set(true);
-    const f = this.cfg().fields;
-    if ((f === 'payment' && !this.refOk()) || (f === 'reason' && !this.reasonOk())) return;
+
+    const fields = this.cfg().fields;
+
+    if ((fields === 'payment' && !this.refOk()) || (fields === 'reason' && !this.reasonOk())) {
+      return;
+    }
+
     this.confirmed.emit({
       reason: this.reason().trim(),
       method: this.method(),

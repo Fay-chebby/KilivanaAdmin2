@@ -10,57 +10,41 @@
 
   <div class="actions">
     <button type="button" class="btn" (click)="refresh()">Try again</button>
-
-    <a class="back" routerLink="/orders"> ← Back to orders </a>
+    <a class="back" routerLink="/orders">← Back to orders</a>
   </div>
 } @else if (order(); as o) {
-  <!-- =========================
-       BREADCRUMB
-  ========================== -->
-
+  <!-- BREADCRUMB -->
   <nav class="crumbs" aria-label="Breadcrumb">
-    <a routerLink="/">Dashboard </a>
-
+    <a routerLink="/">Dashboard</a>
     /
-
-    <a routerLink="/orders"> Orders </a>
-
+    <a routerLink="/orders">Orders</a>
     /
-
-    <span>
-      {{ o.code }}
-    </span>
+    <span>{{ o.code }}</span>
   </nav>
 
-  <!-- =========================
-       HEADER
-  ========================== -->
-
+  <!-- HEADER -->
   <div class="head">
     <div>
-      <h1>
-        {{ o.code }}
-      </h1>
+      <h1>{{ o.code }}</h1>
 
       <div class="badges">
         <span class="badge" [attr.data-tone]="meta[o.status]?.tone">
           {{ meta[o.status]?.label ?? o.status }}
         </span>
 
-        <span class="badge flat" [attr.data-tone]="pay[o.paymentStatus]?.tone">
+        <span class="badge flat" [attr.data-tone]="getPaymentMeta(o.paymentStatus)?.tone">
           Payment
-          {{ pay[o.paymentStatus]?.label ?? o.paymentStatus }}
+          {{ getPaymentMeta(o.paymentStatus)?.label ?? o.paymentStatus ?? 'Unknown' }}
         </span>
 
         <span class="placed">
-          Placed
-          {{ o.createdAt.replace('T', ' ') }}
+          Placed {{ o.createdAt ? o.createdAt.replace('T', ' ') : 'Not available' }}
         </span>
       </div>
     </div>
 
     <div class="right">
-      <a class="back" routerLink="/orders"> ← Back </a>
+      <a class="back" routerLink="/orders">← Back</a>
 
       <div class="actions">
         <button type="button" class="btn ghost" (click)="refresh()">Refresh</button>
@@ -68,10 +52,7 @@
     </div>
   </div>
 
-  <!-- =========================
-       STATUS ALERTS
-  ========================== -->
-
+  <!-- STATUS ALERTS -->
   @if (o.status === 'CANCELLED') {
     <div class="alert red" role="status">
       <strong>Cancelled:</strong>
@@ -79,14 +60,14 @@
     </div>
   }
 
-  @if (o.status === 'PLACED' && o.paymentStatus === 'pending') {
+  @if (o.status === 'PLACED' && (o.paymentStatus || '').toUpperCase() === 'PENDING') {
     <div class="alert amber" role="status">
       <strong>Payment pending:</strong>
       This order is currently waiting for payment.
     </div>
   }
 
-  @if (o.status === 'PLACED' && o.paymentStatus !== 'pending') {
+  @if (o.status === 'PLACED' && (o.paymentStatus || '').toUpperCase() !== 'PENDING') {
     <div class="alert amber" role="status">
       <strong>Order placed:</strong>
       The order has been received and is awaiting confirmation.
@@ -128,15 +109,14 @@
     </div>
   }
 
-  <!-- =========================
-       ORDER PIPELINE
-  ========================== -->
-
+  <!-- ACTION MESSAGE -->
   @if (actionMessage(); as message) {
     <div class="order-alert success-alert" role="status">
       {{ message }}
     </div>
   }
+
+  <!-- ORDER PIPELINE -->
   <app-order-pipeline
     [status]="o.status"
     [busy]="updatingStatus() || assigningDriver()"
@@ -145,6 +125,7 @@
     (assignDriverRequested)="openAssignDriver()"
   />
 
+  <!-- ASSIGN DRIVER DIALOG -->
   @if (showAssignDriver()) {
     <app-assign-driver-dialog
       [order]="o"
@@ -153,114 +134,123 @@
     />
   }
 
-  <!-- =========================
-       MAIN LAYOUT
-  ========================== -->
-
+  <!-- MAIN LAYOUT -->
   <div class="layout">
-    <!-- =========================
-         MAIN CONTENT
-    ========================== -->
-
+    <!-- MAIN CONTENT -->
     <div class="main">
       <!-- ORDER ITEMS -->
-
       <app-order-items-table [order]="o" />
 
       <!-- ORDER SUMMARY -->
-
       <div class="card">
         <h2>Order Summary</h2>
 
         <dl>
           <dt>Subtotal</dt>
-
-          <dd class="mono">
-            {{ o.subtotal | currencyKsh }}
-          </dd>
+          <dd class="mono">{{ o.subtotal | currencyKsh }}</dd>
 
           <dt>Delivery fee</dt>
-
-          <dd class="mono">
-            {{ o.deliveryFee | currencyKsh }}
-          </dd>
+          <dd class="mono">{{ o.deliveryFee | currencyKsh }}</dd>
 
           <dt>Total</dt>
-
           <dd class="mono">
-            <strong>
-              {{ o.total | currencyKsh }}
-            </strong>
+            <strong>{{ o.total | currencyKsh }}</strong>
           </dd>
         </dl>
       </div>
 
       <!-- ORDER INFORMATION -->
-
       <div class="card">
         <h2>Order Information</h2>
 
         <dl>
           <dt>Order ID</dt>
-
-          <dd class="mono">
-            {{ o.id }}
-          </dd>
+          <dd class="mono">{{ o.id }}</dd>
 
           <dt>Order Code</dt>
+          <dd class="mono">{{ o.code }}</dd>
 
-          <dd class="mono">
-            {{ o.code }}
-          </dd>
+          <dt>Buyer</dt>
+          <dd>{{ o.buyerName || 'Buyer #' + o.buyerId }}</dd>
+
+          <dt>Buyer Phone</dt>
+          <dd>{{ o.buyerPhone || 'Not provided' }}</dd>
+
+          <dt>Buyer County</dt>
+          <dd>{{ o.buyerCounty || 'Not provided' }}</dd>
 
           <dt>Buyer ID</dt>
-
-          <dd class="mono">
-            {{ o.buyerId }}
-          </dd>
+          <dd class="mono">{{ o.buyerId }}</dd>
 
           <dt>Address ID</dt>
-
-          <dd class="mono">
-            {{ o.addressId }}
-          </dd>
+          <dd class="mono">{{ o.addressId ?? 'Not available' }}</dd>
 
           <dt>Created</dt>
-
           <dd>
-            {{ o.createdAt.replace('T', ' ') }}
+            {{ o.createdAt ? o.createdAt.replace('T', ' ') : 'Not available' }}
           </dd>
 
           <dt>Last Updated</dt>
-
           <dd>
-            {{ o.updatedAt.replace('T', ' ') }}
+            {{ o.updatedAt ? o.updatedAt.replace('T', ' ') : 'Not available' }}
           </dd>
         </dl>
       </div>
 
       <!-- SELLERS / PRODUCTS -->
-
       <div class="card">
         <h2>Sellers & Products</h2>
 
-        @if (o.items.length) {
+        @if (o.items?.length) {
           @for (item of o.items; track item.id) {
             <div class="seller-row">
-              <strong> Seller #{{ item.sellerId }} </strong>
+              <strong>
+                {{
+                  item.seller?.businessName ||
+                    item.seller?.name ||
+                    item.seller?.fullName ||
+                    o.sellerName ||
+                    'Seller #' + (item.sellerId ?? '')
+                }}
+              </strong>
+
+              @if (o.sellerPhone || item.seller?.phone) {
+                <p class="sub">
+                  {{ o.sellerPhone || item.seller?.phone }}
+                </p>
+              }
+
+              @if (item.seller?.email) {
+                <p class="sub">{{ item.seller?.email ?? '—' }}</p>
+              }
+
+              @if (o.sellerCounty) {
+                <p class="sub">County: {{ o.sellerCounty }}</p>
+              }
+
+              @if (o.sellerLocation) {
+                <p class="sub">Location: {{ o.sellerLocation }}</p>
+              }
+
+              <p class="sub">Product: {{ item.productName || 'Product #' + item.productId }}</p>
 
               <p class="sub">
-                {{ item.productName }}
+                Quantity:
+                {{ item.quantity }}
+                {{ item.unit || '' }}
               </p>
 
               <p class="sub">
-                {{ item.quantity }}
-                {{ item.unit }}
-
-                ×
-
+                Unit price:
                 {{ item.unitPrice | currencyKsh }}
               </p>
+
+              <p class="sub">
+                Item subtotal:
+                <strong>{{ item.subtotal | currencyKsh }}</strong>
+              </p>
+
+              <small class="sub"> Seller ID: {{ item.sellerId ?? 'Not available' }} </small>
             </div>
           }
         } @else {
@@ -269,7 +259,6 @@
       </div>
 
       <!-- ORDER TIMELINE -->
-
       <div class="card">
         <h2>Order Timeline</h2>
 
@@ -277,21 +266,24 @@
           <p class="sub">Timeline events are not included in the current order API response.</p>
 
           <div class="timeline-basic">
-            <div>
-              <strong> Order created </strong>
-
-              <span>
-                {{ o.createdAt.replace('T', ' ') }}
-              </span>
-            </div>
-
-            @if (o.updatedAt !== o.createdAt) {
+            @if (o.createdAt) {
               <div>
-                <strong> Last updated </strong>
+                <strong>Order created</strong>
+                <span>{{ o.createdAt.replace('T', ' ') }}</span>
+              </div>
+            }
 
-                <span>
-                  {{ o.updatedAt.replace('T', ' ') }}
-                </span>
+            @if (o.updatedAt && o.updatedAt !== o.createdAt) {
+              <div>
+                <strong>Last updated</strong>
+                <span>{{ o.updatedAt.replace('T', ' ') }}</span>
+              </div>
+            }
+
+            @if (o.paidAt) {
+              <div>
+                <strong>Payment received</strong>
+                <span>{{ o.paidAt.replace('T', ' ') }}</span>
               </div>
             }
           </div>
@@ -299,42 +291,102 @@
       </div>
     </div>
 
-    <!-- =========================
-         SIDEBAR
-    ========================== -->
-
+    <!-- SIDEBAR -->
     <aside class="side">
-      <!-- BUYER -->
-
+      <!-- BUYER DETAILS -->
       <div class="card">
-        <h2>Buyer</h2>
+        <h2>Buyer Details</h2>
 
-        <strong class="name"> Buyer #{{ o.buyerId }} </strong>
+        <strong class="name">
+          {{
+            o.buyerName ||
+              o.buyer?.fullName ||
+              ((o.buyer?.firstName || '') + ' ' + (o.buyer?.lastName || '')).trim() ||
+              'Buyer #' + o.buyerId
+          }}
+        </strong>
 
         <p class="sub">
-          Buyer profile information is available through the buyer profile endpoint.
+          {{ o.buyerPhone || o.buyer?.phone || 'Phone not provided' }}
         </p>
+
+        @if (o.buyer?.email) {
+          <p class="sub">{{ o.buyer?.email ?? '—' }}</p>
+        }
 
         <dl>
           <dt>Buyer ID</dt>
+          <dd class="mono">{{ o.buyerId }}</dd>
 
-          <dd class="mono">
-            {{ o.buyerId }}
-          </dd>
+          <dt>County</dt>
+          <dd>{{ o.buyerCounty || 'Not provided' }}</dd>
 
           <dt>Delivery Address</dt>
+          <dd>
+            {{
+              o.deliveryAddress ||
+                o.address?.address ||
+                o.address?.street ||
+                'Address #' + (o.addressId ?? 'Not available')
+            }}
+          </dd>
 
-          <dd>Address #{{ o.addressId }}</dd>
+          @if (o.address?.town; as town) {
+            <dt>Town</dt>
+            <dd>{{ town }}</dd>
+          }
+
+          @if (o.address?.county; as county) {
+            <dt>Address County</dt>
+            <dd>{{ county }}</dd>
+          }
+        </dl>
+      </div>
+
+      <!-- SELLER DETAILS -->
+      <div class="card">
+        <h2>Seller Details</h2>
+
+        <strong class="name">
+          {{
+            o.sellerName ||
+              o.seller?.businessName ||
+              o.seller?.name ||
+              o.seller?.fullName ||
+              'Seller #' + (o.items?.[0]?.sellerId ?? '')
+          }}
+        </strong>
+
+        <p class="sub">
+          {{ o.sellerPhone || o.seller?.phone || 'Phone not provided' }}
+        </p>
+
+        @if (o.seller?.email) {
+          <p class="sub">{{ o.seller?.email ?? '—' }}</p>
+        }
+
+        <dl>
+          <dt>County</dt>
+          <dd>{{ o.sellerCounty || 'Not provided' }}</dd>
+
+          <dt>Location</dt>
+          <dd>{{ o.sellerLocation || 'Not provided' }}</dd>
+
+          @if (o.items?.[0]; as firstItem) {
+            @if (firstItem.sellerId != null) {
+              <dt>Seller ID</dt>
+              <dd class="mono">{{ firstItem.sellerId }}</dd>
+            }
+          }
         </dl>
       </div>
 
       <!-- PAYMENT -->
-
       <div class="card">
         <h2>Payment</h2>
 
-        <span class="badge flat" [attr.data-tone]="pay[o.paymentStatus]?.tone">
-          {{ pay[o.paymentStatus]?.label ?? o.paymentStatus }}
+        <span class="badge flat" [attr.data-tone]="getPaymentMeta(o.paymentStatus)?.tone">
+          {{ getPaymentMeta(o.paymentStatus)?.label ?? o.paymentStatus ?? 'Unknown' }}
         </span>
 
         <p class="amount mono">
@@ -343,71 +395,163 @@
 
         <dl>
           <dt>Subtotal</dt>
-
-          <dd class="mono">
-            {{ o.subtotal | currencyKsh }}
-          </dd>
+          <dd class="mono">{{ o.subtotal | currencyKsh }}</dd>
 
           <dt>Delivery fee</dt>
-
-          <dd class="mono">
-            {{ o.deliveryFee | currencyKsh }}
-          </dd>
+          <dd class="mono">{{ o.deliveryFee | currencyKsh }}</dd>
 
           <dt>Total</dt>
-
           <dd class="mono">
-            <strong>
-              {{ o.total | currencyKsh }}
-            </strong>
+            <strong>{{ o.total | currencyKsh }}</strong>
           </dd>
+
+          @if (o.paymentMethod) {
+            <dt>Payment Method</dt>
+            <dd>{{ o.paymentMethod }}</dd>
+          }
+
+          @if (o.paymentReference) {
+            <dt>Payment Reference</dt>
+            <dd class="mono">{{ o.paymentReference }}</dd>
+          }
+
+          @if (o.paidAt) {
+            <dt>Paid At</dt>
+            <dd>{{ o.paidAt.replace('T', ' ') }}</dd>
+          }
         </dl>
 
-        @switch (o.paymentStatus) {
-          @case ('pending') {
+        @switch ((o.paymentStatus || '').toUpperCase()) {
+          @case ('PENDING') {
             <p class="sub">No payment has been confirmed yet.</p>
           }
 
-          @case ('paid') {
+          @case ('HELD') {
+            <p class="sub">Payment is being held pending order completion.</p>
+          }
+
+          @case ('PAID') {
             <p class="sub">Payment has been marked as paid.</p>
           }
 
-          @case ('failed') {
+          @case ('FAILED') {
             <p class="sub">The payment attempt failed.</p>
           }
 
-          @case ('refunded') {
+          @case ('REFUNDED') {
             <p class="sub">The payment has been refunded.</p>
+          }
+
+          @default {
+            <p class="sub">Payment status is not available.</p>
           }
         }
       </div>
 
-      <!-- DELIVERY -->
-
+      <!-- DELIVERY DETAILS -->
       <div class="card">
-        <h2>Delivery</h2>
+        <h2>Delivery Details</h2>
 
-        <p class="sub">
-          Driver and delivery details are not included in the current order response.
-        </p>
+        @if (o.driverName || o.driver || o.delivery?.driver) {
+          <strong class="name">
+            {{
+              o.driverName ||
+                o.delivery?.driver?.fullName ||
+                o.delivery?.driver?.name ||
+                o.driver?.fullName ||
+                o.driver?.name ||
+                'Driver #' + (o.driverId ?? o.delivery?.driverId ?? '')
+            }}
+          </strong>
+
+          <p class="sub">
+            {{
+              o.driverPhone || o.delivery?.driver?.phone || o.driver?.phone || 'Phone not provided'
+            }}
+          </p>
+
+          <dl>
+            <dt>Driver ID</dt>
+            <dd class="mono">
+              {{
+                o.driverId ??
+                  o.delivery?.driverId ??
+                  o.delivery?.driver?.id ??
+                  o.driver?.id ??
+                  'Not available'
+              }}
+            </dd>
+
+            @if (o.driverVehicle || o.driver?.vehicle; as vehicle) {
+              <dt>Vehicle</dt>
+              <dd>{{ vehicle }}</dd>
+            }
+
+            @if (o.driverPlate || o.driver?.plateNumber; as plate) {
+              <dt>Registration</dt>
+              <dd class="mono">{{ plate }}</dd>
+            }
+          </dl>
+        } @else if (o.driverId || o.delivery?.driverId) {
+          <strong class="name"> Driver #{{ o.driverId ?? o.delivery?.driverId }} </strong>
+
+          <p class="sub">Driver profile details are not included in the order response.</p>
+        } @else {
+          <strong class="name">No driver assigned</strong>
+
+          <p class="sub">Assign a driver to this order to manage delivery.</p>
+        }
 
         <dl>
-          <dt>Address ID</dt>
-
-          <dd class="mono">
-            {{ o.addressId }}
-          </dd>
-
           <dt>Delivery Fee</dt>
+          <dd class="mono">{{ o.deliveryFee | currencyKsh }}</dd>
 
-          <dd class="mono">
-            {{ o.deliveryFee | currencyKsh }}
+          <dt>Delivery Status</dt>
+          <dd>
+            {{ (o.deliveryStatus || o.delivery?.deliveryStatus || 'PENDING').replaceAll('_', ' ') }}
           </dd>
+
+          <dt>Distance</dt>
+          <dd class="mono">
+            @if (o.delivery; as delivery) {
+              @if (delivery.distanceKm != null) {
+                {{ delivery.distanceKm | number: '1.1-2' }} km
+              } @else {
+                <span class="sub">Not available</span>
+              }
+            } @else {
+              <span class="sub">Not available</span>
+            }
+          </dd>
+
+          @if (o.pickupLocation) {
+            <dt>Pickup Location</dt>
+            <dd>{{ o.pickupLocation }}</dd>
+          }
+
+          @if (o.deliveryAddress) {
+            <dt>Delivery Address</dt>
+            <dd>{{ o.deliveryAddress }}</dd>
+          }
+
+          @if (o.delivery?.estimatedDeliveryTime; as estimatedTime) {
+            <dt>Estimated Delivery</dt>
+            <dd>{{ estimatedTime.replace('T', ' ') }}</dd>
+          }
+
+          @if (o.delivery?.actualDeliveryTime; as actualTime) {
+            <dt>Delivered At</dt>
+            <dd>{{ actualTime.replace('T', ' ') }}</dd>
+          }
+
+          @if (o.logisticsJobId) {
+            <dt>Logistics Job ID</dt>
+            <dd class="mono">{{ o.logisticsJobId }}</dd>
+          }
         </dl>
       </div>
 
       <!-- ORDER STATUS -->
-
       <div class="card">
         <h2>Status</h2>
 
@@ -417,7 +561,7 @@
 
         <p class="sub">
           Last updated:
-          {{ o.updatedAt.replace('T', ' ') }}
+          {{ o.updatedAt ? o.updatedAt.replace('T', ' ') : 'Not available' }}
         </p>
       </div>
     </aside>
@@ -425,7 +569,6 @@
 } @else {
   <div class="empty">
     <p>Order not found.</p>
-
-    <a routerLink="/orders"> Back to orders </a>
+    <a routerLink="/orders">Back to orders</a>
   </div>
 }

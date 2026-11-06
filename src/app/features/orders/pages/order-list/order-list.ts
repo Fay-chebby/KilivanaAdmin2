@@ -169,8 +169,8 @@ export class OrderList implements OnInit {
       return '-';
     }
 
-    if (order.items.length === 1) {
-      return order.items[0].productName;
+    if (order.items?.length) {
+      return order.items[0].productName ?? 'Product unavailable';
     }
 
     return `${order.items[0].productName} + ${order.items.length - 1} more`;
