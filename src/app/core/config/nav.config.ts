@@ -40,7 +40,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Admin',
     items: [
-      { label: 'Roles & Staff', icon: 'lock', route: '/users' },
+      { label: 'Pickup station', icon: 'lock', route: '/Pickup-Sation' },
       { label: 'Notifications & Settings', icon: 'bell', route: '/settings' },
     ],
   },

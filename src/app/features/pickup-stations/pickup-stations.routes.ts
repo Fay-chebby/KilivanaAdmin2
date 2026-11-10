@@ -1,26 +1,25 @@
 import { Routes } from '@angular/router';
 
+import { PickupStationList } from './pages/pickup-station-list/pickup-station-list';
+import { AddPickupStation } from './pages/add-pickup-station/add-pickup-station';
+import { EditPickupStation } from './pages/edit-pickup-station/edit-pickup-station';
+import { PickupStationDetails } from './pages/pickup-station-details/pickup-station-details';
+
 export const pickupStationRoutes: Routes = [
   {
     path: '',
-    loadComponent: () =>
-      import('./pages/pickup-station-list/pickup-station-list').then((m) => m.PickupStationList),
+    component: PickupStationList,
   },
   {
     path: 'add',
-    loadComponent: () =>
-      import('./pages/add-pickup-station/add-pickup-station').then((m) => m.AddPickupStation),
-  },
-  {
-    path: ':id',
-    loadComponent: () =>
-      import('./pages/pickup-station-details/pickup-station-details').then(
-        (m) => m.PickupStationDetails,
-      ),
+    component: AddPickupStation,
   },
   {
     path: ':id/edit',
-    loadComponent: () =>
-      import('./pages/edit-pickup-station/edit-pickup-station').then((m) => m.EditPickupStation),
+    component: EditPickupStation,
+  },
+  {
+    path: ':id',
+    component: PickupStationDetails,
   },
 ];

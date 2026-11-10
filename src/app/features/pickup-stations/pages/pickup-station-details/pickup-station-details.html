@@ -1,0 +1,129 @@
+<div class="details-page">
+  <div class="page-header">
+    <div>
+      <span class="breadcrumb">
+        <a routerLink="/pickup-stations">Pickup Stations</a>
+        / Station Details
+      </span>
+
+      <h1>Pickup Station Details</h1>
+      <p>View the registered information for this pickup location.</p>
+    </div>
+
+    <a routerLink="/pickup-stations" class="back-button"> ← Back to Stations </a>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading station details...</p>
+    </div>
+  } @else if (errorMessage() && !station()) {
+    <div class="error-alert">
+      {{ errorMessage() }}
+    </div>
+  } @else if (station(); as currentStation) {
+    @if (errorMessage()) {
+      <div class="error-alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <section class="station-overview">
+      <div class="station-identity">
+        <div class="station-avatar">
+          {{ currentStation.name.charAt(0).toUpperCase() }}
+        </div>
+
+        <div>
+          <h2>{{ currentStation.name }}</h2>
+          <p>Station #{{ currentStation.id }}</p>
+        </div>
+      </div>
+
+      <app-pickup-station-status [isAvailable]="currentStation.isAvailable" />
+
+      <div class="overview-actions">
+        <button type="button" class="edit-button" (click)="editStation()">Edit Station</button>
+
+        <button
+          type="button"
+          class="deactivate-button"
+          [disabled]="!currentStation.isAvailable"
+          (click)="deactivateStation()"
+        >
+          Deactivate
+        </button>
+      </div>
+    </section>
+
+    <div class="details-grid">
+      <section class="details-card">
+        <h3>Station Information</h3>
+
+        <div class="detail-item">
+          <span>Station Name</span>
+          <strong>{{ currentStation.name }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <span>Physical Address</span>
+          <strong>{{ currentStation.address }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <span>Region / County</span>
+          <strong>{{ currentStation.region }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <span>Contact Phone</span>
+          <strong>{{ currentStation.contactPhone || 'Not provided' }}</strong>
+        </div>
+      </section>
+
+      <section class="details-card">
+        <h3>Operating Information</h3>
+
+        <div class="detail-item">
+          <span>Availability</span>
+          <strong>
+            {{ currentStation.isAvailable ? 'Available' : 'Unavailable' }}
+          </strong>
+        </div>
+
+        <div class="detail-item">
+          <span>Opening Hours</span>
+          <strong>{{ currentStation.openingHours || 'Not provided' }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <span>Pickup Instructions</span>
+          <strong>
+            {{ currentStation.pickupInstructions || 'No instructions provided' }}
+          </strong>
+        </div>
+      </section>
+    </div>
+
+    <app-pickup-station-map
+      [latitude]="currentStation.latitude"
+      [longitude]="currentStation.longitude"
+      [address]="currentStation.address"
+    />
+
+    <section class="details-card timestamps">
+      <h3>Record Information</h3>
+
+      <div class="detail-item">
+        <span>Created At</span>
+        <strong>{{ currentStation.createdAt | date: 'medium' }}</strong>
+      </div>
+
+      <div class="detail-item">
+        <span>Last Updated</span>
+        <strong>{{ currentStation.updatedAt | date: 'medium' }}</strong>
+      </div>
+    </section>
+  }
+</div>

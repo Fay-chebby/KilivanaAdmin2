@@ -24,6 +24,7 @@ import { KYC_ROUTES } from './features/kyc/kyc.routes';
 import { PAYMENT_ROUTES } from './features/payments/Payments.routes';
 import { NOTIFICATION_ROUTES } from './features/settings/notifications.routes';
 import { REPORT_ROUTES } from './features/reports/reports.routes';
+import { pickupStationRoutes } from './features/pickup-stations/pickup-stations.routes';
 
 export const routes: Routes = [
   {
@@ -121,8 +122,8 @@ export const routes: Routes = [
       },
 
       {
-        path: 'users',
-        component: UserList,
+        path: 'Pickup-Sation',
+        children: pickupStationRoutes,
       },
 
       {

@@ -8,6 +8,7 @@
   color: #172b21;
 }
 
+/* Page heading */
 .page-heading {
   display: flex;
   justify-content: space-between;
@@ -33,9 +34,11 @@
   }
 }
 
+/* Add button */
 .add-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 9px;
   padding: 11px 17px;
   border-radius: 7px;
@@ -54,9 +57,11 @@
 
   span {
     font-size: 19px;
+    line-height: 1;
   }
 }
 
+/* Statistics */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -110,6 +115,7 @@
   }
 }
 
+/* Main panel */
 .stations-panel {
   background: #fff;
   border: 1px solid #e9eee9;
@@ -137,6 +143,9 @@
 }
 
 .refresh-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   padding: 9px 13px;
   border: 1px solid #dce5de;
   border-radius: 6px;
@@ -149,15 +158,26 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  span {
+    font-size: 17px;
+  }
 }
 
+/* Search */
 .search-container {
   padding: 18px 20px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
 
   input {
+    box-sizing: border-box;
     width: 100%;
-    max-width: 420px;
-    padding: 11px 13px;
+    padding: 11px 38px;
     border: 1px solid #dce5de;
     border-radius: 7px;
     outline: none;
@@ -170,6 +190,31 @@
   }
 }
 
+.search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #829087;
+  font-size: 20px;
+}
+
+.clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 23px;
+  height: 23px;
+  border: none;
+  border-radius: 50%;
+  background: #edf2ee;
+  color: #526057;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+/* Table */
 .table-wrapper {
   overflow-x: auto;
 
@@ -202,6 +247,7 @@
   }
 }
 
+/* Station information */
 .station-name {
   display: flex;
   align-items: center;
@@ -232,6 +278,14 @@
   font-weight: 700;
 }
 
+.address-text {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
 .region-label {
   padding: 5px 9px;
   background: #f1f5f2;
@@ -240,40 +294,7 @@
   color: #526057;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 9px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-  }
-
-  &.available {
-    background: #e8f6ed;
-    color: #15803d;
-
-    .status-dot {
-      background: #16a34a;
-    }
-  }
-
-  &.unavailable {
-    background: #fff1e9;
-    color: #c2410c;
-
-    .status-dot {
-      background: #ea580c;
-    }
-  }
-}
-
+/* Actions */
 .actions {
   display: flex;
   align-items: center;
@@ -281,6 +302,9 @@
 }
 
 .action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 7px 9px;
   border: 1px solid #e1e8e2;
   border-radius: 5px;
@@ -308,20 +332,13 @@
   }
 }
 
-.loading-state,
-.empty-state {
+/* Loading */
+.loading-state {
   padding: 55px 20px;
   text-align: center;
   color: #829087;
 
-  h3 {
-    margin: 12px 0 7px;
-    color: #34483b;
-    font-size: 16px;
-  }
-
   p {
-    margin: 0 0 18px;
     font-size: 13px;
   }
 }
@@ -342,12 +359,48 @@
   }
 }
 
+/* Empty state */
+.empty-state {
+  padding: 55px 20px;
+  text-align: center;
+  color: #829087;
+
+  h3 {
+    margin: 12px 0 7px;
+    color: #34483b;
+    font-size: 16px;
+  }
+
+  p {
+    max-width: 380px;
+    margin: 0 auto 18px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+}
+
 .empty-icon {
   font-size: 35px;
   color: #9baa9f;
 }
 
+.clear-filter-button {
+  padding: 9px 14px;
+  border: 1px solid #dce5de;
+  border-radius: 6px;
+  background: white;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Error */
 .error-message {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
   margin: 0 20px 15px;
   padding: 12px;
   background: #fff1f1;
@@ -356,7 +409,6 @@
   font-size: 13px;
 
   button {
-    margin-left: 10px;
     border: none;
     background: transparent;
     color: #991b1b;
@@ -365,11 +417,21 @@
   }
 }
 
+/* Footer */
 .table-footer {
   padding: 15px 20px;
   border-top: 1px solid #edf0ed;
   color: #829087;
   font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .table-wrapper {
+    table {
+      min-width: 850px;
+    }
+  }
 }
 
 @media (max-width: 768px) {
@@ -389,5 +451,19 @@
   .panel-heading {
     align-items: flex-start;
     gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-heading {
+    flex-direction: column;
+  }
+
+  .refresh-button {
+    align-self: flex-start;
+  }
+
+  .search-input-wrapper {
+    max-width: 100%;
   }
 }

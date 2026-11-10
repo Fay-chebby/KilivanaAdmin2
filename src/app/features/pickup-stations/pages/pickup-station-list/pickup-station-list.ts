@@ -1,17 +1,18 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { PickupStationService } from '../../services/pickup-station.service';
 import { PickupStation } from '../../models/pickup-station.model';
+import { PickupStationStatus } from '../../components/pickup-station-status/pickup-station-status';
 
 @Component({
   selector: 'app-pickup-station-list',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, PickupStationStatus],
   templateUrl: './pickup-station-list.html',
   styleUrl: './pickup-station-list.scss',
 })
-export class PickupStationList {
+export class PickupStationList implements OnInit {
   private readonly pickupStationService = inject(PickupStationService);
 
   // Page state
@@ -19,6 +20,7 @@ export class PickupStationList {
   isLoading = signal(false);
   errorMessage = signal('');
   searchTerm = signal('');
+  deactivatingId = signal<number | null>(null);
 
   // Filter stations based on search input
   filteredStations = computed(() => {
@@ -30,9 +32,10 @@ export class PickupStationList {
 
     return this.stations().filter(
       (station) =>
-        station.name.toLowerCase().includes(search) ||
-        station.region.toLowerCase().includes(search) ||
-        station.address.toLowerCase().includes(search),
+        station.name?.toLowerCase().includes(search) ||
+        station.region?.toLowerCase().includes(search) ||
+        station.address?.toLowerCase().includes(search) ||
+        station.contactPhone?.toLowerCase().includes(search),
     );
   });
 
@@ -58,7 +61,7 @@ export class PickupStationList {
 
     this.pickupStationService.getAll().subscribe({
       next: (stations) => {
-        this.stations.set(stations);
+        this.stations.set(stations ?? []);
         this.isLoading.set(false);
       },
       error: (error) => {
@@ -80,17 +83,34 @@ export class PickupStationList {
     this.searchTerm.set(value);
   }
 
+  // Clear search
+  clearSearch(): void {
+    this.searchTerm.set('');
+  }
+
   // Deactivate station
   deactivateStation(station: PickupStation): void {
+    if (this.deactivatingId() !== null || !station.isAvailable) {
+      return;
+    }
+
     const confirmed = window.confirm(`Are you sure you want to deactivate "${station.name}"?`);
 
     if (!confirmed) {
       return;
     }
 
+    this.deactivatingId.set(station.id);
+    this.errorMessage.set('');
+
     this.pickupStationService.deactivate(station.id).subscribe({
       next: () => {
-        this.loadStations();
+        this.deactivatingId.set(null);
+
+        // Update the station locally after successful deactivation.
+        this.stations.update((current) =>
+          current.map((item) => (item.id === station.id ? { ...item, isAvailable: false } : item)),
+        );
       },
       error: (error) => {
         console.error('Failed to deactivate station:', error);
@@ -100,6 +120,8 @@ export class PickupStationList {
             error?.error?.message ||
             'Unable to deactivate pickup station.',
         );
+
+        this.deactivatingId.set(null);
       },
     });
   }
