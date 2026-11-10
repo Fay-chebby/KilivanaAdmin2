@@ -1,0 +1,42 @@
+<div class="edit-station-page">
+  <div class="page-header">
+    <div>
+      <span class="breadcrumb">
+        <a routerLink="/pickup-stations">Pickup Stations</a>
+        / Edit Station
+      </span>
+
+      <h1>Edit Pickup Station</h1>
+      <p>Update the information and operating details of this station.</p>
+    </div>
+
+    <a [routerLink]="['/pickup-stations', stationId]" class="back-button"> ← Back to Details </a>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading pickup station...</p>
+    </div>
+  } @else if (errorMessage() && pickupStationForm.pristine) {
+    <div class="error-alert">
+      {{ errorMessage() }}
+
+      <button type="button" (click)="loadStation()">Retry</button>
+    </div>
+  } @else {
+    @if (errorMessage()) {
+      <div class="error-alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <app-pickup-station-form
+      [form]="pickupStationForm"
+      [isSubmitting]="isSubmitting()"
+      submitLabel="Save Changes"
+      (submitted)="updateStation()"
+      (cancelled)="cancel()"
+    />
+  }
+</div>
