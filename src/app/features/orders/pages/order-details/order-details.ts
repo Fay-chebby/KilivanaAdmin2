@@ -337,4 +337,42 @@ export class OrderDetails {
         },
       });
   }
+  ///calculate distance
+  /**
+   * Calculate the distance between two GPS coordinates in kilometres.
+   */
+  protected calculateDistance(
+    pickupLatitude?: number | null,
+    pickupLongitude?: number | null,
+    deliveryLatitude?: number | null,
+    deliveryLongitude?: number | null,
+  ): number | null {
+    if (
+      pickupLatitude == null ||
+      pickupLongitude == null ||
+      deliveryLatitude == null ||
+      deliveryLongitude == null
+    ) {
+      return null;
+    }
+
+    const toRadians = (degrees: number): number => {
+      return degrees * (Math.PI / 180);
+    };
+
+    const earthRadiusKm = 6371;
+
+    const latitudeDifference = toRadians(deliveryLatitude - pickupLatitude);
+    const longitudeDifference = toRadians(deliveryLongitude - pickupLongitude);
+
+    const a =
+      Math.sin(latitudeDifference / 2) ** 2 +
+      Math.cos(toRadians(pickupLatitude)) *
+        Math.cos(toRadians(deliveryLatitude)) *
+        Math.sin(longitudeDifference / 2) ** 2;
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return earthRadiusKm * c;
+  }
 }
