@@ -84,7 +84,7 @@
             <th>ID</th>
             <th>Phone</th>
             <th>County</th>
-            <th>Crops</th>
+            <!-- <th>Crops</th> -->
             <th>Farms</th>
             <th>Status</th>
             <th>Joined</th>
@@ -116,7 +116,7 @@
               <td class="mono">{{ f.code }}</td>
               <td class="mono">{{ f.phone }}</td>
               <td>{{ f.region }}</td>
-              <td>
+              <!-- <td>
                 <div class="crops">
                   @for (c of f.crops.slice(0, 3); track c) {
                     <span class="crop">{{ c }}</span>
@@ -128,7 +128,7 @@
                     <span class="muted">—</span>
                   }
                 </div>
-              </td>
+              </td> -->
               <td>{{ f.farmCount }}</td>
               <td>
                 <app-farmer-badge [tone]="statusTone(f.status)">{{

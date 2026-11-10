@@ -91,6 +91,7 @@ export interface ApiFarmer {
   status?: string;
 
   createdAt: string;
+  farmCount?: number;
 
   farms?: ApiFarm[];
 
@@ -507,12 +508,13 @@ export function toFarmer(u: ApiFarmer): Farmer {
 
     joinedAt: u.createdAt,
 
-    farmCount: farms.length,
+    // Prefer the backend's actual farm count.
+    // Fall back to the farms array when farmCount is unavailable.
+    farmCount: Number(u.farmCount ?? farms.length),
 
     crops,
   };
 }
-
 /* =========================================================
    CROP MAPPER
    ========================================================= */
