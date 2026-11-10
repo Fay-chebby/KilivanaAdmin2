@@ -1,0 +1,167 @@
+<form [formGroup]="form" (ngSubmit)="submitted.emit()">
+  <section class="form-card">
+    <div class="section-heading">
+      <div class="section-icon">⌖</div>
+      <div>
+        <h2>Station Information</h2>
+        <p>Enter the basic details of the pickup station.</p>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label for="stationName">Station Name <span>*</span></label>
+        <input
+          id="stationName"
+          type="text"
+          formControlName="name"
+          placeholder="e.g. Kilivana Hub - Westlands"
+        />
+        @if (getControlError('name')) {
+          <small class="field-error">{{ getControlError('name') }}</small>
+        }
+      </div>
+
+      <div class="form-group full-width">
+        <label for="stationAddress">Physical Address <span>*</span></label>
+        <textarea
+          id="stationAddress"
+          rows="3"
+          formControlName="address"
+          placeholder="Enter the complete physical address"
+        >
+        </textarea>
+        @if (getControlError('address')) {
+          <small class="field-error">{{ getControlError('address') }}</small>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="stationRegion">Region / County <span>*</span></label>
+        <input id="stationRegion" type="text" formControlName="region" placeholder="e.g. Nairobi" />
+        @if (getControlError('region')) {
+          <small class="field-error">{{ getControlError('region') }}</small>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="stationPhone">Contact Phone</label>
+        <input
+          id="stationPhone"
+          type="tel"
+          formControlName="contactPhone"
+          placeholder="+254 7XX XXX XXX"
+        />
+      </div>
+    </div>
+  </section>
+
+  <section class="form-card">
+    <div class="section-heading">
+      <div class="section-icon location">◎</div>
+      <div>
+        <h2>Station Location</h2>
+        <p>Enter the geographical coordinates of this station.</p>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="stationLatitude">Latitude <span>*</span></label>
+        <input
+          id="stationLatitude"
+          type="number"
+          step="any"
+          formControlName="latitude"
+          placeholder="e.g. -1.2921"
+        />
+        @if (getControlError('latitude')) {
+          <small class="field-error">{{ getControlError('latitude') }}</small>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="stationLongitude">Longitude <span>*</span></label>
+        <input
+          id="stationLongitude"
+          type="number"
+          step="any"
+          formControlName="longitude"
+          placeholder="e.g. 36.8219"
+        />
+        @if (getControlError('longitude')) {
+          <small class="field-error">{{ getControlError('longitude') }}</small>
+        }
+      </div>
+    </div>
+
+    <div class="coordinate-notice">
+      Use the actual coordinates of the pickup station. Incorrect coordinates can direct customers
+      to the wrong location.
+    </div>
+  </section>
+
+  <section class="form-card">
+    <div class="section-heading">
+      <div class="section-icon hours">◷</div>
+      <div>
+        <h2>Operating Information</h2>
+        <p>Configure the station's pickup arrangements.</p>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label for="stationHours">Opening Hours</label>
+        <input
+          id="stationHours"
+          type="text"
+          formControlName="openingHours"
+          placeholder="e.g. 8:00 AM - 8:00 PM, Mon-Sat"
+        />
+      </div>
+
+      <div class="form-group full-width">
+        <label for="stationInstructions">Pickup Instructions</label>
+        <textarea
+          id="stationInstructions"
+          rows="4"
+          formControlName="pickupInstructions"
+          placeholder="Instructions customers should follow when collecting orders"
+        >
+        </textarea>
+      </div>
+
+      <div class="availability-control">
+        <div>
+          <strong>Station Availability</strong>
+          <p>Allow customers to select this station for pickup.</p>
+        </div>
+
+        <label class="toggle">
+          <input type="checkbox" formControlName="isAvailable" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <button
+      type="button"
+      class="cancel-button"
+      (click)="cancelled.emit()"
+      [disabled]="isSubmitting"
+    >
+      Cancel
+    </button>
+
+    <button type="submit" class="submit-button" [disabled]="isSubmitting">
+      @if (isSubmitting) {
+        Saving...
+      } @else {
+        {{ submitLabel }}
+      }
+    </button>
+  </div>
+</form>

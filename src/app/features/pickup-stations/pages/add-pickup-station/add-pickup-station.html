@@ -1,0 +1,222 @@
+<div class="add-station-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <span class="breadcrumb">
+        <a routerLink="/pickup-stations">Pickup Stations</a>
+        / Add Station
+      </span>
+
+      <h1>Add Pickup Station</h1>
+
+      <p>Register a new location where customers can collect their orders.</p>
+    </div>
+
+    <a routerLink="/pickup-stations" class="back-button"> ← Back to Stations </a>
+  </div>
+
+  <form [formGroup]="pickupStationForm" (ngSubmit)="submit()">
+    <!-- Basic information -->
+    <section class="form-card">
+      <div class="section-heading">
+        <div class="section-icon">⌖</div>
+        <div>
+          <h2>Station Information</h2>
+          <p>Enter the basic details of the pickup station.</p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="name">Station Name <span>*</span></label>
+
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            placeholder="e.g. Kilivana Hub - Westlands"
+          />
+
+          @if (name.touched && name.hasError('required')) {
+            <small class="field-error">Station name is required.</small>
+          }
+
+          @if (name.touched && name.hasError('minlength')) {
+            <small class="field-error">Name must have at least 3 characters.</small>
+          }
+        </div>
+
+        <div class="form-group full-width">
+          <label for="address">Physical Address <span>*</span></label>
+
+          <textarea
+            id="address"
+            rows="3"
+            formControlName="address"
+            placeholder="Enter the complete physical address"
+          >
+          </textarea>
+
+          @if (address.touched && address.invalid) {
+            <small class="field-error">Physical address is required.</small>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="region">Region / County <span>*</span></label>
+
+          <select id="region" formControlName="region">
+            <option value="">Select region</option>
+            <option value="Nairobi">Nairobi</option>
+            <option value="Kiambu">Kiambu</option>
+            <option value="Machakos">Machakos</option>
+            <option value="Kajiado">Kajiado</option>
+            <option value="Nakuru">Nakuru</option>
+            <option value="Uasin Gishu">Uasin Gishu</option>
+            <option value="Kisumu">Kisumu</option>
+            <option value="Mombasa">Mombasa</option>
+            <option value="Nyeri">Nyeri</option>
+            <option value="Meru">Meru</option>
+            <option value="Other">Other</option>
+          </select>
+
+          @if (region.touched && region.invalid) {
+            <small class="field-error">Please select a region.</small>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="contactPhone">Contact Phone</label>
+
+          <input
+            id="contactPhone"
+            type="tel"
+            formControlName="contactPhone"
+            placeholder="+254 7XX XXX XXX"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- Location coordinates -->
+    <section class="form-card">
+      <div class="section-heading">
+        <div class="section-icon location">◎</div>
+        <div>
+          <h2>Station Location</h2>
+          <p>Enter the geographical coordinates of this pickup station.</p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="latitude">Latitude <span>*</span></label>
+
+          <input
+            id="latitude"
+            type="number"
+            step="any"
+            formControlName="latitude"
+            placeholder="e.g. -1.2921"
+          />
+
+          @if (latitude.touched && latitude.invalid) {
+            <small class="field-error">Latitude is required.</small>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="longitude">Longitude <span>*</span></label>
+
+          <input
+            id="longitude"
+            type="number"
+            step="any"
+            formControlName="longitude"
+            placeholder="e.g. 36.8219"
+          />
+
+          @if (longitude.touched && longitude.invalid) {
+            <small class="field-error">Longitude is required.</small>
+          }
+        </div>
+      </div>
+
+      <div class="coordinate-notice">
+        <span>ⓘ</span>
+        Use the actual coordinates of the pickup station. Incorrect coordinates can cause customers
+        to navigate to the wrong location.
+      </div>
+    </section>
+
+    <!-- Operating information -->
+    <section class="form-card">
+      <div class="section-heading">
+        <div class="section-icon hours">◷</div>
+        <div>
+          <h2>Operating Information</h2>
+          <p>Configure when customers can collect their orders.</p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="openingHours">Opening Hours</label>
+
+          <input
+            id="openingHours"
+            type="text"
+            formControlName="openingHours"
+            placeholder="e.g. 8:00 AM - 8:00 PM, Mon-Sat"
+          />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="pickupInstructions">Pickup Instructions</label>
+
+          <textarea
+            id="pickupInstructions"
+            rows="4"
+            formControlName="pickupInstructions"
+            placeholder="Instructions customers should follow when collecting orders"
+          >
+          </textarea>
+        </div>
+
+        <div class="availability-control">
+          <div>
+            <strong>Station Availability</strong>
+            <p>Allow customers to select this station for pickup.</p>
+          </div>
+
+          <label class="toggle">
+            <input type="checkbox" formControlName="isAvailable" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error -->
+    @if (errorMessage()) {
+      <div class="error-alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button type="button" class="cancel-button" (click)="cancel()" [disabled]="isSubmitting()">
+        Cancel
+      </button>
+
+      <button type="submit" class="submit-button" [disabled]="isSubmitting()">
+        @if (isSubmitting()) {
+          Saving...
+        } @else {
+          Create Pickup Station
+        }
+      </button>
+    </div>
+  </form>
+</div>

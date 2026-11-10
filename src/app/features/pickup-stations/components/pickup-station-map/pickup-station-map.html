@@ -1,0 +1,33 @@
+<div class="map-card">
+  <div class="map-heading">
+    <div>
+      <h3>Station Location</h3>
+      <p>{{ address || 'Pickup station coordinates' }}</p>
+    </div>
+
+    <span class="location-icon">◎</span>
+  </div>
+
+  @if (hasCoordinates) {
+    <div class="coordinate-display">
+      <div class="coordinate-item">
+        <span>Latitude</span>
+        <strong>{{ latitude }}</strong>
+      </div>
+
+      <div class="coordinate-item">
+        <span>Longitude</span>
+        <strong>{{ longitude }}</strong>
+      </div>
+    </div>
+
+    <a class="map-link" [href]="googleMapsUrl" target="_blank" rel="noopener noreferrer">
+      Open location in Google Maps ↗
+    </a>
+  } @else {
+    <div class="no-location">
+      <span>◎</span>
+      <p>Location coordinates are not available.</p>
+    </div>
+  }
+</div>
