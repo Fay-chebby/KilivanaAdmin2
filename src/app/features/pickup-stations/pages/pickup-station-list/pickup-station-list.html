@@ -1,0 +1,196 @@
+<div class="pickup-page">
+  <!-- Page heading -->
+  <div class="page-heading">
+    <div>
+      <span class="breadcrumb">Logistics / Pickup Stations</span>
+      <h1>Pickup Stations</h1>
+      <p>Manage platform pickup stations and their availability.</p>
+    </div>
+
+    <a routerLink="../add" class="add-button">
+      <span>+</span>
+      Add Pickup Station
+    </a>
+  </div>
+
+  <!-- Statistics -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon total">⌖</div>
+      <div>
+        <span>Total Stations</span>
+        <h2>{{ totalStations() }}</h2>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon available">✓</div>
+      <div>
+        <span>Available</span>
+        <h2>{{ availableStations() }}</h2>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon unavailable">!</div>
+      <div>
+        <span>Unavailable</span>
+        <h2>{{ unavailableStations() }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <section class="stations-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>All Pickup Stations</h2>
+        <p>View and manage registered pickup locations.</p>
+      </div>
+
+      <button
+        class="refresh-button"
+        type="button"
+        (click)="loadStations()"
+        [disabled]="isLoading()"
+      >
+        ↻ Refresh
+      </button>
+    </div>
+
+    <!-- Search -->
+    <div class="search-container">
+      <input
+        type="search"
+        placeholder="Search by station name, address or region..."
+        [value]="searchTerm()"
+        (input)="onSearch($any($event.target).value)"
+      />
+    </div>
+
+    <!-- Error -->
+    @if (errorMessage()) {
+      <div class="error-message">
+        {{ errorMessage() }}
+        <button type="button" (click)="loadStations()">Retry</button>
+      </div>
+    }
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading pickup stations...</p>
+      </div>
+    }
+
+    <!-- Table -->
+    @if (!isLoading() && filteredStations().length > 0) {
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Station</th>
+              <th>Address</th>
+              <th>Region</th>
+              <th>Contact</th>
+              <th>Availability</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (station of filteredStations(); track station.id) {
+              <tr>
+                <td>
+                  <div class="station-name">
+                    <div class="station-avatar">
+                      {{ station.name.charAt(0).toUpperCase() }}
+                    </div>
+
+                    <div>
+                      <strong>{{ station.name }}</strong>
+                      <small>#{{ station.id }}</small>
+                    </div>
+                  </div>
+                </td>
+
+                <td>{{ station.address }}</td>
+
+                <td>
+                  <span class="region-label">
+                    {{ station.region }}
+                  </span>
+                </td>
+
+                <td>{{ station.contactPhone || '—' }}</td>
+
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.available]="station.isAvailable"
+                    [class.unavailable]="!station.isAvailable"
+                  >
+                    <span class="status-dot"></span>
+                    {{ station.isAvailable ? 'Available' : 'Unavailable' }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="actions">
+                    <a
+                      [routerLink]="['../', station.id]"
+                      class="action-button view"
+                      title="View station"
+                    >
+                      View
+                    </a>
+
+                    <a
+                      [routerLink]="['../', station.id, 'edit']"
+                      class="action-button edit"
+                      title="Edit station"
+                    >
+                      Edit
+                    </a>
+
+                    <button
+                      type="button"
+                      class="action-button deactivate"
+                      (click)="deactivateStation(station)"
+                      [disabled]="!station.isAvailable"
+                      title="Deactivate station"
+                    >
+                      Deactivate
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- No results -->
+    @if (!isLoading() && filteredStations().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">⌖</div>
+
+        @if (stations().length === 0) {
+          <h3>No pickup stations yet</h3>
+          <p>Create your first pickup station to get started.</p>
+
+          <a routerLink="../add" class="add-button"> Add Pickup Station </a>
+        } @else {
+          <h3>No matching stations</h3>
+          <p>Try searching with another station name or region.</p>
+        }
+      </div>
+    }
+
+    <div class="table-footer">
+      Showing {{ filteredStations().length }} of {{ totalStations() }} stations
+    </div>
+  </section>
+</div>
