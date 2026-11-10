@@ -39,28 +39,48 @@ export function errorMessage(err: unknown): string {
 
 function toStatus(s?: string | null): SupplierStatus {
   const v = (s ?? '').toLowerCase();
+
   return v === 'active' || v === 'suspended' ? v : 'pending';
+}
+
+function toCategory(category?: string | null): SupplierCategory {
+  const value = category?.trim();
+
+  return SUPPLIER_CATEGORIES.find((item) => item.toLowerCase() === value?.toLowerCase()) ?? 'Other';
 }
 
 export function toSupplier(d: AdminSupplierDto): Supplier {
   return {
     id: d.userId,
     profileId: d.profileId ?? null,
+
     code: d.code || `S-${String(d.userId).padStart(3, '0')}`,
-    name: d.companyName,
+
+    name:
+      d.companyName?.trim() || d.contactPerson?.trim() || d.username?.trim() || 'Unnamed Supplier',
+
     username: d.username ?? '',
-    category: (d.category ?? 'Other') as SupplierCategory,
+
+    category: toCategory(d.category),
+
     contactPerson: d.contactPerson ?? '',
     email: d.email ?? '',
     phone: d.phone ?? '',
     region: d.region ?? '',
     address: d.address ?? '',
-    contractEnd: d.contractEndDate || null,
+
+    contractEnd: d.contractEndDate ?? null,
+
     status: toStatus(d.status),
-    suspensionReason: d.suspensionReason || null,
+
+    suspensionReason: d.suspensionReason ?? null,
+
     productsCount: d.productsCount ?? 0,
     rating: d.rating ?? null,
-    createdAt: (d.createdAt ?? '').slice(0, 10),
+
+    createdAt: d.createdAt?.slice(0, 10) ?? '',
+
+    warehouses: d.warehouses ?? [],
   };
 }
 

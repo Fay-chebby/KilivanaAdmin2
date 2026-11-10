@@ -12,11 +12,27 @@ export const SUPPLIER_CATEGORIES = [
 
 export type SupplierCategory = (typeof SUPPLIER_CATEGORIES)[number];
 
+/** Supplier warehouse information */
+export interface SupplierWarehouse {
+  id: number;
+  name: string;
+  address: string | null;
+  county: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  operatingHours: string | null;
+  active: boolean;
+  defaultLocation: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Supplier {
-  /** The supplier's user id. All /admin/suppliers/{userId} calls use this. */
   id: number;
   profileId: number | null;
-  code: string; // e.g. S-001
+  code: string;
   name: string;
   username: string;
   category: SupplierCategory;
@@ -25,19 +41,19 @@ export interface Supplier {
   phone: string;
   region: string;
   address: string;
-  contractEnd: string | null; // YYYY-MM-DD
+  contractEnd: string | null;
   status: SupplierStatus;
   suspensionReason: string | null;
   productsCount: number;
   rating: number | null;
   createdAt: string;
+  warehouses: SupplierWarehouse[];
 }
 
-/** What the form sends back */
+/** What the supplier form sends */
 export interface SupplierFormValue {
   name: string;
   username: string;
-  /** Sent to the API only. Never stored on the Supplier object. Empty on edit = keep current password. */
   password: string;
   category: SupplierCategory;
   contactPerson: string;
@@ -49,12 +65,12 @@ export interface SupplierFormValue {
   status: SupplierStatus;
 }
 
-/** Raw record from /api/v1/admin/suppliers */
+/** Raw record from the admin supplier API */
 export interface AdminSupplierDto {
   userId: number;
   profileId?: number | null;
   code?: string | null;
-  companyName: string;
+  companyName?: string | null;
   contactPerson?: string | null;
   username?: string | null;
   email?: string | null;
@@ -68,13 +84,18 @@ export interface AdminSupplierDto {
   productsCount?: number | null;
   rating?: number | null;
   createdAt?: string | null;
+  warehouses?: SupplierWarehouse[] | null;
 }
 
 export interface ApiEnvelope<T> {
   success: boolean;
   message?: string;
   data: T;
-  error?: { code?: string; details?: string } | null;
+  timestamp?: string;
+  error?: {
+    code?: string;
+    details?: string;
+  } | null;
 }
 
 export interface SupplierProduct {

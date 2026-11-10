@@ -1,104 +1,235 @@
 <div class="page">
   <div class="breadcrumb">
-    <a routerLink="/dashboard">Dashboard</a><span>/</span><a routerLink="/suppliers">Suppliers</a
-    ><span>/</span>Details
+    <a routerLink="/dashboard">Dashboard</a>
+    <span>/</span>
+    <a routerLink="/suppliers">Suppliers</a>
+    <span>/</span>
+    Details
   </div>
 
   @if (notice(); as msg) {
     <div class="notice" role="status">{{ msg }}</div>
   }
+
   @if (error(); as e) {
     <div class="alert" role="alert">{{ e }}</div>
   }
 
   @if (supplier(); as s) {
+    <!-- Page Header -->
     <div class="page-head">
       <div class="title">
         <span class="avatar">{{ initials(s.name) }}</span>
+
         <div>
           <h1>{{ s.name }}</h1>
+
           <p>
-            <span class="mono">{{ s.code }}</span> ·
-            <span class="badge" [class]="'badge badge--' + s.status">{{ s.status }}</span>
+            <span class="mono">{{ s.code }}</span>
+            ·
+            <span class="badge" [class]="'badge badge--' + s.status">
+              {{ s.status }}
+            </span>
           </p>
         </div>
       </div>
+
       <div class="actions">
         <a class="btn" routerLink="edit">Edit</a>
+
         @switch (s.status) {
           @case ('active') {
             <button type="button" class="btn btn-warn" (click)="dialog.set('suspend')">
               Suspend
             </button>
           }
+
           @case ('suspended') {
             <button type="button" class="btn btn-success" (click)="dialog.set('activate')">
               Reinstate
             </button>
           }
+
           @case ('pending') {
             <button type="button" class="btn btn-success" (click)="dialog.set('activate')">
               Activate
             </button>
           }
         }
+
         <button type="button" class="btn btn-danger" (click)="dialog.set('delete')">Delete</button>
       </div>
     </div>
 
+    <!-- Suspension Notice -->
     @if (s.status === 'suspended' && s.suspensionReason) {
       <div class="alert"><strong>Suspended:</strong> {{ s.suspensionReason }}</div>
     }
 
+    <!-- Supplier Statistics -->
     <div class="stats">
       <div class="card stat">
-        <span>Products</span><strong>{{ s.productsCount }}</strong>
+        <span>Products</span>
+        <strong>{{ s.productsCount }}</strong>
       </div>
+
       <div class="card stat">
-        <span>Rating</span
-        ><strong>{{ s.rating !== null ? '★ ' + s.rating.toFixed(1) : '—' }}</strong>
+        <span>Rating</span>
+        <strong>
+          {{ s.rating !== null ? '★ ' + s.rating.toFixed(1) : '—' }}
+        </strong>
       </div>
+
       <div class="card stat">
-        <span>Contract end</span><strong class="mono">{{ s.contractEnd ?? 'Pending' }}</strong>
+        <span>Contract end</span>
+        <strong class="mono">{{ s.contractEnd || 'Pending' }}</strong>
       </div>
+
       <div class="card stat">
-        <span>Registered</span><strong class="mono">{{ s.createdAt }}</strong>
+        <span>Registered</span>
+        <strong class="mono">{{ s.createdAt || '—' }}</strong>
       </div>
     </div>
 
-    <div class="card info">
+    <!-- Supplier Information -->
+    <section class="card info">
       <h3>Supplier information</h3>
+
       <dl>
+        <div>
+          <dt>Supplier name</dt>
+          <dd>{{ s.name || '—' }}</dd>
+        </div>
+
+        <div>
+          <dt>Supplier code</dt>
+          <dd class="mono">{{ s.code || '—' }}</dd>
+        </div>
+
         <div>
           <dt>Username</dt>
           <dd class="mono">{{ s.username || '—' }}</dd>
         </div>
+
         <div>
           <dt>Category</dt>
-          <dd>{{ s.category }}</dd>
+          <dd>{{ s.category || '—' }}</dd>
         </div>
+
         <div>
           <dt>Contact person</dt>
-          <dd>{{ s.contactPerson }}</dd>
+          <dd>{{ s.contactPerson || '—' }}</dd>
         </div>
+
         <div>
           <dt>Phone</dt>
-          <dd>{{ s.phone }}</dd>
+          <dd>{{ s.phone || '—' }}</dd>
         </div>
+
         <div>
           <dt>Email</dt>
-          <dd>{{ s.email }}</dd>
+          <dd>{{ s.email || '—' }}</dd>
         </div>
+
         <div>
           <dt>Region</dt>
-          <dd>{{ s.region }}</dd>
+          <dd>{{ s.region || '—' }}</dd>
         </div>
+
         <div>
           <dt>Address</dt>
           <dd>{{ s.address || '—' }}</dd>
         </div>
+
+        <div>
+          <dt>Profile ID</dt>
+          <dd class="mono">{{ s.profileId ?? '—' }}</dd>
+        </div>
       </dl>
-    </div>
+    </section>
+
+    <!-- Supplier Warehouses -->
+    <section class="card info warehouses-section">
+      <div class="products-header">
+        <div>
+          <h3>Warehouses & Locations</h3>
+          <p>Registered warehouse and supplier collection locations.</p>
+        </div>
+
+        <span class="products-count">
+          {{ s.warehouses.length }}
+          {{ s.warehouses.length === 1 ? 'warehouse' : 'warehouses' }}
+        </span>
+      </div>
+
+      @if (s.warehouses.length > 0) {
+        <div class="warehouse-list">
+          @for (warehouse of s.warehouses; track warehouse.id) {
+            <div class="warehouse-item">
+              <div class="warehouse-main">
+                <div class="warehouse-title">
+                  <h4>{{ warehouse.name }}</h4>
+
+                  @if (warehouse.defaultLocation) {
+                    <span class="badge badge--active">Default location</span>
+                  }
+                </div>
+
+                <div class="warehouse-details">
+                  <div>
+                    <span>Address</span>
+                    <strong>{{ warehouse.address || '—' }}</strong>
+                  </div>
+
+                  <div>
+                    <span>County</span>
+                    <strong>{{ warehouse.county || '—' }}</strong>
+                  </div>
+
+                  <div>
+                    <span>Contact person</span>
+                    <strong>{{ warehouse.contactName || '—' }}</strong>
+                  </div>
+
+                  <div>
+                    <span>Contact phone</span>
+                    <strong>{{ warehouse.contactPhone || '—' }}</strong>
+                  </div>
+
+                  <div>
+                    <span>Operating hours</span>
+                    <strong>{{ warehouse.operatingHours || '—' }}</strong>
+                  </div>
+
+                  <div>
+                    <span>Coordinates</span>
+                    <strong>
+                      @if (warehouse.latitude !== null && warehouse.longitude !== null) {
+                        {{ warehouse.latitude }}, {{ warehouse.longitude }}
+                      } @else {
+                        —
+                      }
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              <span
+                class="badge"
+                [class.badge--active]="warehouse.active"
+                [class.badge--suspended]="!warehouse.active"
+              >
+                {{ warehouse.active ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="products-state">
+          <p>No warehouses registered for this supplier.</p>
+        </div>
+      }
+    </section>
 
     <!-- Supplier Products -->
     <section class="card products-section">
@@ -108,7 +239,10 @@
           <p>Products listed by this supplier.</p>
         </div>
 
-        <span class="products-count"> {{ products().length }} products </span>
+        <span class="products-count">
+          {{ products().length }}
+          {{ products().length === 1 ? 'product' : 'products' }}
+        </span>
       </div>
 
       @if (productsLoading()) {
@@ -117,7 +251,7 @@
         <div class="products-state products-state--error">
           <p>{{ productsError() }}</p>
 
-          <button type="button" class="btn" (click)="loadProducts(supplier()!.id)">Retry</button>
+          <button type="button" class="btn" (click)="loadProducts(s.id)">Retry</button>
         </div>
       } @else if (products().length === 0) {
         <div class="products-state">
@@ -163,7 +297,7 @@
 
                   <td class="product-number">
                     KES {{ product.price | number: '1.2-2' }}
-                    <span class="product-unit">/ {{ product.unit }}</span>
+                    <span class="product-unit"> / {{ product.unit }} </span>
                   </td>
 
                   <td class="product-number">
@@ -181,8 +315,8 @@
                   <td>
                     <span
                       class="product-status"
-                      [class.product-status--active]="product.status.toUpperCase() === 'ACTIVE'"
-                      [class.product-status--inactive]="product.status.toUpperCase() !== 'ACTIVE'"
+                      [class.product-status--active]="product.status?.toUpperCase() === 'ACTIVE'"
+                      [class.product-status--inactive]="product.status?.toUpperCase() !== 'ACTIVE'"
                     >
                       {{ product.status }}
                     </span>
@@ -195,6 +329,7 @@
       }
     </section>
 
+    <!-- Supplier Action Dialogs -->
     @switch (dialog()) {
       @case ('delete') {
         <app-supplier-action-dialog
@@ -207,6 +342,7 @@
           (cancelled)="dialog.set(null)"
         />
       }
+
       @case ('suspend') {
         <app-supplier-action-dialog
           title="Suspend supplier?"
@@ -219,6 +355,7 @@
           (cancelled)="dialog.set(null)"
         />
       }
+
       @case ('activate') {
         <app-supplier-action-dialog
           title="Activate supplier?"
@@ -232,7 +369,9 @@
       }
     }
   } @else if (loading()) {
-    <div class="card missing"><p>Loading supplier…</p></div>
+    <div class="card missing">
+      <p>Loading supplier…</p>
+    </div>
   } @else {
     <div class="card missing">
       <p>Supplier not found.</p>

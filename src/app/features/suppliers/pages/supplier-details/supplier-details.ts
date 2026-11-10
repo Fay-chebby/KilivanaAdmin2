@@ -1,32 +1,40 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DecimalPipe, DatePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 
 import { SupplierService, errorMessage } from '../../services/supplier.service';
 
 import { SupplierActionDialog } from '../../components/supplier-action-dialog/supplier-action-dialog';
-import { SupplierProduct } from '../../models/supplier.model';
+
+import { Supplier, SupplierProduct } from '../../models/supplier.model';
 
 @Component({
   selector: 'app-supplier-details',
-  imports: [RouterLink, SupplierActionDialog, DecimalPipe, DatePipe],
+  standalone: true,
+  imports: [RouterLink, SupplierActionDialog, DecimalPipe],
   templateUrl: './supplier-details.html',
   styleUrl: './supplier-details.scss',
 })
 export class SupplierDetails {
-  private svc = inject(SupplierService);
-  private router = inject(Router);
+  private readonly svc = inject(SupplierService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
-  private id = Number(inject(ActivatedRoute).snapshot.paramMap.get('id'));
+  // Supplier ID from the URL
+  private readonly id = Number(this.route.snapshot.paramMap.get('id'));
 
+  // Dialog state
   dialog = signal<'delete' | 'suspend' | 'activate' | null>(null);
+
+  // General page state
   busy = signal(false);
   loading = signal(true);
   error = signal<string | null>(null);
 
   // Supplier details
-  supplier = computed(() => this.svc.suppliers().find((s) => s.id === this.id) ?? null);
+  supplier = signal<Supplier | null>(null);
 
+  // Global notification
   notice = this.svc.notice;
 
   // Supplier products
@@ -35,11 +43,32 @@ export class SupplierDetails {
   productsError = signal<string | null>(null);
 
   constructor() {
+    this.loadSupplier();
+  }
+
+  // -----------------------------------------
+  // LOAD SUPPLIER DETAILS
+  // -----------------------------------------
+
+  loadSupplier(): void {
+    if (!Number.isInteger(this.id) || this.id <= 0) {
+      this.loading.set(false);
+      this.error.set('Invalid supplier ID.');
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set(null);
+
     this.svc.get$(this.id).subscribe({
       next: (supplier) => {
+        this.supplier.set(supplier);
         this.loading.set(false);
+
+        // Load products after supplier details are available.
         this.loadProducts(supplier.id);
       },
+
       error: (e) => {
         this.loading.set(false);
         this.error.set(errorMessage(e));
@@ -47,37 +76,54 @@ export class SupplierDetails {
     });
   }
 
+  // -----------------------------------------
+  // LOAD SUPPLIER PRODUCTS
+  // -----------------------------------------
+
   loadProducts(sellerId: number): void {
     this.productsLoading.set(true);
     this.productsError.set(null);
 
     this.svc.getProducts$(sellerId).subscribe({
       next: (items) => {
-        this.products.set(items);
+        this.products.set(items ?? []);
         this.productsLoading.set(false);
       },
+
       error: (e) => {
+        this.products.set([]);
         this.productsError.set(errorMessage(e));
         this.productsLoading.set(false);
       },
     });
   }
 
+  // -----------------------------------------
+  // SUPPLIER INITIALS
+  // -----------------------------------------
+
   initials(name: string): string {
-    return name
-      .split(' ')
+    return (name || 'S')
+      .trim()
+      .split(/\s+/)
       .filter(Boolean)
       .slice(0, 2)
-      .map((w) => w[0])
+      .map((word) => word.charAt(0))
       .join('')
       .toUpperCase();
   }
+
+  // -----------------------------------------
+  // SUPPLIER ACTIONS
+  // -----------------------------------------
 
   confirm(reason: string): void {
     const type = this.dialog();
     const s = this.supplier();
 
-    if (!type || !s) return;
+    if (!type || !s || this.busy()) {
+      return;
+    }
 
     this.busy.set(true);
     this.error.set(null);
@@ -95,9 +141,37 @@ export class SupplierDetails {
         this.dialog.set(null);
 
         if (type === 'delete') {
+          this.supplier.set(null);
           this.router.navigate(['/suppliers']);
+          return;
+        }
+
+        // Update the local supplier status immediately.
+        if (type === 'suspend') {
+          this.supplier.update((current) =>
+            current
+              ? {
+                  ...current,
+                  status: 'suspended',
+                  suspensionReason: reason,
+                }
+              : null,
+          );
+        }
+
+        if (type === 'activate') {
+          this.supplier.update((current) =>
+            current
+              ? {
+                  ...current,
+                  status: 'active',
+                  suspensionReason: null,
+                }
+              : null,
+          );
         }
       },
+
       error: (e) => {
         this.busy.set(false);
         this.error.set(errorMessage(e));
