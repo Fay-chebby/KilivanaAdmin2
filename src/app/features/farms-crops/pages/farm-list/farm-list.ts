@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
 import { ConfirmModal } from '../../../inspectors/components/confirm-modal/confirm-modal';
 
-import { FARM_STATUS_META, Farm, coverOf } from '../../models/farm.model';
+import { FARM_STATUS_META, Farm, FarmStatus, coverOf } from '../../models/farm.model';
 
 import { FarmService } from '../../services/farm.service';
 import { ImageLoader } from '../../../../shared/service/image-loader';
@@ -34,7 +34,7 @@ export class FarmList implements OnInit, OnDestroy {
 
   private readonly imageLoader = inject(ImageLoader);
 
-  private readonly backendOrigin = 'https://either-juvenile-progeny.ngrok-free.dev';
+  private readonly backendOrigin = 'https://hankering-morphing-outclass.ngrok-free.dev';
 
   private readonly loadedCoverUrls = new Map<number, string>();
   private readonly pendingCoverUrls = new Set<string>();
@@ -142,19 +142,31 @@ export class FarmList implements OnInit, OnDestroy {
     this.loadedCovers.set({});
   }
 
-  // Load farms when the page opens.
+  // ============================================================
+  // INITIALIZATION
+  // ============================================================
+
   ngOnInit(): void {
     this.service.loadFarms();
   }
+
+  // ============================================================
+  // FARM STATISTICS
+  // ============================================================
 
   protected readonly stats = computed(() => {
     const farms = this.service.farms();
 
     return {
       total: farms.length,
-      active: farms.filter((f) => f.status.toUpperCase() === 'ACTIVE').length,
-      fallow: farms.filter((f) => f.status.toUpperCase() === 'FALLOW').length,
-      inactive: farms.filter((f) => f.status.toUpperCase() === 'INACTIVE').length,
+
+      pending: farms.filter((farm) => farm.status.toUpperCase() === 'PENDING').length,
+
+      active: farms.filter((farm) => farm.status.toUpperCase() === 'ACTIVE').length,
+
+      fallow: farms.filter((farm) => farm.status.toUpperCase() === 'FALLOW').length,
+
+      inactive: farms.filter((farm) => farm.status.toUpperCase() === 'INACTIVE').length,
     };
   });
 
@@ -165,10 +177,14 @@ export class FarmList implements OnInit, OnDestroy {
       .toFixed(1),
   );
 
-  protected statusMeta(status: string) {
-    const key = status.toUpperCase();
+  // ============================================================
+  // FARM STATUS
+  // ============================================================
 
-    if (key === 'ACTIVE' || key === 'FALLOW' || key === 'INACTIVE') {
+  protected statusMeta(status: string) {
+    const key = status.toUpperCase() as FarmStatus;
+
+    if (key in FARM_STATUS_META) {
       return FARM_STATUS_META[key];
     }
 
@@ -177,6 +193,10 @@ export class FarmList implements OnInit, OnDestroy {
       tone: 'gray' as const,
     };
   }
+
+  // ============================================================
+  // COUNTIES
+  // ============================================================
 
   protected readonly counties = computed(() =>
     [
@@ -188,6 +208,10 @@ export class FarmList implements OnInit, OnDestroy {
       ),
     ].sort(),
   );
+
+  // ============================================================
+  // SEARCH AND FILTER
+  // ============================================================
 
   protected readonly rows = computed(() => {
     const q = this.search().toLowerCase().trim();
@@ -210,6 +234,10 @@ export class FarmList implements OnInit, OnDestroy {
     });
   });
 
+  // ============================================================
+  // FARMER INITIALS
+  // ============================================================
+
   protected initials(name: string | null): string {
     return (name ?? 'Unknown')
       .trim()
@@ -220,6 +248,10 @@ export class FarmList implements OnInit, OnDestroy {
       .join('')
       .toUpperCase();
   }
+
+  // ============================================================
+  // DELETE FARM
+  // ============================================================
 
   protected delete(): void {
     const farm = this.toDelete();
@@ -236,6 +268,7 @@ export class FarmList implements OnInit, OnDestroy {
         this.toDelete.set(null);
         this.deleting.set(false);
       },
+
       error: (error: unknown) => {
         this.deleteError.set(
           error instanceof Error ? error.message : 'Unable to delete this farm. Please try again.',

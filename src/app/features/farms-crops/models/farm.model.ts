@@ -1,10 +1,13 @@
 export type Tone = 'green' | 'amber' | 'red' | 'blue' | 'gray';
 
-export const FARM_STATUSES = ['ACTIVE', 'FALLOW', 'INACTIVE'];
-export const CROP_STATUSES = ['PLANNED', 'GROWING', 'HARVESTED', 'FAILED'];
+export const FARM_STATUSES = ['PENDING', 'ACTIVE', 'FALLOW', 'INACTIVE'] as const;
+
+export const CROP_STATUSES = ['PLANNED', 'GROWING', 'HARVESTED', 'FAILED'] as const;
+
 export const OWNERSHIP_TYPES = ['OWNED', 'LEASED', 'COMMUNAL'];
 
 /* ---------- API shapes (from the OpenAPI document) ---------- */
+
 export interface ApiEnvelope<T> {
   success: boolean;
   message: string;
@@ -32,7 +35,7 @@ export interface ApiCrop {
 export interface ApiFarm {
   id: number;
   farmerId?: number | null;
-  farmerName?: string | null; // not in the OpenAPI yet; shown if the backend adds it
+  farmerName?: string | null;
   name: string;
   county?: string | null;
   subCounty?: string | null;
@@ -54,6 +57,7 @@ export interface ApiCropType {
   category: string;
   active?: boolean;
 }
+
 export interface ApiCropSummary {
   cropTypeId: number;
   name: string;
@@ -63,6 +67,7 @@ export interface ApiCropSummary {
 }
 
 /* ---------- UI models ---------- */
+
 export interface Crop {
   id: number;
   farmId: number | null;
@@ -119,7 +124,8 @@ export interface FarmEditValue {
   description: string;
 }
 
-/* ---------- mapping ---------- */
+/* ---------- Mapping ---------- */
+
 export const toCrop = (c: ApiCrop): Crop => ({
   id: c.id,
   farmId: c.farmId ?? null,
@@ -145,6 +151,7 @@ export const toFarm = (f: ApiFarm): Farm => {
     farmerId: c.farmerId ?? f.farmerId ?? null,
     farmerName: c.farmerName ?? f.farmerName ?? null,
   }));
+
   return {
     id: f.id,
     farmerId: f.farmerId ?? null,
@@ -157,7 +164,7 @@ export const toFarm = (f: ApiFarm): Farm => {
     longitude: f.longitude ?? null,
     sizeAcres: f.sizeAcres ?? null,
     ownershipType: f.ownershipType ?? null,
-    status: (f.status ?? '').toUpperCase(),
+    status: (f.status ?? 'PENDING').toUpperCase(),
     description: f.description ?? null,
     images: f.images ?? [],
     crops,
@@ -166,9 +173,11 @@ export const toFarm = (f: ApiFarm): Farm => {
   };
 };
 
-/* ---------- display helpers ---------- */
+/* ---------- Display helpers ---------- */
+
 export const dash = (v: unknown): string =>
   v === null || v === undefined || v === '' ? '—' : String(v);
+
 export const titleCase = (s: string | null | undefined) =>
   s
     ? s
@@ -177,8 +186,25 @@ export const titleCase = (s: string | null | undefined) =>
         .replace(/^\w/, (c) => c.toUpperCase())
     : '—';
 
-export const farmTone = (s: string): Tone =>
-  s === 'ACTIVE' ? 'green' : s === 'FALLOW' ? 'amber' : 'gray';
+export const farmTone = (s: string): Tone => {
+  switch (s.toUpperCase()) {
+    case 'PENDING':
+      return 'amber';
+
+    case 'ACTIVE':
+      return 'green';
+
+    case 'FALLOW':
+      return 'amber';
+
+    case 'INACTIVE':
+      return 'gray';
+
+    default:
+      return 'gray';
+  }
+};
+
 export const cropTone = (s: string): Tone =>
   s === 'GROWING' ? 'green' : s === 'HARVESTED' ? 'blue' : s === 'FAILED' ? 'red' : 'gray';
 
@@ -191,6 +217,7 @@ export const initials = (name: string) =>
     .join('');
 
 /** The 47 counties of Kenya. Used when GET /regions fails or returns nothing. */
+
 export const KENYA_COUNTIES: string[] = [
   'Baringo',
   'Bomet',
@@ -243,7 +270,7 @@ export const KENYA_COUNTIES: string[] = [
 
 /* ---------- UI compatibility types ---------- */
 
-export type FarmStatus = 'ACTIVE' | 'FALLOW' | 'INACTIVE';
+export type FarmStatus = 'PENDING' | 'ACTIVE' | 'FALLOW' | 'INACTIVE';
 
 export type InspectionStatus = 'unassigned' | 'assigned' | 'in_review' | 'approved' | 'rejected';
 
@@ -251,11 +278,31 @@ export const INSPECTION_META: Record<
   InspectionStatus,
   { label: string; tone: Tone; step: number }
 > = {
-  unassigned: { label: 'Not assigned', tone: 'gray', step: 0 },
-  assigned: { label: 'Inspector assigned', tone: 'blue', step: 1 },
-  in_review: { label: 'In review', tone: 'amber', step: 2 },
-  approved: { label: 'Approved', tone: 'green', step: 3 },
-  rejected: { label: 'Rejected', tone: 'red', step: 3 },
+  unassigned: {
+    label: 'Not assigned',
+    tone: 'gray',
+    step: 0,
+  },
+  assigned: {
+    label: 'Inspector assigned',
+    tone: 'blue',
+    step: 1,
+  },
+  in_review: {
+    label: 'In review',
+    tone: 'amber',
+    step: 2,
+  },
+  approved: {
+    label: 'Approved',
+    tone: 'green',
+    step: 3,
+  },
+  rejected: {
+    label: 'Rejected',
+    tone: 'red',
+    step: 3,
+  },
 };
 
 export interface FarmPayload {
@@ -297,9 +344,22 @@ export interface CropSummaryView {
 /* ---------- UI display metadata ---------- */
 
 export const FARM_STATUS_META: Record<FarmStatus, { label: string; tone: Tone }> = {
-  ACTIVE: { label: 'Active', tone: 'green' },
-  FALLOW: { label: 'Fallow', tone: 'amber' },
-  INACTIVE: { label: 'Inactive', tone: 'gray' },
+  PENDING: {
+    label: 'Pending Approval',
+    tone: 'amber',
+  },
+  ACTIVE: {
+    label: 'Active',
+    tone: 'green',
+  },
+  FALLOW: {
+    label: 'Fallow',
+    tone: 'amber',
+  },
+  INACTIVE: {
+    label: 'Inactive',
+    tone: 'gray',
+  },
 };
 
 /* ---------- Existing UI aliases ---------- */
