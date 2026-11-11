@@ -49,7 +49,7 @@ export class AddPickupStation {
         this.isSubmitting.set(false);
         this.successMessage.set('Pickup station created successfully.');
 
-        this.router.navigate(['/pickup-stations']);
+        this.router.navigate(['/Pickup-Sation']);
       },
       error: (error) => {
         console.error('Failed to create pickup station:', error);
