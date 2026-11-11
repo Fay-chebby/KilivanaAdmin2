@@ -3,12 +3,20 @@
   width: 100%;
 }
 
+/* ==============================
+   PIPELINE CONTAINER
+============================== */
+
 .pipeline {
   display: flex;
   align-items: flex-start;
   width: 100%;
   gap: 0;
 }
+
+/* ==============================
+   PIPELINE STEPS
+============================== */
 
 .pipeline-step {
   display: flex;
@@ -28,22 +36,67 @@
   }
 }
 
+/* ==============================
+   STEP CIRCLE
+============================== */
+
 .step-icon {
   display: flex;
   width: 34px;
   height: 34px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
+
   border: 2px solid #d1d5db;
   border-radius: 50%;
+
   background: #fff;
   color: #64748b;
+
   font-size: 14px;
   font-weight: 700;
+
   transition:
     background 0.2s ease,
-    border-color 0.2s ease;
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
 }
+
+/* ==============================
+   STEP NUMBER
+============================== */
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==============================
+   COMPLETED CHECKMARK
+============================== */
+
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ==============================
+   STEP LABEL
+============================== */
 
 .step-label {
   max-width: 100%;
@@ -53,22 +106,29 @@
   overflow-wrap: anywhere;
 }
 
-.pipeline-step.completed .step-icon,
-.pipeline-step.has-driver .step-icon {
+/* ==============================
+   COMPLETED STEPS
+============================== */
+
+.pipeline-step.completed .step-icon {
   border-color: #16a34a;
   background: #16a34a;
   color: #fff;
 }
 
-.pipeline-step.completed .step-label,
-.pipeline-step.has-driver .step-label {
+.pipeline-step.completed .step-label {
   color: #15803d;
 }
 
+/* ==============================
+   CURRENT STEP
+============================== */
+
 .pipeline-step.current .step-icon {
   border-color: #15803d;
-  background: #f0fdf4;
-  color: #15803d;
+  background: #16a34a;
+  color: #fff;
+
   box-shadow: 0 0 0 4px rgb(22 163 74 / 10%);
 }
 
@@ -77,16 +137,33 @@
   font-weight: 800;
 }
 
+/* ==============================
+   UPCOMING STEPS
+============================== */
+
 .pipeline-step.upcoming .step-icon {
+  border-color: #d1d5db;
   background: #f8fafc;
+  color: #64748b;
 }
+
+.pipeline-step.upcoming .step-label {
+  color: #94a3b8;
+}
+
+/* ==============================
+   PIPELINE CONNECTORS
+============================== */
 
 .pipeline-connector {
   flex: 1;
   min-width: 8px;
   height: 2px;
+
   margin-top: 16px;
+
   background: #d1d5db;
+
   transition: background 0.2s ease;
 
   &.completed {
@@ -94,15 +171,32 @@
   }
 }
 
+/* ==============================
+   ASSIGN DRIVER BUTTON
+============================== */
+
 .assign-driver-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   margin-top: 18px;
   padding: 10px 16px;
+
   border: 0;
   border-radius: 8px;
+
   background: #15803d;
-  color: white;
+  color: #fff;
+
+  font-size: 13px;
   font-weight: 700;
+
   cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease;
 
   &:hover:not(:disabled) {
     background: #166534;
@@ -114,11 +208,17 @@
   }
 }
 
+/* ==============================
+   DRIVER ASSIGNED MESSAGE
+============================== */
+
 .driver-assigned {
   display: flex;
   align-items: center;
   gap: 8px;
+
   margin-top: 18px;
+
   color: #15803d;
   font-size: 13px;
   font-weight: 700;
@@ -128,25 +228,91 @@
   display: inline-flex;
   width: 22px;
   height: 22px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
+
   border-radius: 50%;
+
   background: #dcfce7;
   color: #15803d;
 }
 
+/* ==============================
+   CANCELLED ORDER
+============================== */
+
+.pipeline.cancelled .pipeline-step.current .step-icon {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgb(220 38 38 / 10%);
+}
+
+.pipeline.cancelled .pipeline-step.current .step-label {
+  color: #dc2626;
+}
+
+/* ==============================
+   DISPUTED ORDER
+============================== */
+
+.pipeline.disputed .pipeline-step.current .step-icon {
+  border-color: #d97706;
+  background: #d97706;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgb(217 119 6 / 10%);
+}
+
+.pipeline.disputed .pipeline-step.current .step-label {
+  color: #b45309;
+}
+
+/* ==============================
+   RESPONSIVE DESIGN
+============================== */
+
 @media (max-width: 520px) {
+  .pipeline-step {
+    gap: 7px;
+  }
+
   .step-icon {
     width: 28px;
     height: 28px;
     font-size: 12px;
   }
 
+  .check {
+    font-size: 15px;
+  }
+
   .pipeline-connector {
+    min-width: 5px;
     margin-top: 13px;
   }
 
   .step-label {
     font-size: 9px;
+  }
+}
+
+@media (max-width: 360px) {
+  .pipeline-step {
+    gap: 5px;
+  }
+
+  .step-icon {
+    width: 25px;
+    height: 25px;
+  }
+
+  .pipeline-connector {
+    min-width: 3px;
+    margin-top: 11px;
+  }
+
+  .step-label {
+    font-size: 8px;
   }
 }

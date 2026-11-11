@@ -490,10 +490,10 @@ export function farmerPayout(order: Order): number {
 /* -----------------------------
    Normal order pipeline
 ----------------------------- */
-
 export const PIPELINE: OrderStatus[] = [
   'PLACED',
   'CONFIRMED',
+  'PROCESSING',
   'IN_TRANSIT',
   'DELIVERED',
   'COMPLETED',
