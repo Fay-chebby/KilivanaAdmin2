@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
 import { CurrencyKshPipe } from '../../../../shared/pipes/currency-kes-pipe';
 import { AssignDriverDialog } from '../../components/assign-driver-dialog/assign-driver-dialog';
+
 import {
   OrderStatusSelect,
   OrderStatusFilter,
@@ -25,25 +26,45 @@ export class OrderList implements OnInit {
   protected readonly service = inject(OrderService);
   protected readonly router = inject(Router);
 
+  // =========================================================
+  // FILTERS
+  // =========================================================
+
   protected readonly search = signal('');
   protected readonly status = signal<OrderStatusFilter>('ALL');
 
-  // UI pages start at 1; backend pages start at 0.
+  // =========================================================
+  // PAGINATION
+  // =========================================================
+
   protected readonly page = signal(1);
   protected readonly currentPage = this.page;
+
   protected readonly toAssign = signal<Order | null>(null);
+
+  // =========================================================
+  // SERVICE SIGNALS
+  // =========================================================
 
   protected readonly orders = this.service.orders;
   protected readonly loading = this.service.loading;
   protected readonly error = this.service.error;
+
+  // Global statistics from GET /orders/admin/stats
   protected readonly stats = this.service.stats;
+  protected readonly statsLoading = this.service.statsLoading;
+  protected readonly statsError = this.service.statsError;
+
   protected readonly meta = ORDER_STATUS_META;
 
-  // Pagination metadata supplied by the backend.
+  // Pagination metadata from GET /orders
   protected readonly totalOrders = this.service.totalElements;
   protected readonly totalPages = this.service.totalPages;
 
-  // Filter the orders returned for the current backend page.
+  // =========================================================
+  // FILTER ORDERS
+  // =========================================================
+
   protected readonly filtered = computed(() => {
     const query = this.search().trim().toLowerCase();
     const selectedStatus = this.status();
@@ -76,18 +97,19 @@ export class OrderList implements OnInit {
     });
   });
 
-  // The backend has already paginated the orders.
-  // Do not slice the returned page a second time.
+  // Backend has already paginated the orders.
   protected readonly rows = computed(() => this.filtered());
 
-  // Use the backend page count, not filtered().length.
+  // =========================================================
+  // PAGINATION DISPLAY
+  // =========================================================
+
   protected readonly pageCount = computed(() => this.totalPages());
 
   protected readonly pages = computed(() =>
     Array.from({ length: this.pageCount() }, (_, index) => index + 1),
   );
 
-  // Display the range for the current backend page.
   protected readonly from = computed(() => {
     if (this.filtered().length === 0) {
       return 0;
@@ -104,44 +126,79 @@ export class OrderList implements OnInit {
     return Math.min((this.page() - 1) * PAGE_SIZE + this.filtered().length, this.totalOrders());
   });
 
+  // =========================================================
+  // INITIALIZE PAGE
+  // =========================================================
+
   ngOnInit(): void {
+    // Fetch the first 10 orders for the table.
     this.loadOrders();
+
+    // Fetch global statistics for all database orders.
+    this.service.loadOrderStats();
   }
+
+  // =========================================================
+  // LOAD PAGINATED ORDERS
+  // =========================================================
 
   protected loadOrders(): void {
     this.service.loadOrders(this.page() - 1, PAGE_SIZE);
   }
 
+  // =========================================================
+  // REFRESH
+  // =========================================================
+
   protected refresh(): void {
+    // Refresh table data.
     this.loadOrders();
+
+    // Refresh global statistics.
+    this.service.loadOrderStats();
   }
+
+  // =========================================================
+  // CLEAR FILTERS
+  // =========================================================
 
   protected clearFilters(): void {
     this.search.set('');
     this.status.set('ALL');
     this.page.set(1);
+
     this.loadOrders();
   }
+
+  // =========================================================
+  // SEARCH
+  // =========================================================
 
   protected setSearch(value: string): void {
     this.search.set(value);
 
-    // Start from the first backend page after changing the search.
     if (this.page() !== 1) {
       this.page.set(1);
       this.loadOrders();
     }
   }
+
+  // =========================================================
+  // STATUS FILTER
+  // =========================================================
 
   protected setStatus(value: string): void {
     this.status.set(value as OrderStatusFilter);
 
-    // Start from the first backend page after changing the status.
     if (this.page() !== 1) {
       this.page.set(1);
       this.loadOrders();
     }
   }
+
+  // =========================================================
+  // PAGE NAVIGATION
+  // =========================================================
 
   protected goToPage(page: number): void {
     if (page < 1 || page > this.totalPages() || page === this.page() || this.loading()) {
@@ -150,6 +207,8 @@ export class OrderList implements OnInit {
 
     this.page.set(page);
     this.loadOrders();
+
+    // Do not reload global statistics here.
   }
 
   protected previousPage(): void {
@@ -164,25 +223,43 @@ export class OrderList implements OnInit {
     }
   }
 
+  // =========================================================
+  // PRODUCT SUMMARY
+  // =========================================================
+
   protected productSummary(order: Order): string {
     if (!order.items?.length) {
       return '-';
     }
 
-    if (order.items?.length) {
-      return order.items[0].productName ?? 'Product unavailable';
+    const firstProduct = order.items[0].productName ?? 'Product unavailable';
+
+    if (order.items.length === 1) {
+      return firstProduct;
     }
 
-    return `${order.items[0].productName} + ${order.items.length - 1} more`;
+    return `${firstProduct} + ${order.items.length - 1} more`;
   }
+
+  // =========================================================
+  // QUANTITY
+  // =========================================================
 
   protected qtySummary(order: Order): number {
     return (order.items ?? []).reduce((total, item) => total + Number(item.quantity || 0), 0);
   }
 
+  // =========================================================
+  // SUBTOTAL
+  // =========================================================
+
   protected subtotal(order: Order): number {
     return Number(order.subtotal ?? order.total ?? 0);
   }
+
+  // =========================================================
+  // DATE FORMATTING
+  // =========================================================
 
   protected formatDate(date: string | null | undefined): string {
     if (!date) {
@@ -201,6 +278,10 @@ export class OrderList implements OnInit {
     });
   }
 
+  // =========================================================
+  // STATUS FORMATTING
+  // =========================================================
+
   protected formatStatus(status: string | null | undefined): string {
     return (status ?? '').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
   }
@@ -209,20 +290,31 @@ export class OrderList implements OnInit {
     switch ((status ?? '').toLowerCase()) {
       case 'placed':
         return 'status-placed';
+
       case 'confirmed':
         return 'status-confirmed';
+
       case 'processing':
         return 'status-processing';
-      case 'shipped':
+
+      case 'in_transit':
         return 'status-shipped';
+
       case 'delivered':
+      case 'completed':
         return 'status-delivered';
+
       case 'cancelled':
         return 'status-cancelled';
+
       default:
         return 'status-default';
     }
   }
+
+  // =========================================================
+  // PAYMENT FORMATTING
+  // =========================================================
 
   protected formatPaymentStatus(status: string | null | undefined): string {
     return (status ?? '').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
@@ -232,16 +324,24 @@ export class OrderList implements OnInit {
     switch ((status ?? '').toLowerCase()) {
       case 'paid':
         return 'payment-paid';
+
       case 'pending':
         return 'payment-pending';
+
       case 'failed':
         return 'payment-failed';
+
       case 'refunded':
         return 'payment-refunded';
+
       default:
         return 'payment-default';
     }
   }
+
+  // =========================================================
+  // ASSIGN DRIVER
+  // =========================================================
 
   protected assign(agentId: number): void {
     const order = this.toAssign();
@@ -250,7 +350,6 @@ export class OrderList implements OnInit {
       return;
     }
 
-    // TODO: Connect this to the backend driver-assignment API.
     console.log('Assign driver', {
       orderId: order.id,
       agentId,
@@ -258,6 +357,10 @@ export class OrderList implements OnInit {
 
     this.toAssign.set(null);
   }
+
+  // =========================================================
+  // EXPORT CSV
+  // =========================================================
 
   protected exportCsv(): void {
     const headers = [

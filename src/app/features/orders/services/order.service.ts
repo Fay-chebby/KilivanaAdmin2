@@ -1,7 +1,7 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
-import { ApiResponse, Order, OrderPage, OrderStatus } from '../models/order.model';
+import { ApiResponse, Order, OrderPage, OrderStatus, OrderStats } from '../models/order.model';
 
 import { API_BASE } from '../../../core/config/api.config';
 
@@ -17,9 +17,15 @@ export class OrderService {
 
   private readonly ORDERS_URL = `${API_BASE}/orders`;
 
+  private readonly headers = {
+    'ngrok-skip-browser-warning': 'true',
+  };
+
   // =========================================================
-  // STATE
+  // PAGINATION
   // =========================================================
+
+  readonly pageSize = signal(10);
 
   readonly orders = signal<Order[]>([]);
 
@@ -34,68 +40,90 @@ export class OrderService {
   readonly currentBackendPage = signal(0);
 
   // =========================================================
-  // STATISTICS
+  // GLOBAL ORDER STATISTICS
   // =========================================================
 
-  readonly stats = computed(() => {
-    const orders = this.orders();
-
-    const count = (...statuses: string[]) =>
-      orders.filter((order) => statuses.includes(String(order.status ?? '').toUpperCase())).length;
-
-    return {
-      totalOrders: this.totalElements(),
-      placed: count('PLACED'),
-      confirmed: count('CONFIRMED'),
-      processing: count('PROCESSING', 'IN_TRANSIT'),
-      delivered: count('DELIVERED', 'COMPLETED'),
-      completed: count('COMPLETED'),
-      disputed: count('DISPUTED'),
-      cancelled: count('CANCELLED'),
-
-      paid: orders.filter((order) => String(order.paymentStatus ?? '').toUpperCase() === 'PAID')
-        .length,
-
-      pendingPayment: orders.filter(
-        (order) => String(order.paymentStatus ?? '').toUpperCase() === 'PENDING',
-      ).length,
-
-      revenue: orders.reduce((total, order) => total + Number(order.total ?? 0), 0),
-    };
+  readonly orderStats = signal<OrderStats>({
+    totalOrders: 0,
+    placed: 0,
+    confirmed: 0,
+    processing: 0,
+    delivered: 0,
+    cancelled: 0,
   });
 
+  readonly stats = this.orderStats.asReadonly();
+
+  readonly statsLoading = signal(false);
+
+  readonly statsError = signal<string | null>(null);
+
   // =========================================================
-  // GET ORDERS
+  // GET GLOBAL ORDER STATISTICS
   // =========================================================
 
-  loadOrders(page: number = 0, size: number = 5): void {
+  loadOrderStats(): void {
+    this.statsLoading.set(true);
+    this.statsError.set(null);
+
+    this.http
+      .get<ApiResponse<OrderStats>>(`${this.ORDERS_URL}/admin/stats`, {
+        headers: this.headers,
+      })
+      .subscribe({
+        next: (response) => {
+          if (response.success && response.data) {
+            this.orderStats.set(response.data);
+          } else {
+            this.statsError.set(response.message || 'Failed to load order statistics.');
+          }
+
+          this.statsLoading.set(false);
+        },
+
+        error: (error) => {
+          console.error('Failed to load global order statistics:', error);
+
+          if (error?.status === 401 || error?.status === 403) {
+            this.statsError.set('You are not authorized to view order statistics.');
+          } else if (error?.status === 0) {
+            this.statsError.set('Unable to connect to the Kilivana backend.');
+          } else {
+            this.statsError.set(error?.error?.message || 'Unable to load global order statistics.');
+          }
+
+          this.statsLoading.set(false);
+        },
+      });
+  }
+
+  // =========================================================
+  // GET PAGINATED ORDERS
+  // =========================================================
+
+  loadOrders(page: number = 0, size: number = this.pageSize()): void {
     this.loading.set(true);
     this.error.set(null);
+
+    this.pageSize.set(size);
 
     const params = new HttpParams().set('page', page).set('size', size);
 
     this.http
       .get<ApiResponse<OrderPage>>(this.ORDERS_URL, {
         params,
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-        },
+        headers: this.headers,
       })
       .subscribe({
         next: (response) => {
           if (response.success) {
             this.orders.set(response.data.content ?? []);
-
             this.totalElements.set(response.data.totalElements ?? 0);
-
             this.totalPages.set(response.data.totalPages ?? 0);
-
             this.currentBackendPage.set(response.data.number ?? page);
           } else {
             this.orders.set([]);
-
             this.totalElements.set(0);
-
             this.totalPages.set(0);
 
             this.error.set(response.message || 'Failed to load orders.');
@@ -108,9 +136,7 @@ export class OrderService {
           console.error('Failed to load orders:', error);
 
           this.orders.set([]);
-
           this.totalElements.set(0);
-
           this.totalPages.set(0);
 
           if (error?.status === 401) {
@@ -136,9 +162,7 @@ export class OrderService {
 
   getOrderById(id: number) {
     return this.http.get<ApiResponse<Order>>(`${this.ORDERS_URL}/${id}`, {
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-      },
+      headers: this.headers,
     });
   }
 
@@ -148,9 +172,7 @@ export class OrderService {
 
   getOrderTimeline(id: number) {
     return this.http.get<ApiResponse<unknown>>(`${this.ORDERS_URL}/${id}/timeline`, {
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-      },
+      headers: this.headers,
     });
   }
 
@@ -161,9 +183,7 @@ export class OrderService {
   updateOrderStatus(id: number, status: OrderStatus) {
     return this.http.put<ApiResponse<Order>>(`${this.ORDERS_URL}/${id}/status`, null, {
       params: new HttpParams().set('status', status),
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-      },
+      headers: this.headers,
     });
   }
 
@@ -174,9 +194,7 @@ export class OrderService {
   postOrderStatus(id: number, status: OrderStatus) {
     return this.http.post<ApiResponse<Order>>(`${this.ORDERS_URL}/${id}/status`, null, {
       params: new HttpParams().set('status', status),
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-      },
+      headers: this.headers,
     });
   }
 
@@ -188,9 +206,7 @@ export class OrderService {
     const body = reason ? { reason } : {};
 
     return this.http.post<ApiResponse<Order>>(`${this.ORDERS_URL}/${id}/cancel`, body, {
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-      },
+      headers: this.headers,
     });
   }
 
@@ -203,9 +219,7 @@ export class OrderService {
       `${this.ORDERS_URL}/${id}/confirm-receipt`,
       {},
       {
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-        },
+        headers: this.headers,
       },
     );
   }
@@ -216,9 +230,7 @@ export class OrderService {
 
   deleteOrder(id: number) {
     return this.http.delete<ApiResponse<void>>(`${this.ORDERS_URL}/${id}`, {
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-      },
+      headers: this.headers,
     });
   }
 
@@ -231,17 +243,18 @@ export class OrderService {
 
     return this.http.post<ApiResponse<Order>>(`${API_BASE}/admin/orders/${orderId}/assign`, null, {
       params,
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-      },
+      headers: this.headers,
     });
   }
+
   // =========================================================
   // REFRESH
   // =========================================================
 
   refresh(): void {
-    this.loadOrders(this.currentBackendPage(), 5);
+    this.loadOrders(this.currentBackendPage(), this.pageSize());
+
+    this.loadOrderStats();
   }
 
   // =========================================================
@@ -250,5 +263,9 @@ export class OrderService {
 
   clearError(): void {
     this.error.set(null);
+  }
+
+  clearStatsError(): void {
+    this.statsError.set(null);
   }
 }

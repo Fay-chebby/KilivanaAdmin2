@@ -35,7 +35,14 @@ export interface OrderBuyer {
 /* -----------------------------
    Seller information
 ----------------------------- */
-
+export interface OrderStats {
+  totalOrders: number;
+  placed: number;
+  confirmed: number;
+  processing: number;
+  delivered: number;
+  cancelled: number;
+}
 export interface OrderSeller {
   id?: number;
 
