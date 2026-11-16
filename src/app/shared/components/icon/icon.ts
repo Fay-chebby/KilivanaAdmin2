@@ -92,6 +92,15 @@ export const ICONS: Record<string, string[]> = {
     'M14 13h1',
     'M10 21v-4h4v4',
   ],
+  // Payment and finance icons
+  dollar: ['M12 2v20', 'M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'],
+
+  'trending-up': ['M3 17l6-6 4 4 8-8', 'M15 7h6v6'],
+
+  'arrow-up-right': ['M7 17L17 7', 'M7 7h10v10'],
+
+  'arrow-down-right': ['M7 7l10 10', 'M17 7v10H7'],
+  inbox: ['M4 4h16v12H4z', 'M4 12h4l2 3h4l2-3h4', 'M4 16v4h16v-4'],
 };
 
 @Component({
