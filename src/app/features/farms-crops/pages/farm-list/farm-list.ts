@@ -34,7 +34,7 @@ export class FarmList implements OnInit, OnDestroy {
 
   private readonly imageLoader = inject(ImageLoader);
 
-  private readonly backendOrigin = 'https://hankering-morphing-outclass.ngrok-free.dev';
+  private readonly backendOrigin = 'https://kilivana-backend-1jte.onrender.com';
 
   private readonly loadedCoverUrls = new Map<number, string>();
   private readonly pendingCoverUrls = new Set<string>();

@@ -26,7 +26,7 @@ export class FarmGallery implements OnDestroy {
 
   private readonly imageLoader = inject(ImageLoader);
 
-  private readonly backendOrigin = 'https://hankering-morphing-outclass.ngrok-free.dev';
+  private readonly backendOrigin = 'https://kilivana-backend-1jte.onrender.com';
 
   private readonly apiBaseUrl = `${this.backendOrigin}/api/v1`;
 
