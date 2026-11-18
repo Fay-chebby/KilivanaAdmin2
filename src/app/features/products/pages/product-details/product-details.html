@@ -86,8 +86,7 @@
         [sellerLabel]="p.sellerType === 'farmer' ? 'Farmer' : 'Supplier'"
       />
 
-      <!-- 3. Pricing and stock below photos -->
-
+      <!-- 3. Pricing and stock -->
       <div class="card pricing-card">
         <h2>Pricing and stock</h2>
 
@@ -98,16 +97,38 @@
           </div>
 
           <div class="pricing-item">
-            <dt>In stock</dt>
+            <dt>Initial stock uploaded (estimated)</dt>
+            <dd>{{ num(p.initialStock) }} {{ p.unit }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Total sold</dt>
+            <dd>{{ num(p.soldQty) }} {{ p.unit }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Reserved stock</dt>
+            <dd>{{ num(p.reservedQty) }} {{ p.unit }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Remaining available stock</dt>
             <dd [attr.data-stock]="stock(p)">
-              {{ num(p.stock) }} {{ p.unit
-              }}{{ stock(p) === 'out' ? ' (out of stock)' : stock(p) === 'low' ? ' (low)' : '' }}
+              {{ num(p.availableStock) }} {{ p.unit }}
+              {{ stock(p) === 'out' ? '(out of stock)' : stock(p) === 'low' ? '(low stock)' : '' }}
             </dd>
           </div>
 
           <div class="pricing-item">
-            <dt>Stock value</dt>
-            <dd>{{ p.priceKes * p.stock | currencyKsh }}</dd>
+            <dt>Current physical stock</dt>
+            <dd>{{ num(p.stock) }} {{ p.unit }}</dd>
+          </div>
+
+          <div class="pricing-item">
+            <dt>Remaining stock value</dt>
+            <dd>
+              {{ p.priceKes * p.availableStock | currencyKsh }}
+            </dd>
           </div>
 
           <div class="pricing-item">
@@ -120,31 +141,31 @@
             <dd>{{ p.lowStockAt }} {{ p.unit }} or less</dd>
           </div>
 
-          <div class="pricing-item">
-            <dt>Quality grade</dt>
-            <dd>{{ grade(p.grade) }}</dd>
-          </div>
+          <!-- Quality grade applies to farmer products only -->
+          @if (p.sellerType === 'farmer') {
+            <div class="pricing-item">
+              <dt>Quality grade</dt>
+              <dd>{{ grade(p.grade) }}</dd>
+            </div>
+          }
 
           <div class="pricing-item">
             <dt>Harvested</dt>
             <dd>{{ p.harvestDate || 'Not set' }}</dd>
           </div>
-
-          <div class="pricing-item">
-            <dt>Sold so far</dt>
-            <dd>{{ num(p.soldQty) }} {{ p.unit }}</dd>
-          </div>
         </dl>
       </div>
 
-      <!-- 4. Seller and description in one row -->
+      <!-- 4. Seller and description -->
       <div class="details-row">
         <!-- Seller card -->
         <div class="card">
           <h2>Seller</h2>
 
           <dl>
-            <dt>{{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}</dt>
+            <dt>
+              {{ p.sellerType === 'farmer' ? 'Farmer' : 'Supplier' }}
+            </dt>
             <dd>{{ p.sellerName }}</dd>
 
             <dt>Phone</dt>
@@ -220,7 +241,13 @@
             </div>
 
             <div class="meta">
-              <span class="grade">{{ grade(p.grade) }}</span>
+              <!-- Show grade for farmer products only -->
+              @if (p.sellerType === 'farmer') {
+                <span class="grade">
+                  {{ grade(p.grade) }}
+                </span>
+              }
+
               <span>{{ num(p.stock) }} {{ p.unit }} available</span>
             </div>
 

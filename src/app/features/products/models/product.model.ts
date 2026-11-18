@@ -100,10 +100,11 @@ export interface Product {
   county: string; // the seller's county
   priceKes: number;
   unit: string;
-  stock: number;
-  soldQty: number;
-  reservedQty: number;
-  availableStock: number;
+  initialStock: number; // Original listed quantity (currently estimated)
+  stock: number; // Current physical stock
+  soldQty: number; // Total quantity sold
+  reservedQty: number; // Quantity reserved by active orders
+  availableStock: number; // Physical stock minus reserved stock
   minOrder: number;
   lowStockAt: number;
   grade: Grade | null;
@@ -135,6 +136,7 @@ export interface ProductPayload {
   farmId: string | null;
   keptImageIds: string[]; // photos already on the server that stay
   newFiles: File[]; // photos to upload
+  sellerType: 'farmer' | 'supplier';
 }
 
 /** Can customers see and buy this product right now? */
@@ -142,13 +144,13 @@ export function visibility(p: Product): { live: boolean; reason: string } {
   if (p.status === 'pending') return { live: false, reason: 'Waiting for on-site verification' };
   if (p.status === 'rejected') return { live: false, reason: 'Failed verification' };
   if (p.status === 'suspended') return { live: false, reason: 'Suspended by an admin' };
-  if (p.stock <= 0) return { live: false, reason: 'Out of stock' };
+  if (p.availableStock <= 0) return { live: false, reason: 'Out of stock' };
+
   return { live: true, reason: 'Visible to customers' };
 }
 
 export function stockState(p: Product): 'out' | 'low' | 'ok' {
-  return p.stock <= 0 ? 'out' : p.stock <= p.lowStockAt ? 'low' : 'ok';
+  return p.availableStock <= 0 ? 'out' : p.availableStock <= p.lowStockAt ? 'low' : 'ok';
 }
-
 export const coverOf = (p: Product): string =>
   p.images?.find((image) => image.url?.trim())?.url.trim() ?? '';

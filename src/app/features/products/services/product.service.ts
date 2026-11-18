@@ -70,18 +70,23 @@ const day = (iso?: string | null) => (iso ? iso.slice(0, 10) : '');
 
 const STATUSES: ProductStatus[] = ['pending', 'active', 'rejected', 'suspended'];
 
-const num = (v: unknown, fallback: number) =>
-  typeof v === 'number' && isFinite(v)
+const num = (v: unknown, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v)
     ? v
-    : typeof v === 'string' && v !== '' && isFinite(+v)
-      ? +v
+    : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))
+      ? Number(v)
       : fallback;
 
 function errMsg(e: unknown): string {
   const x = e as {
     status?: number;
     message?: string;
-    error?: { message?: string; error?: { details?: string } };
+    error?: {
+      message?: string;
+      error?: {
+        details?: string;
+      };
+    };
   };
 
   if (x?.status === 0) {
@@ -177,7 +182,25 @@ export class ProductService {
           uploadedAt: day(image.createdAt),
         }));
 
-      const listed = d.stockQty + (d.soldQty ?? 0);
+      // ---------------------------------------------
+      // STOCK CALCULATIONS
+      // ---------------------------------------------
+
+      // Current physical stock remaining in inventory.
+      const currentStock = Math.max(0, num(d.stockQty, 0));
+
+      // Total quantity already sold.
+      const soldQty = Math.max(0, num(d.soldQty, 0));
+
+      // Quantity reserved by active orders.
+      const reservedQty = Math.max(0, num(d.reservedQty, 0));
+
+      // Estimated initial quantity uploaded by the seller.
+      // This is an estimate unless the backend stores the original quantity.
+      const initialStock = currentStock + soldQty;
+
+      // Quantity customers can currently purchase.
+      const availableStock = Math.max(0, currentStock - reservedQty);
 
       const grade = GRADES.find((g) => g.value === d.qualityGrade)?.value ?? null;
 
@@ -201,25 +224,31 @@ export class ProductService {
         sellerPhone: d.sellerPhone ?? seller?.phone ?? '',
         county: d.sellerCounty ?? seller?.county ?? '',
 
-        priceKes: Number(d.price),
+        priceKes: num(d.price, 0),
         unit: d.unit,
 
-        // Physical stock remaining in inventory.
-        stock: Number(d.stockQty ?? 0),
+        // Original listed quantity (estimated).
+        initialStock,
+
+        // Current physical stock.
+        stock: currentStock,
+
+        // Total quantity sold.
+        soldQty,
 
         // Units reserved by active orders.
-        reservedQty: Number(d.reservedQty ?? 0),
+        reservedQty,
 
         // Actual quantity available for new purchases.
-        availableStock: Math.max(0, Number(d.stockQty ?? 0) - Number(d.reservedQty ?? 0)),
+        availableStock,
 
-        soldQty: Number(d.soldQty ?? 0),
-        minOrder: d.minimumOrderQty,
+        minOrder: num(d.minimumOrderQty, 1),
 
-        lowStockAt: d.lowStockThreshold ?? Math.max(1, Math.ceil(listed * 0.1)),
+        lowStockAt: num(d.lowStockThreshold, Math.max(1, Math.ceil(initialStock * 0.1))),
 
         grade,
         harvestDate: d.harvestDate ? day(d.harvestDate) : null,
+
         farmId: d.farmId != null ? String(d.farmId) : null,
         farmName: d.farmName ?? null,
         farmCertified: !!d.farmCertified,
@@ -246,19 +275,26 @@ export class ProductService {
   /** Uses the server totals when available and calculates them otherwise. */
   readonly stats = computed(() => {
     const products = this.products();
+
     const live = products.filter((p) => visibility(p).live);
 
     const local = {
       total: products.length,
       live: live.length,
-      liveValue: live.reduce((total, p) => total + p.priceKes * p.stock, 0),
+
+      // Value of stock customers can actually purchase.
+      liveValue: live.reduce((total, p) => total + p.priceKes * p.availableStock, 0),
+
       pending: products.filter((p) => p.status === 'pending').length,
+
       restock: products.filter((p) => p.status === 'active' && stockState(p) !== 'ok').length,
     };
 
     const server = this.serverStats();
 
-    if (!server) return local;
+    if (!server) {
+      return local;
+    }
 
     return {
       total: num(server['total'], local.total),
@@ -357,7 +393,9 @@ export class ProductService {
   async create(p: ProductPayload): Promise<Product | null> {
     const created = await this.run(() => this.api.createProduct(this.toRequest(p), p.newFiles));
 
-    if (!created) return null;
+    if (!created) {
+      return null;
+    }
 
     await this.load(true);
 
@@ -367,7 +405,9 @@ export class ProductService {
   async update(id: string, p: ProductPayload): Promise<boolean> {
     const current = this.getById(id);
 
-    if (!current) return false;
+    if (!current) {
+      return false;
+    }
 
     const ok = await this.run(async () => {
       await this.api.updateProduct(Number(id), this.toRequest(p));
@@ -467,6 +507,7 @@ export class ProductService {
 
     const ok = await this.run(async () => {
       await this.api.deleteProductImage(Number(productId), imageNumber);
+
       return true;
     });
 
@@ -481,10 +522,9 @@ export class ProductService {
    * Approves or rejects a product directly.
    * Does not create, update, or require an inspection record.
    */
-
   /**
    * Approves or rejects a product directly.
-   * Does not create, update, or require an inspection record.
+   * Saves the seller classification and verification details.
    */
   async decide(
     productId: string,
@@ -492,7 +532,8 @@ export class ProductService {
     details: {
       notes: string;
       qty: number;
-      grade: Grade;
+      grade: Grade | null;
+      sellerType: SellerType;
     },
   ): Promise<boolean> {
     const product = this.getById(productId);
@@ -511,7 +552,7 @@ export class ProductService {
 
     if (approved && product.images.length === 0) {
       this.error.set(
-        'This product has no uploaded photos. Ask the farmer to upload photos before approving.',
+        'This product has no uploaded photos. Ask the seller to upload photos before approving.',
       );
       return false;
     }
@@ -525,28 +566,32 @@ export class ProductService {
         : 'Rejected by admin.');
 
     const ok = await this.run(async () => {
-      // IMPORTANT: Send uppercase enum values to Spring Boot.
+      // Prepare the existing product request and update the seller classification.
+      const updateRequest: ProductRequestDto = {
+        ...this.requestFrom(product),
+        sellerType: details.sellerType,
+
+        // Only change the stock when the product is approved.
+        stockQty: approved ? details.qty : product.stock,
+
+        // Produce grades apply to farmer listings.
+        // Keep the existing backend grade value for supplier listings.
+        qualityGrade:
+          details.sellerType === 'farmer'
+            ? (details.grade ?? product.grade ?? 'GRADE_A')
+            : (product.grade ?? 'GRADE_A'),
+      };
+
+      // Save seller classification and confirmed product details.
+      await this.api.updateProduct(Number(productId), updateRequest);
+
+      // Save the verification decision.
       await this.api.setProductStatus(
         Number(productId),
         this.toApiStatus(status),
         reason,
         approved ? { verifiedQty: details.qty } : {},
       );
-
-      // Update quantity and quality grade if approval succeeded.
-      if (approved && (details.qty !== product.stock || details.grade !== product.grade)) {
-        try {
-          await this.api.updateProduct(Number(productId), {
-            ...this.requestFrom(product),
-            stockQty: Math.min(product.stock, details.qty),
-            qualityGrade: details.grade,
-          });
-        } catch {
-          this.warning.set(
-            'The product was approved, but its quantity or grade could not be updated. Please edit the product and try again.',
-          );
-        }
-      }
 
       return true;
     });
@@ -608,7 +653,10 @@ export class ProductService {
       description: p.description.trim(),
       unit: p.unit,
       price: p.priceKes,
+
+      // Send physical stock to the backend.
       stockQty: p.stock,
+
       minimumOrderQty: p.minOrder,
       qualityGrade: p.grade,
       harvestDate: p.harvestDate || null,
@@ -626,7 +674,10 @@ export class ProductService {
       description: p.description,
       unit: p.unit,
       price: p.priceKes,
+
+      // Never send availableStock as physical stock.
       stockQty: p.stock,
+
       minimumOrderQty: p.minOrder,
       qualityGrade: p.grade ?? 'GRADE_A',
       harvestDate: p.harvestDate,
@@ -634,9 +685,11 @@ export class ProductService {
       farmId: p.farmId ? Number(p.farmId) : null,
     };
   }
+
   private toApiStatus(status: ProductStatus): string {
     return status.toUpperCase();
   }
+
   /** Maps the product's status to the status expected by the verification UI. */
   private verificationOf(
     status: ProductStatus,

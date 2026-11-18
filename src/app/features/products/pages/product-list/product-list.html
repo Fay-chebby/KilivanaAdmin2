@@ -3,6 +3,7 @@
   <span class="sep">/</span>
   <span class="cur" aria-current="page">Products</span>
 </nav>
+
 <!-- Page heading and actions -->
 <header class="head">
   <div class="head-copy">
@@ -96,6 +97,7 @@
 <section class="filters" aria-label="Filter products">
   <div class="search-box">
     <span class="search-icon" aria-hidden="true">⌕</span>
+
     <input
       type="search"
       placeholder="Search products, sellers, counties..."
@@ -258,9 +260,11 @@
                   }
                 </td>
 
-                <!-- Quality -->
+                <!-- Quality: farmer products only -->
                 <td>
-                  <span class="grade">{{ grade(p.grade) }}</span>
+                  @if (p.sellerType === 'farmer') {
+                    <span class="grade">{{ grade(p.grade) }}</span>
+                  }
                 </td>
 
                 <!-- Status -->
@@ -318,7 +322,7 @@
         </table>
       </div>
 
-      <!-- Pagination footer, similar to Payments & Finance -->
+      <!-- Table pagination -->
       <footer class="foot">
         <div class="range">
           Showing <strong>{{ startItem() }}–{{ endItem() }}</strong> of
@@ -425,11 +429,15 @@
               <div class="price">
                 <strong>{{ p.priceKes | currencyKsh }}</strong>
                 <span>/ {{ p.unit }}</span>
-                <span class="grade">{{ grade(p.grade) }}</span>
+
+                <!-- Quality grade: farmer products only -->
+                @if (p.sellerType === 'farmer') {
+                  <span class="grade">{{ grade(p.grade) }}</span>
+                }
               </div>
 
               <div class="foot">
-                <span [attr.data-stock]="stock(p)">{{ num(p.availableStock) }} {{ p.unit }}</span>
+                <span [attr.data-stock]="stock(p)"> {{ num(p.availableStock) }} {{ p.unit }} </span>
 
                 <div class="acts">
                   @if (p.status === 'pending') {
@@ -446,7 +454,7 @@
         }
       </div>
 
-      <!-- Same pagination footer in grid view -->
+      <!-- Grid pagination -->
       <footer class="foot">
         <div class="range">
           Showing <strong>{{ startItem() }}–{{ endItem() }}</strong> of

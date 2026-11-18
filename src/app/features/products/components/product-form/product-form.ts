@@ -138,20 +138,34 @@ export class ProductForm implements OnInit {
   protected remove(id: string) {
     this.images.update((l) => l.filter((i) => i.id !== id));
   }
-
   protected submit() {
     this.noPhoto.set(this.images().length === 0);
+
     if (this.form.invalid || this.images().length === 0) {
       this.form.markAllAsTouched();
+
       document
         .querySelector('.err, .photo-err')
         ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
       return;
     }
+
     const v = this.form.getRawValue();
     const imgs = this.images();
+
+    // Get the selected seller's type (farmer or supplier)
+    const selectedSeller = this.service.sellerOptions().find((s) => s.id === v.sellerId);
+
+    if (!selectedSeller) {
+      this.imageError.set('Please select a valid farmer or supplier.');
+      return;
+    }
+
     this.saved.emit({
       sellerId: v.sellerId,
+      sellerType: selectedSeller.type,
+
       categoryId: v.categoryId,
       name: v.name,
       description: v.description,
@@ -163,6 +177,7 @@ export class ProductForm implements OnInit {
       grade: v.grade,
       harvestDate: v.harvestDate,
       farmId: v.farmId || null,
+
       keptImageIds: imgs.filter((i) => !i.file).map((i) => i.id),
       newFiles: imgs.filter((i) => !!i.file).map((i) => i.file!),
     });

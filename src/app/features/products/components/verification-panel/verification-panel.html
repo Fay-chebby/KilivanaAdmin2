@@ -3,7 +3,7 @@
 @if (v().status === 'unassigned') {
   <div class="state">
     <p>
-      This product is awaiting admin review. Review the farmer's submitted details and photos,
+      This product is awaiting admin review. Review the seller's submitted details and photos,
       complete the checklist, and record your decision.
     </p>
   </div>
@@ -11,10 +11,35 @@
 
 @if (v().status === 'assigned' || v().status === 'in_review' || v().status === 'unassigned') {
   <p class="hint">
-    Review the product information and the photos uploaded by the farmer. Complete the checklist
-    before approving.
+    Review the product information and photos uploaded by the seller. Confirm whether the seller is
+    a farmer or supplier, then complete the checklist before approving.
   </p>
 
+  <!-- Seller type -->
+  <h3>Seller classification</h3>
+
+  <div class="field">
+    <label for="sellerType">Who is selling this product?</label>
+
+    <select
+      id="sellerType"
+      [value]="sellerType()"
+      (change)="draftSellerType.set($any($event.target).value)"
+    >
+      <option value="farmer">Farmer</option>
+      <option value="supplier">Supplier</option>
+    </select>
+
+    <small>
+      @if (sellerType() === 'farmer') {
+        This product will be classified as a farmer listing.
+      } @else {
+        This product will be classified as a supplier listing.
+      }
+    </small>
+  </div>
+
+  <!-- Product photos -->
   <h3>
     Product photos
     <span>{{ photos().length }}</span>
@@ -25,7 +50,7 @@
       @for (ph of photos(); track ph.id) {
         <li>
           @if (loadedPhotos()[ph.id]; as photoUrl) {
-            <img [src]="photoUrl" alt="Farmer-uploaded product photo" loading="lazy" />
+            <img [src]="photoUrl" alt="Seller-uploaded product photo" loading="lazy" />
           } @else {
             <div class="photo-loading">Loading photo...</div>
           }
@@ -33,9 +58,10 @@
       }
     </ul>
   } @else {
-    <p class="hint">The farmer has not uploaded any product photos yet.</p>
+    <p class="hint">The seller has not uploaded any product photos yet.</p>
   }
 
+  <!-- Checklist -->
   <h3>
     Admin review checklist
     <span>{{ checked() }}/{{ v().checklist.length }}</span>
@@ -52,11 +78,14 @@
     }
   </ul>
 
+  <!-- Review findings -->
   <h3>Review findings</h3>
 
   <div class="found">
+    <!-- Confirmed quantity -->
     <div class="field">
-      <label for="vq">Confirmed quantity ({{ p.unit }})</label>
+      <label for="vq"> Confirmed quantity ({{ p.unit }}) </label>
+
       <input
         id="vq"
         type="number"
@@ -67,6 +96,7 @@
 
       <small [class.warn]="qty() < p.stock">
         Listed: {{ p.stock }} {{ p.unit }}.
+
         {{
           qty() < p.stock
             ? 'Stock will be lowered to the confirmed quantity.'
@@ -75,19 +105,29 @@
       </small>
     </div>
 
-    <div class="field">
-      <label for="vg">Confirmed quality grade</label>
-      <select id="vg" [value]="grade()" (change)="draftGrade.set($any($event.target).value)">
-        @for (g of grades; track g.value) {
-          <option [value]="g.value">{{ g.label }}</option>
-        }
-      </select>
+    <!-- Quality grade: only for farmer listings -->
+    @if (sellerType() === 'farmer') {
+      <div class="field">
+        <label for="vg">Confirmed quality grade</label>
 
-      <small>Listed as {{ p.grade ?? 'not set' }}.</small>
-    </div>
+        <select id="vg" [value]="grade()" (change)="draftGrade.set($any($event.target).value)">
+          @for (g of grades; track g.value) {
+            <option [value]="g.value">
+              {{ g.label }}
+            </option>
+          }
+        </select>
+
+        <small> Listed as {{ p.grade ?? 'not set' }}. </small>
+      </div>
+    }
   </div>
 
-  <label class="lbl" for="vn">Admin review notes</label>
+  <!-- Admin notes -->
+  <h3>Review notes</h3>
+
+  <label class="lbl" for="vn"> Admin review notes </label>
+
   <textarea
     id="vn"
     rows="3"
@@ -97,13 +137,18 @@
   ></textarea>
 
   @if (error()) {
-    <p class="error" role="alert">{{ error() }}</p>
+    <p class="error" role="alert">
+      {{ error() }}
+    </p>
   }
 
   @if (service.error()) {
-    <p class="error" role="alert">{{ service.error() }}</p>
+    <p class="error" role="alert">
+      {{ service.error() }}
+    </p>
   }
 
+  <!-- Actions -->
   <div class="row end">
     <button
       type="button"
@@ -118,11 +163,15 @@
       {{ service.busy() ? 'Saving…' : 'Approve and publish' }}
     </button>
   </div>
+
 } @else {
+  <!-- Completed verification -->
   <div class="who">
     <span class="avatar">✓</span>
+
     <div>
       <strong>{{ meta().label }}</strong>
+
       <small>
         {{
           v().status === 'approved'
@@ -131,6 +180,15 @@
         }}
       </small>
     </div>
+  </div>
+
+  <!-- Saved seller classification -->
+  <div class="field">
+    <label>Seller type</label>
+
+    <strong class="seller-type">
+      {{ sellerType() === 'farmer' ? 'Farmer' : 'Supplier' }}
+    </strong>
   </div>
 
   @if (v().notes) {
@@ -149,8 +207,16 @@
     }
   </p>
 
+  @if (error()) {
+    <p class="error" role="alert">
+      {{ error() }}
+    </p>
+  }
+
   @if (service.error()) {
-    <p class="error" role="alert">{{ service.error() }}</p>
+    <p class="error" role="alert">
+      {{ service.error() }}
+    </p>
   }
 
   <div class="row">
