@@ -248,7 +248,7 @@
 
                 <!-- Stock -->
                 <td class="num" [attr.data-stock]="stock(p)">
-                  <strong>{{ num(p.stock) }}</strong>
+                  <strong>{{ num(p.availableStock) }}</strong>
                   {{ p.unit }}
 
                   @if (stock(p) === 'out') {
@@ -429,7 +429,7 @@
               </div>
 
               <div class="foot">
-                <span [attr.data-stock]="stock(p)"> {{ num(p.stock) }} {{ p.unit }} </span>
+                <span [attr.data-stock]="stock(p)">{{ num(p.availableStock) }} {{ p.unit }}</span>
 
                 <div class="acts">
                   @if (p.status === 'pending') {

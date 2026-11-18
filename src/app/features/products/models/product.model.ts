@@ -102,6 +102,8 @@ export interface Product {
   unit: string;
   stock: number;
   soldQty: number;
+  reservedQty: number;
+  availableStock: number;
   minOrder: number;
   lowStockAt: number;
   grade: Grade | null;

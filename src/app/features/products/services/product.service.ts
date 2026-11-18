@@ -203,8 +203,17 @@ export class ProductService {
 
         priceKes: Number(d.price),
         unit: d.unit,
-        stock: d.stockQty,
-        soldQty: d.soldQty ?? 0,
+
+        // Physical stock remaining in inventory.
+        stock: Number(d.stockQty ?? 0),
+
+        // Units reserved by active orders.
+        reservedQty: Number(d.reservedQty ?? 0),
+
+        // Actual quantity available for new purchases.
+        availableStock: Math.max(0, Number(d.stockQty ?? 0) - Number(d.reservedQty ?? 0)),
+
+        soldQty: Number(d.soldQty ?? 0),
         minOrder: d.minimumOrderQty,
 
         lowStockAt: d.lowStockThreshold ?? Math.max(1, Math.ceil(listed * 0.1)),
