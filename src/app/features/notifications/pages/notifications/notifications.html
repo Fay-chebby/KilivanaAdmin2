@@ -1,1 +1,217 @@
-<p>notifications works!</p>
+<div class="page">
+  <!-- Page heading -->
+  <header class="head">
+    <div>
+      <h1>Notifications</h1>
+      <p>Monitor and manage platform notifications.</p>
+    </div>
+
+    <div class="head-actions">
+      <button
+        class="btn btn--secondary"
+        type="button"
+        (click)="loadNotifications()"
+        [disabled]="loading()"
+      >
+        ↻ Refresh
+      </button>
+
+      <button
+        class="btn btn--primary"
+        type="button"
+        (click)="markAllAsRead()"
+        [disabled]="unreadCount() === 0"
+      >
+        ✓ Mark all as read
+      </button>
+    </div>
+  </header>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="alert" role="alert">
+      <span>{{ error() }}</span>
+      <button type="button" (click)="loadNotifications()">Retry</button>
+    </div>
+  }
+
+  <!-- Statistics -->
+  <section class="stats">
+    <article class="stat-card">
+      <div class="stat-top">
+        <span>Total notifications</span>
+        <span class="stat-icon">♧</span>
+      </div>
+      <strong>{{ totalCount() }}</strong>
+      <small>All platform notifications</small>
+    </article>
+
+    <article class="stat-card stat-card--unread">
+      <div class="stat-top">
+        <span>Unread</span>
+        <span class="stat-icon">●</span>
+      </div>
+      <strong>{{ unreadCount() }}</strong>
+      <small>Awaiting attention</small>
+    </article>
+
+    <article class="stat-card stat-card--read">
+      <div class="stat-top">
+        <span>Read</span>
+        <span class="stat-icon">✓</span>
+      </div>
+      <strong>{{ readCount() }}</strong>
+      <small>Already reviewed</small>
+    </article>
+  </section>
+
+  <!-- Notification list -->
+  <section class="card">
+    <div class="list-head">
+      <div>
+        <h2>Notification Center</h2>
+        <p>View and manage your notifications.</p>
+      </div>
+
+      <div class="search">
+        <input
+          type="search"
+          placeholder="Search notifications..."
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+        />
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <button type="button" [class.active]="activeFilter() === 'all'" (click)="setFilter('all')">
+        All
+        <span>{{ totalCount() }}</span>
+      </button>
+
+      <button
+        type="button"
+        [class.active]="activeFilter() === 'unread'"
+        (click)="setFilter('unread')"
+      >
+        Unread
+        <span>{{ unreadCount() }}</span>
+      </button>
+
+      <button type="button" [class.active]="activeFilter() === 'read'" (click)="setFilter('read')">
+        Read
+        <span>{{ readCount() }}</span>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="state">
+        <div class="spinner"></div>
+        <p>Loading notifications...</p>
+      </div>
+    }
+
+    <!-- Empty state -->
+    @else if (filteredNotifications().length === 0) {
+      <div class="empty">
+        <div class="empty-icon">♧</div>
+
+        @if (searchTerm()) {
+          <h3>No matching notifications</h3>
+          <p>Try another search term.</p>
+        } @else if (activeFilter() === 'unread') {
+          <h3>You're all caught up!</h3>
+          <p>There are no unread notifications.</p>
+        } @else {
+          <h3>No notifications yet</h3>
+          <p>New platform notifications will appear here.</p>
+        }
+      </div>
+    }
+
+    <!-- Notifications -->
+    @else {
+      <div class="notification-list">
+        @for (n of filteredNotifications(); track n.id) {
+          <article class="notification" [class.notification--unread]="!n.isRead">
+            <div class="notification-icon" [ngClass]="getTypeClass(n.type)">
+              {{
+                getIcon(n.type) === 'shopping-bag'
+                  ? '▣'
+                  : getIcon(n.type) === 'wallet'
+                    ? 'K'
+                    : getIcon(n.type) === 'users'
+                      ? '♧'
+                      : getIcon(n.type) === 'clipboard-check'
+                        ? '✓'
+                        : getIcon(n.type) === 'package'
+                          ? '▤'
+                          : getIcon(n.type) === 'alert-triangle'
+                            ? '!'
+                            : '●'
+              }}
+            </div>
+
+            <div class="notification-content">
+              <div class="notification-title">
+                <h3>{{ n.title }}</h3>
+
+                @if (!n.isRead) {
+                  <span class="unread-dot"></span>
+                }
+              </div>
+
+              <p>{{ n.message }}</p>
+
+              <div class="notification-meta">
+                <span class="type-tag" [ngClass]="getTypeClass(n.type)">
+                  {{ formatType(n.type) }}
+                </span>
+
+                @if (n.createdAt) {
+                  <span class="date">
+                    {{ n.createdAt | date: 'dd MMM yyyy, h:mm a' }}
+                  </span>
+                }
+
+                @if (n.userId) {
+                  <span class="date">User #{{ n.userId }}</span>
+                }
+              </div>
+            </div>
+
+            <div class="notification-actions">
+              @if (!n.isRead) {
+                <button
+                  type="button"
+                  class="action-btn mark-read"
+                  title="Mark as read"
+                  (click)="markAsRead(n)"
+                  [disabled]="processingIds().includes(n.id)"
+                >
+                  ✓
+                </button>
+              }
+
+              <button
+                type="button"
+                class="action-btn delete"
+                title="Delete notification"
+                (click)="deleteNotification(n)"
+                [disabled]="deletingIds().includes(n.id)"
+              >
+                ×
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+
+      <div class="list-footer">
+        Showing {{ filteredNotifications().length }} of {{ totalCount() }} notifications
+      </div>
+    }
+  </section>
+</div>
