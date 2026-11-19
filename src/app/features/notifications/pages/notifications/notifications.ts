@@ -1,26 +1,35 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
 import { DatePipe, NgClass } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
 import { NotificationService } from '../../services/notification.service';
-import { Notification } from '../../models/notification.model';
+
+import { Notification, CreateNotificationRequest } from '../../models/notification.model';
 
 type NotificationFilter = 'all' | 'unread' | 'read';
+
+type RecipientType = 'all' | 'specific';
 
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [DatePipe, NgClass],
+  imports: [DatePipe, NgClass, FormsModule],
   templateUrl: './notifications.html',
   styleUrl: './notifications.scss',
 })
 export class Notifications implements OnInit {
-  private service = inject(NotificationService);
+  private readonly service = inject(NotificationService);
 
-  // State
+  // ==========================================
+  // NOTIFICATION STATE
+  // ==========================================
+
   notifications = signal<Notification[]>([]);
 
   loading = signal(false);
   error = signal<string | null>(null);
+  success = signal<string | null>(null);
 
   activeFilter = signal<NotificationFilter>('all');
   searchTerm = signal('');
@@ -28,14 +37,39 @@ export class Notifications implements OnInit {
   processingIds = signal<number[]>([]);
   deletingIds = signal<number[]>([]);
 
-  // Statistics
+  markingAllAsRead = signal(false);
+
+  // ==========================================
+  // CREATE NOTIFICATION STATE
+  // ==========================================
+
+  showCreateModal = signal(false);
+  creating = signal(false);
+  createError = signal<string | null>(null);
+
+  recipientType = signal<RecipientType>('all');
+
+  newNotification = signal({
+    userId: '',
+    title: '',
+    message: '',
+    type: 'GENERAL',
+  });
+
+  // ==========================================
+  // STATISTICS
+  // ==========================================
+
   totalCount = computed(() => this.notifications().length);
 
   unreadCount = computed(() => this.notifications().filter((n) => !n.isRead).length);
 
   readCount = computed(() => this.notifications().filter((n) => n.isRead).length);
 
-  // Filtered notifications
+  // ==========================================
+  // FILTERED NOTIFICATIONS
+  // ==========================================
+
   filteredNotifications = computed(() => {
     let list = this.notifications();
 
@@ -58,16 +92,26 @@ export class Notifications implements OnInit {
       );
     }
 
-    return [...list].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    return [...list].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+
+      return (Number.isNaN(dateB) ? 0 : dateB) - (Number.isNaN(dateA) ? 0 : dateA);
+    });
   });
+
+  // ==========================================
+  // INITIALIZATION
+  // ==========================================
 
   ngOnInit(): void {
     this.loadNotifications();
   }
 
-  // Load notifications
+  // ==========================================
+  // LOAD NOTIFICATIONS
+  // ==========================================
+
   loadNotifications(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -77,6 +121,7 @@ export class Notifications implements OnInit {
         this.notifications.set(data);
         this.loading.set(false);
       },
+
       error: (err) => {
         console.error('Failed to load notifications:', err);
 
@@ -87,21 +132,36 @@ export class Notifications implements OnInit {
     });
   }
 
-  // Change filter
+  // ==========================================
+  // FILTER NOTIFICATIONS
+  // ==========================================
+
   setFilter(filter: NotificationFilter): void {
     this.activeFilter.set(filter);
   }
 
-  // Search
+  // ==========================================
+  // SEARCH NOTIFICATIONS
+  // ==========================================
+
   onSearch(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
+
     this.searchTerm.set(value);
   }
 
-  // Mark one as read
+  // ==========================================
+  // MARK ONE NOTIFICATION AS READ
+  // ==========================================
+
   markAsRead(notification: Notification): void {
     if (notification.isRead) return;
-    if (this.processingIds().includes(notification.id)) return;
+
+    if (this.processingIds().includes(notification.id)) {
+      return;
+    }
+
+    this.error.set(null);
 
     this.processingIds.update((ids) => [...ids, notification.id]);
 
@@ -113,6 +173,7 @@ export class Notifications implements OnInit {
 
         this.processingIds.update((ids) => ids.filter((id) => id !== notification.id));
       },
+
       error: (err) => {
         console.error('Failed to mark notification as read:', err);
 
@@ -123,28 +184,54 @@ export class Notifications implements OnInit {
     });
   }
 
-  // Mark all my notifications as read
+  // ==========================================
+  // MARK ALL ADMIN NOTIFICATIONS AS READ
+  // ==========================================
+
   markAllAsRead(): void {
     if (this.unreadCount() === 0) return;
 
+    if (this.markingAllAsRead()) return;
+
+    this.error.set(null);
+    this.markingAllAsRead.set(true);
+
     this.service.markAllAsRead().subscribe({
       next: () => {
-        this.notifications.update((list) => list.map((n) => ({ ...n, isRead: true })));
+        this.notifications.update((list) =>
+          list.map((n) => ({
+            ...n,
+            isRead: true,
+          })),
+        );
+
+        this.markingAllAsRead.set(false);
       },
+
       error: (err) => {
         console.error('Failed to mark all as read:', err);
+
+        this.markingAllAsRead.set(false);
+
         this.error.set('Could not mark all notifications as read.');
       },
     });
   }
 
-  // Delete notification
+  // ==========================================
+  // DELETE NOTIFICATION
+  // ==========================================
+
   deleteNotification(notification: Notification): void {
-    if (this.deletingIds().includes(notification.id)) return;
+    if (this.deletingIds().includes(notification.id)) {
+      return;
+    }
 
     const confirmed = window.confirm(`Are you sure you want to delete "${notification.title}"?`);
 
     if (!confirmed) return;
+
+    this.error.set(null);
 
     this.deletingIds.update((ids) => [...ids, notification.id]);
 
@@ -154,6 +241,7 @@ export class Notifications implements OnInit {
 
         this.deletingIds.update((ids) => ids.filter((id) => id !== notification.id));
       },
+
       error: (err) => {
         console.error('Failed to delete notification:', err);
 
@@ -164,34 +252,178 @@ export class Notifications implements OnInit {
     });
   }
 
-  // Notification icon
+  // ==========================================
+  // OPEN CREATE NOTIFICATION MODAL
+  // ==========================================
+
+  openCreateModal(): void {
+    this.createError.set(null);
+
+    this.newNotification.set({
+      userId: '',
+      title: '',
+      message: '',
+      type: 'GENERAL',
+    });
+
+    this.recipientType.set('all');
+    this.showCreateModal.set(true);
+  }
+
+  // ==========================================
+  // CLOSE CREATE NOTIFICATION MODAL
+  // ==========================================
+
+  closeCreateModal(): void {
+    if (this.creating()) return;
+
+    this.showCreateModal.set(false);
+    this.createError.set(null);
+  }
+
+  // ==========================================
+  // CHANGE RECIPIENT TYPE
+  // ==========================================
+
+  setRecipientType(value: RecipientType): void {
+    this.recipientType.set(value);
+    this.createError.set(null);
+  }
+
+  // ==========================================
+  // UPDATE CREATE FORM FIELDS
+  // ==========================================
+
+  updateNotificationField(field: 'userId' | 'title' | 'message' | 'type', value: string): void {
+    this.newNotification.update((current) => ({
+      ...current,
+      [field]: value,
+    }));
+
+    this.createError.set(null);
+  }
+
+  // ==========================================
+  // CREATE NOTIFICATION
+  // ==========================================
+
+  createNotification(): void {
+    if (this.creating()) return;
+
+    const form = this.newNotification();
+
+    const title = form.title.trim();
+    const message = form.message.trim();
+
+    if (!title) {
+      this.createError.set('Please enter a notification title.');
+      return;
+    }
+
+    if (!message) {
+      this.createError.set('Please enter a notification message.');
+      return;
+    }
+
+    let userId: number | undefined;
+
+    if (this.recipientType() === 'specific') {
+      const parsedUserId = Number(form.userId);
+
+      if (!form.userId.trim() || !Number.isInteger(parsedUserId) || parsedUserId <= 0) {
+        this.createError.set('Please enter a valid user ID.');
+        return;
+      }
+
+      userId = parsedUserId;
+    }
+
+    const payload: CreateNotificationRequest = {
+      title,
+      message,
+      type: form.type,
+      ...(userId !== undefined ? { userId } : {}),
+    };
+
+    this.creating.set(true);
+    this.createError.set(null);
+
+    this.service.createNotification(payload).subscribe({
+      next: () => {
+        this.creating.set(false);
+        this.showCreateModal.set(false);
+
+        this.success.set('Notification created successfully.');
+
+        this.loadNotifications();
+      },
+
+      error: (err) => {
+        console.error('Failed to create notification:', err);
+
+        this.creating.set(false);
+
+        this.createError.set(
+          err?.error?.message ?? 'Could not create notification. Please try again.',
+        );
+      },
+    });
+  }
+
+  // ==========================================
+  // NOTIFICATION ICON
+  // ==========================================
+
   getIcon(type: string): string {
     const value = type.toLowerCase();
 
     if (value.includes('order')) return 'shopping-bag';
-    if (value.includes('payment') || value.includes('payout')) return 'wallet';
+
+    if (value.includes('payment') || value.includes('payout')) {
+      return 'wallet';
+    }
+
     if (value.includes('farmer')) return 'users';
-    if (value.includes('inspection') || value.includes('kyc')) return 'clipboard-check';
+
+    if (value.includes('inspection') || value.includes('kyc')) {
+      return 'clipboard-check';
+    }
+
     if (value.includes('product')) return 'package';
+
     if (value.includes('dispute')) return 'alert-triangle';
+
     if (value.includes('system')) return 'settings';
 
     return 'bell';
   }
 
-  // Notification color
+  // ==========================================
+  // NOTIFICATION COLOR
+  // ==========================================
+
   getTypeClass(type: string): string {
     const value = type.toLowerCase();
 
     if (value.includes('order')) return 'type--blue';
-    if (value.includes('payment') || value.includes('payout')) return 'type--green';
+
+    if (value.includes('payment') || value.includes('payout')) {
+      return 'type--green';
+    }
+
     if (value.includes('dispute')) return 'type--red';
-    if (value.includes('inspection') || value.includes('kyc')) return 'type--amber';
+
+    if (value.includes('inspection') || value.includes('kyc')) {
+      return 'type--amber';
+    }
 
     return 'type--neutral';
   }
 
-  // Human-readable type
+  // ==========================================
+  // HUMAN-READABLE NOTIFICATION TYPE
+  // ==========================================
+
   formatType(type: string): string {
     return type
       .replace(/_/g, ' ')

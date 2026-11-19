@@ -35,3 +35,9 @@ export interface NotificationPageDto {
   totalElements?: number;
   number?: number;
 }
+export interface CreateNotificationRequest {
+  userId?: number;
+  title: string;
+  message: string;
+  type: string;
+}

@@ -9,84 +9,138 @@ import {
   NotificationDto,
   NotificationEnvelope,
   NotificationPageDto,
+  CreateNotificationRequest,
 } from '../models/notification.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class NotificationService {
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
 
   private readonly endpoint = `${API_BASE}/admin/notifications`;
 
-  // Get all notifications
+  // ==========================================
+  // GET ALL NOTIFICATIONS
+  // GET /api/v1/admin/notifications
+  // ==========================================
+
   getNotifications(): Observable<Notification[]> {
     return this.http
       .get<NotificationEnvelope<NotificationDto[] | NotificationPageDto>>(this.endpoint)
       .pipe(
         map((response) => {
-          const data = response.data;
+          const data = response?.data;
 
-          const items = Array.isArray(data) ? data : (data?.content ?? []);
+          const items: NotificationDto[] = Array.isArray(data) ? data : (data?.content ?? []);
 
           return items.map((item) => this.mapNotification(item));
         }),
       );
   }
 
-  // Get unread notifications for a particular user
-  getUnreadNotifications(userId: number): Observable<Notification[]> {
-    return this.http
-      .get<NotificationEnvelope<NotificationDto[]>>(`${this.endpoint}/user/${userId}/unread`)
-      .pipe(map((response) => (response.data ?? []).map((item) => this.mapNotification(item))));
-  }
+  // ==========================================
+  // GET ONE NOTIFICATION
+  // GET /api/v1/admin/notifications/{id}
+  // ==========================================
 
-  // Get notifications belonging to a particular user
-  getUserNotifications(userId: number): Observable<Notification[]> {
-    return this.http
-      .get<NotificationEnvelope<NotificationDto[]>>(`${this.endpoint}/user/${userId}`)
-      .pipe(map((response) => (response.data ?? []).map((item) => this.mapNotification(item))));
-  }
-
-  // Get one notification
   getNotification(id: number): Observable<Notification> {
     return this.http
       .get<NotificationEnvelope<NotificationDto>>(`${this.endpoint}/${id}`)
       .pipe(map((response) => this.mapNotification(response.data)));
   }
 
-  // Mark one notification as read
-  markAsRead(id: number): Observable<any> {
+  // ==========================================
+  // GET NOTIFICATIONS FOR A USER
+  // GET /api/v1/admin/notifications/user/{userId}
+  // ==========================================
+
+  getUserNotifications(userId: number): Observable<Notification[]> {
+    return this.http
+      .get<NotificationEnvelope<NotificationDto[]>>(`${this.endpoint}/user/${userId}`)
+      .pipe(map((response) => (response.data ?? []).map((item) => this.mapNotification(item))));
+  }
+
+  // ==========================================
+  // GET UNREAD NOTIFICATIONS FOR A USER
+  // GET /api/v1/admin/notifications/user/{userId}/unread
+  // ==========================================
+
+  getUnreadNotifications(userId: number): Observable<Notification[]> {
+    return this.http
+      .get<NotificationEnvelope<NotificationDto[]>>(`${this.endpoint}/user/${userId}/unread`)
+      .pipe(map((response) => (response.data ?? []).map((item) => this.mapNotification(item))));
+  }
+
+  // ==========================================
+  // CREATE NOTIFICATION
+  // POST /api/v1/admin/notifications
+  // ==========================================
+
+  createNotification(payload: CreateNotificationRequest): Observable<unknown> {
+    return this.http.post(this.endpoint, payload);
+  }
+
+  // ==========================================
+  // MARK ONE NOTIFICATION AS READ
+  // POST /api/v1/admin/notifications/{id}/read
+  // ==========================================
+
+  markAsRead(id: number): Observable<unknown> {
     return this.http.post(`${this.endpoint}/${id}/read`, {});
   }
 
-  // Mark all my notifications as read
-  markAllAsRead(): Observable<any> {
+  // ==========================================
+  // MARK ADMIN'S NOTIFICATIONS AS READ
+  // POST /api/v1/admin/notifications/read-all
+  // ==========================================
+
+  markAllAsRead(): Observable<unknown> {
     return this.http.post(`${this.endpoint}/read-all`, {});
   }
 
-  // Mark all notifications belonging to a particular user as read
-  markUserNotificationsAsRead(userId: number): Observable<any> {
+  // ==========================================
+  // MARK A USER'S NOTIFICATIONS AS READ
+  // POST /api/v1/admin/notifications/user/{userId}/read-all
+  // ==========================================
+
+  markUserNotificationsAsRead(userId: number): Observable<unknown> {
     return this.http.post(`${this.endpoint}/user/${userId}/read-all`, {});
   }
 
-  // Delete notification
-  deleteNotification(id: number): Observable<any> {
+  // ==========================================
+  // DELETE NOTIFICATION
+  // DELETE /api/v1/admin/notifications/{id}
+  // ==========================================
+
+  deleteNotification(id: number): Observable<unknown> {
     return this.http.delete(`${this.endpoint}/${id}`);
   }
 
-  // Convert backend DTO into frontend notification model
+  // ==========================================
+  // MAP BACKEND DTO TO FRONTEND MODEL
+  // ==========================================
+
   private mapNotification(dto: NotificationDto): Notification {
     return {
       id: dto.id,
       userId: dto.userId,
-      title: dto.title ?? this.humanize(dto.type ?? 'Notification'),
+
+      title: dto.title?.trim() || this.humanize(dto.type ?? dto.category ?? 'Notification'),
+
       message: dto.message ?? dto.body ?? '',
+
       type: dto.type ?? dto.category ?? 'GENERAL',
+
       isRead: dto.isRead ?? dto.read ?? false,
+
       createdAt: dto.createdAt ?? dto.timestamp ?? '',
     };
   }
+
+  // ==========================================
+  // FORMAT ENUM VALUES FOR DISPLAY
+  // ==========================================
 
   private humanize(value: string): string {
     return value

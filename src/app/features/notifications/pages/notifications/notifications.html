@@ -1,217 +1,484 @@
 <div class="page">
-  <!-- Page heading -->
+  <!-- PAGE HEADER -->
   <header class="head">
-    <div>
+    <div class="head-copy">
+      <div class="eyebrow">Administration · Notifications</div>
       <h1>Notifications</h1>
-      <p>Monitor and manage platform notifications.</p>
+      <p>Manage in-app notification delivery and read-state tracking.</p>
     </div>
 
     <div class="head-actions">
       <button
-        class="btn btn--secondary"
+        class="btn-secondary"
         type="button"
         (click)="loadNotifications()"
         [disabled]="loading()"
       >
-        ↻ Refresh
+        <span>↻</span>
+        Refresh
       </button>
 
-      <button
-        class="btn btn--primary"
-        type="button"
-        (click)="markAllAsRead()"
-        [disabled]="unreadCount() === 0"
-      >
-        ✓ Mark all as read
+      <button class="btn-primary" type="button" (click)="openCreateModal()">
+        <span>+</span>
+        Create Notification
       </button>
     </div>
   </header>
 
-  <!-- Error -->
-  @if (error()) {
-    <div class="alert" role="alert">
-      <span>{{ error() }}</span>
-      <button type="button" (click)="loadNotifications()">Retry</button>
+  <!-- SUCCESS MESSAGE -->
+  @if (success()) {
+    <div class="alert success" role="status">
+      <span>✓</span>
+      {{ success() }}
+      <button type="button" aria-label="Dismiss success message" (click)="success.set(null)">
+        ×
+      </button>
     </div>
   }
 
-  <!-- Statistics -->
-  <section class="stats">
+  <!-- ERROR MESSAGE -->
+  @if (error()) {
+    <div class="alert error" role="alert">
+      <span>!</span>
+      {{ error() }}
+
+      <button type="button" (click)="error.set(null)">Dismiss</button>
+    </div>
+  }
+
+  <!-- STATISTICS -->
+  <section class="stats-grid">
     <article class="stat-card">
-      <div class="stat-top">
-        <span>Total notifications</span>
-        <span class="stat-icon">♧</span>
+      <div class="stat-icon total-icon">♧</div>
+      <div class="stat-content">
+        <span class="stat-label">Total Notifications</span>
+        <strong class="stat-value">{{ totalCount() }}</strong>
+        <span class="stat-description">All notifications</span>
       </div>
-      <strong>{{ totalCount() }}</strong>
-      <small>All platform notifications</small>
     </article>
 
-    <article class="stat-card stat-card--unread">
-      <div class="stat-top">
-        <span>Unread</span>
-        <span class="stat-icon">●</span>
+    <article class="stat-card">
+      <div class="stat-icon unread-icon">●</div>
+      <div class="stat-content">
+        <span class="stat-label">Unread</span>
+        <strong class="stat-value">{{ unreadCount() }}</strong>
+        <span class="stat-description">Awaiting attention</span>
       </div>
-      <strong>{{ unreadCount() }}</strong>
-      <small>Awaiting attention</small>
     </article>
 
-    <article class="stat-card stat-card--read">
-      <div class="stat-top">
-        <span>Read</span>
-        <span class="stat-icon">✓</span>
+    <article class="stat-card">
+      <div class="stat-icon read-icon">✓</div>
+      <div class="stat-content">
+        <span class="stat-label">Read</span>
+        <strong class="stat-value">{{ readCount() }}</strong>
+        <span class="stat-description">Already viewed</span>
       </div>
-      <strong>{{ readCount() }}</strong>
-      <small>Already reviewed</small>
     </article>
   </section>
 
-  <!-- Notification list -->
-  <section class="card">
-    <div class="list-head">
+  <!-- NOTIFICATION LIST -->
+  <section class="card notification-card">
+    <div class="section-head">
       <div>
         <h2>Notification Center</h2>
-        <p>View and manage your notifications.</p>
+        <p>View, manage and track platform notifications.</p>
       </div>
 
-      <div class="search">
+      <button
+        class="btn-secondary"
+        type="button"
+        (click)="markAllAsRead()"
+        [disabled]="unreadCount() === 0 || markingAllAsRead()"
+      >
+        @if (markingAllAsRead()) {
+          Marking as read...
+        } @else {
+          Mark all as read
+        }
+      </button>
+    </div>
+
+    <!-- FILTERS AND SEARCH -->
+    <div class="toolbar">
+      <div class="filter-tabs">
+        <button
+          type="button"
+          class="filter-tab"
+          [class.active]="activeFilter() === 'all'"
+          (click)="setFilter('all')"
+        >
+          All
+          <span class="filter-count">{{ totalCount() }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="filter-tab"
+          [class.active]="activeFilter() === 'unread'"
+          (click)="setFilter('unread')"
+        >
+          Unread
+          <span class="filter-count">{{ unreadCount() }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="filter-tab"
+          [class.active]="activeFilter() === 'read'"
+          (click)="setFilter('read')"
+        >
+          Read
+          <span class="filter-count">{{ readCount() }}</span>
+        </button>
+      </div>
+
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+
         <input
           type="search"
           placeholder="Search notifications..."
           [value]="searchTerm()"
           (input)="onSearch($event)"
         />
+
+        @if (searchTerm()) {
+          <button
+            type="button"
+            class="clear-search"
+            aria-label="Clear search"
+            (click)="searchTerm.set('')"
+          >
+            ×
+          </button>
+        }
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="filters">
-      <button type="button" [class.active]="activeFilter() === 'all'" (click)="setFilter('all')">
-        All
-        <span>{{ totalCount() }}</span>
-      </button>
-
-      <button
-        type="button"
-        [class.active]="activeFilter() === 'unread'"
-        (click)="setFilter('unread')"
-      >
-        Unread
-        <span>{{ unreadCount() }}</span>
-      </button>
-
-      <button type="button" [class.active]="activeFilter() === 'read'" (click)="setFilter('read')">
-        Read
-        <span>{{ readCount() }}</span>
-      </button>
-    </div>
-
-    <!-- Loading -->
+    <!-- LOADING -->
     @if (loading()) {
       <div class="state">
-        <div class="spinner"></div>
+        <div class="loader"></div>
         <p>Loading notifications...</p>
       </div>
     }
 
-    <!-- Empty state -->
+    <!-- EMPTY STATE -->
     @else if (filteredNotifications().length === 0) {
-      <div class="empty">
+      <div class="state empty-state">
         <div class="empty-icon">♧</div>
 
         @if (searchTerm()) {
           <h3>No matching notifications</h3>
-          <p>Try another search term.</p>
+          <p>Try a different search term.</p>
+
+          <button type="button" class="btn-secondary" (click)="searchTerm.set('')">
+            Clear search
+          </button>
+
         } @else if (activeFilter() === 'unread') {
-          <h3>You're all caught up!</h3>
-          <p>There are no unread notifications.</p>
+          <h3>All caught up!</h3>
+          <p>You don't have any unread notifications.</p>
+
+        } @else if (activeFilter() === 'read') {
+          <h3>No read notifications</h3>
+          <p>Notifications you have read will appear here.</p>
+
         } @else {
           <h3>No notifications yet</h3>
-          <p>New platform notifications will appear here.</p>
+          <p>Notifications will appear here when they are created.</p>
+
+          <button type="button" class="btn-primary" (click)="openCreateModal()">
+            Create Notification
+          </button>
         }
       </div>
     }
 
-    <!-- Notifications -->
+    <!-- NOTIFICATION ITEMS -->
     @else {
       <div class="notification-list">
-        @for (n of filteredNotifications(); track n.id) {
-          <article class="notification" [class.notification--unread]="!n.isRead">
-            <div class="notification-icon" [ngClass]="getTypeClass(n.type)">
-              {{
-                getIcon(n.type) === 'shopping-bag'
-                  ? '▣'
-                  : getIcon(n.type) === 'wallet'
-                    ? 'K'
-                    : getIcon(n.type) === 'users'
-                      ? '♧'
-                      : getIcon(n.type) === 'clipboard-check'
-                        ? '✓'
-                        : getIcon(n.type) === 'package'
-                          ? '▤'
-                          : getIcon(n.type) === 'alert-triangle'
-                            ? '!'
-                            : '●'
-              }}
+        @for (notification of filteredNotifications(); track notification.id) {
+          <article class="notification-item" [class.unread]="!notification.isRead">
+            <!-- ICON -->
+            <div class="notification-icon" [ngClass]="getTypeClass(notification.type)">
+              @switch (notification.type.toLowerCase()) {
+                @case ('order') {
+                  <span>▣</span>
+                }
+                @case ('payment') {
+                  <span>▤</span>
+                }
+                @case ('farmer') {
+                  <span>♙</span>
+                }
+                @case ('inspection') {
+                  <span>✓</span>
+                }
+                @case ('product') {
+                  <span>▦</span>
+                }
+                @case ('dispute') {
+                  <span>!</span>
+                }
+                @default {
+                  <span>♧</span>
+                }
+              }
             </div>
 
+            <!-- CONTENT -->
             <div class="notification-content">
-              <div class="notification-title">
-                <h3>{{ n.title }}</h3>
+              <div class="notification-title-row">
+                <h3>{{ notification.title }}</h3>
 
-                @if (!n.isRead) {
-                  <span class="unread-dot"></span>
+                @if (!notification.isRead) {
+                  <span class="unread-indicator"></span>
+                  <span class="status-badge unread-badge">Unread</span>
+                } @else {
+                  <span class="status-badge read-badge">Read</span>
                 }
               </div>
 
-              <p>{{ n.message }}</p>
+              <p class="notification-message">
+                {{ notification.message }}
+              </p>
 
               <div class="notification-meta">
-                <span class="type-tag" [ngClass]="getTypeClass(n.type)">
-                  {{ formatType(n.type) }}
+                <span class="type-badge" [ngClass]="getTypeClass(notification.type)">
+                  {{ formatType(notification.type) }}
                 </span>
 
-                @if (n.createdAt) {
-                  <span class="date">
-                    {{ n.createdAt | date: 'dd MMM yyyy, h:mm a' }}
-                  </span>
+                @if (notification.userId !== undefined) {
+                  <span class="recipient"> User #{{ notification.userId }} </span>
+                } @else {
+                  <span class="recipient"> Platform notification </span>
                 }
 
-                @if (n.userId) {
-                  <span class="date">User #{{ n.userId }}</span>
-                }
+                <span class="notification-date">
+                  {{
+                    notification.createdAt
+                      ? (notification.createdAt | date: 'dd MMM yyyy, h:mm a')
+                      : 'Date unavailable'
+                  }}
+                </span>
               </div>
             </div>
 
+            <!-- ACTIONS -->
             <div class="notification-actions">
-              @if (!n.isRead) {
+              @if (!notification.isRead) {
                 <button
                   type="button"
                   class="action-btn mark-read"
                   title="Mark as read"
-                  (click)="markAsRead(n)"
-                  [disabled]="processingIds().includes(n.id)"
+                  [disabled]="processingIds().includes(notification.id)"
+                  (click)="markAsRead(notification)"
                 >
-                  ✓
+                  @if (processingIds().includes(notification.id)) {
+                    Processing...
+                  } @else {
+                    Mark read
+                  }
                 </button>
               }
 
               <button
                 type="button"
-                class="action-btn delete"
+                class="action-btn delete-btn"
                 title="Delete notification"
-                (click)="deleteNotification(n)"
-                [disabled]="deletingIds().includes(n.id)"
+                [disabled]="deletingIds().includes(notification.id)"
+                (click)="deleteNotification(notification)"
               >
-                ×
+                @if (deletingIds().includes(notification.id)) {
+                  Deleting...
+                } @else {
+                  Delete
+                }
               </button>
             </div>
           </article>
         }
       </div>
 
+      <!-- LIST FOOTER -->
       <div class="list-footer">
-        Showing {{ filteredNotifications().length }} of {{ totalCount() }} notifications
+        Showing {{ filteredNotifications().length }}
+        notification(s)
       </div>
     }
   </section>
 </div>
+
+<!-- ==========================================
+     CREATE NOTIFICATION MODAL
+========================================== -->
+
+@if (showCreateModal()) {
+  <div class="modal-backdrop" (click)="closeCreateModal()">
+    <section
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-notification-title"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- MODAL HEADER -->
+      <div class="modal-head">
+        <div>
+          <span class="eyebrow">Administration</span>
+          <h2 id="create-notification-title">Create Notification</h2>
+          <p>Compose and send an in-app notification.</p>
+        </div>
+
+        <button
+          type="button"
+          class="modal-close"
+          aria-label="Close modal"
+          [disabled]="creating()"
+          (click)="closeCreateModal()"
+        >
+          ×
+        </button>
+      </div>
+
+      <!-- CREATE ERROR -->
+      @if (createError()) {
+        <div class="alert error" role="alert">
+          {{ createError() }}
+        </div>
+      }
+
+      <!-- FORM -->
+      <div class="modal-body">
+        <!-- RECIPIENT -->
+        <div class="form-group">
+          <label>Recipient</label>
+
+          <div class="recipient-options">
+            <button
+              type="button"
+              class="recipient-option"
+              [class.selected]="recipientType() === 'all'"
+              (click)="setRecipientType('all')"
+            >
+              <span class="option-icon">◎</span>
+
+              <span>
+                <strong>All users</strong>
+                <small>Send to everyone</small>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="recipient-option"
+              [class.selected]="recipientType() === 'specific'"
+              (click)="setRecipientType('specific')"
+            >
+              <span class="option-icon">♙</span>
+
+              <span>
+                <strong>Specific user</strong>
+                <small>Send to one user</small>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- USER ID -->
+        @if (recipientType() === 'specific') {
+          <div class="form-group">
+            <label for="notification-user-id"> User ID <span class="required">*</span> </label>
+
+            <input
+              id="notification-user-id"
+              type="number"
+              min="1"
+              placeholder="Enter user ID"
+              [value]="newNotification().userId"
+              (input)="updateNotificationField('userId', $any($event.target).value)"
+            />
+          </div>
+        }
+
+        <!-- NOTIFICATION TYPE -->
+        <div class="form-group">
+          <label for="notification-type"> Notification Type </label>
+
+          <select
+            id="notification-type"
+            [value]="newNotification().type"
+            (change)="updateNotificationField('type', $any($event.target).value)"
+          >
+            <option value="GENERAL">General</option>
+            <option value="ORDER">Order</option>
+            <option value="PAYMENT">Payment</option>
+            <option value="PRODUCT">Product</option>
+            <option value="FARMER">Farmer</option>
+            <option value="INSPECTION">Inspection</option>
+            <option value="DISPUTE">Dispute</option>
+            <option value="SYSTEM">System</option>
+          </select>
+        </div>
+
+        <!-- TITLE -->
+        <div class="form-group">
+          <label for="notification-title">
+            Notification Title <span class="required">*</span>
+          </label>
+
+          <input
+            id="notification-title"
+            type="text"
+            maxlength="150"
+            placeholder="e.g. Product verification completed"
+            [value]="newNotification().title"
+            (input)="updateNotificationField('title', $any($event.target).value)"
+          />
+        </div>
+
+        <!-- MESSAGE -->
+        <div class="form-group">
+          <label for="notification-message"> Message <span class="required">*</span> </label>
+
+          <textarea
+            id="notification-message"
+            rows="5"
+            maxlength="1000"
+            placeholder="Write your notification message..."
+            [value]="newNotification().message"
+            (input)="updateNotificationField('message', $any($event.target).value)"
+          ></textarea>
+
+          <small class="field-hint"> Keep your message clear and informative. </small>
+        </div>
+      </div>
+
+      <!-- MODAL FOOTER -->
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn-secondary"
+          [disabled]="creating()"
+          (click)="closeCreateModal()"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="btn-primary"
+          [disabled]="creating()"
+          (click)="createNotification()"
+        >
+          @if (creating()) {
+            Sending...
+          } @else {
+            Send Notification
+          }
+        </button>
+      </div>
+    </section>
+  </div>
+}
