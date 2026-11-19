@@ -25,6 +25,8 @@ import { PAYMENT_ROUTES } from './features/payments/Payments.routes';
 import { NOTIFICATION_ROUTES } from './features/settings/notifications.routes';
 import { REPORT_ROUTES } from './features/reports/reports.routes';
 import { pickupStationRoutes } from './features/pickup-stations/pickup-stations.routes';
+import { ForgotPassword } from './features/auth/pages/forgot-password/forgot-password';
+import { AUTH_ROUTES } from './features/auth/auth.routes';
 
 export const routes: Routes = [
   {
@@ -36,13 +38,14 @@ export const routes: Routes = [
   // PUBLIC ROUTES
   {
     path: '',
+    redirectTo: 'login',
+    pathMatch: 'full',
+  },
+
+  {
+    path: '',
     component: AuthLayout,
-    children: [
-      {
-        path: 'login',
-        component: Login,
-      },
-    ],
+    children: AUTH_ROUTES,
   },
 
   // PROTECTED ROUTES
