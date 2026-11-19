@@ -27,6 +27,7 @@ import { REPORT_ROUTES } from './features/reports/reports.routes';
 import { pickupStationRoutes } from './features/pickup-stations/pickup-stations.routes';
 import { ForgotPassword } from './features/auth/pages/forgot-password/forgot-password';
 import { AUTH_ROUTES } from './features/auth/auth.routes';
+import { Notifications } from './features/notifications/pages/notifications/notifications';
 
 export const routes: Routes = [
   {
@@ -128,7 +129,10 @@ export const routes: Routes = [
         path: 'Pickup-Sation',
         children: pickupStationRoutes,
       },
-
+      {
+        path: 'Notifications',
+        component: Notifications,
+      },
       {
         path: 'settings',
         children: NOTIFICATION_ROUTES,

@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { NotificationService } from '../../services/notification.service';
 import { Notification } from '../../models/notification.model';
 
@@ -9,7 +9,7 @@ type NotificationFilter = 'all' | 'unread' | 'read';
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, NgClass],
   templateUrl: './notifications.html',
   styleUrl: './notifications.scss',
 })

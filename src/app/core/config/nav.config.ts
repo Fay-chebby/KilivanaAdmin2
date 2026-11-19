@@ -41,7 +41,8 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Admin',
     items: [
       { label: 'Pickup station', icon: 'lock', route: '/Pickup-Sation' },
-      { label: 'Notifications & Settings', icon: 'bell', route: '/settings' },
+      { label: 'Notifications ', icon: 'bell', route: '/Notifications' },
+      { label: 'Settings', icon: 'bell', route: '/settings' },
     ],
   },
 ];
