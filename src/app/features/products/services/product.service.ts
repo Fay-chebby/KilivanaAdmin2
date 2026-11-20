@@ -388,7 +388,7 @@ export class ProductService {
     this.loading.set(false);
   }
 
-  // ---------------- products ----------------
+  // ---------------- products -----------
 
   async create(p: ProductPayload): Promise<Product | null> {
     const created = await this.run(() => this.api.createProduct(this.toRequest(p), p.newFiles));
@@ -469,7 +469,7 @@ export class ProductService {
     return this.changeStatus(id, 'active', 'Reactivated by an admin');
   }
 
-  /** Returns a product to pending status for another admin review. */
+  /** Returns a product to pending status for another admin review and inspection. */
   resubmit(id: string) {
     return this.changeStatus(id, 'pending', 'Sent back for admin review');
   }
