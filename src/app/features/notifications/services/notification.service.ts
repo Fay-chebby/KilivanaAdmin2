@@ -22,7 +22,6 @@ export class NotificationService {
 
   // ==========================================
   // GET ALL NOTIFICATIONS
-  // GET /api/v1/admin/notifications
   // ==========================================
 
   getNotifications(): Observable<Notification[]> {
@@ -41,7 +40,6 @@ export class NotificationService {
 
   // ==========================================
   // GET ONE NOTIFICATION
-  // GET /api/v1/admin/notifications/{id}
   // ==========================================
 
   getNotification(id: number): Observable<Notification> {
@@ -52,7 +50,6 @@ export class NotificationService {
 
   // ==========================================
   // GET NOTIFICATIONS FOR A USER
-  // GET /api/v1/admin/notifications/user/{userId}
   // ==========================================
 
   getUserNotifications(userId: number): Observable<Notification[]> {
@@ -63,7 +60,6 @@ export class NotificationService {
 
   // ==========================================
   // GET UNREAD NOTIFICATIONS FOR A USER
-  // GET /api/v1/admin/notifications/user/{userId}/unread
   // ==========================================
 
   getUnreadNotifications(userId: number): Observable<Notification[]> {
@@ -74,7 +70,6 @@ export class NotificationService {
 
   // ==========================================
   // CREATE NOTIFICATION
-  // POST /api/v1/admin/notifications
   // ==========================================
 
   createNotification(payload: CreateNotificationRequest): Observable<unknown> {
@@ -83,7 +78,6 @@ export class NotificationService {
 
   // ==========================================
   // MARK ONE NOTIFICATION AS READ
-  // POST /api/v1/admin/notifications/{id}/read
   // ==========================================
 
   markAsRead(id: number): Observable<unknown> {
@@ -92,7 +86,6 @@ export class NotificationService {
 
   // ==========================================
   // MARK ADMIN'S NOTIFICATIONS AS READ
-  // POST /api/v1/admin/notifications/read-all
   // ==========================================
 
   markAllAsRead(): Observable<unknown> {
@@ -101,7 +94,6 @@ export class NotificationService {
 
   // ==========================================
   // MARK A USER'S NOTIFICATIONS AS READ
-  // POST /api/v1/admin/notifications/user/{userId}/read-all
   // ==========================================
 
   markUserNotificationsAsRead(userId: number): Observable<unknown> {
@@ -110,7 +102,6 @@ export class NotificationService {
 
   // ==========================================
   // DELETE NOTIFICATION
-  // DELETE /api/v1/admin/notifications/{id}
   // ==========================================
 
   deleteNotification(id: number): Observable<unknown> {
@@ -122,6 +113,9 @@ export class NotificationService {
   // ==========================================
 
   private mapNotification(dto: NotificationDto): Notification {
+    const isRead =
+      (dto.readAt !== null && dto.readAt !== undefined) || dto.isRead === true || dto.read === true;
+
     return {
       id: dto.id,
       userId: dto.userId,
@@ -132,7 +126,7 @@ export class NotificationService {
 
       type: dto.type ?? dto.category ?? 'GENERAL',
 
-      isRead: dto.isRead ?? dto.read ?? false,
+      isRead,
 
       createdAt: dto.createdAt ?? dto.timestamp ?? '',
     };
