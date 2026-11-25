@@ -759,7 +759,16 @@ export interface ApiFarmerProduct {
   farmCertified: boolean;
   isLive: boolean;
 }
-
+export interface FarmerPurchase {
+  id: number;
+  reference: string;
+  supplierName: string;
+  itemCount: number;
+  totalAmount: number;
+  paymentStatus: string;
+  orderStatus: string;
+  createdAt: string;
+}
 export interface FarmerProduct extends ApiFarmerProduct {}
 /* =========================================================
    KENYAN COUNTIES

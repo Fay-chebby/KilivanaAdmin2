@@ -25,6 +25,7 @@ import {
   toProfileImage,
   ApiFarmerProduct,
   FarmerProduct,
+  FarmerPurchase,
 } from '../models/farmer.model';
 import { API_BASE } from '../../../core/config/api.config';
 
@@ -625,6 +626,66 @@ export class FarmerService {
 
           // Keep the farmer details page working if products fail to load.
           return of([] as FarmerProduct[]);
+        }),
+      );
+  }
+
+  /**
+   * GET /api/v1/admin/farmers/{farmerId}/purchases
+   *
+   * Retrieves orders placed by a farmer as a buyer.
+   * This is different from products listed by the farmer.
+   */
+
+  getFarmerPurchases(farmerId: string | number): Observable<FarmerPurchase[]> {
+    return this.http
+      .get<ApiEnvelope<unknown>>(`${API_BASE}/admin/farmers/${farmerId}/purchases`, {
+        headers: apiHeaders(),
+      })
+      .pipe(
+        map((response) => {
+          const orders = unwrapList<Record<string, unknown>>(response.data);
+
+          const purchases: FarmerPurchase[] = orders.map((order) => {
+            const items = Array.isArray(order['items'])
+              ? (order['items'] as Record<string, unknown>[])
+              : [];
+
+            const sellers = Array.isArray(order['sellers'])
+              ? (order['sellers'] as Record<string, unknown>[])
+              : [];
+
+            const sellerNames = [
+              ...sellers.map(
+                (seller) => seller['name'] ?? seller['sellerName'] ?? seller['businessName'],
+              ),
+              ...items.map((item) => item['sellerName']),
+            ].filter((name): name is string => typeof name === 'string' && name.trim().length > 0);
+
+            const uniqueSellerNames = [...new Set(sellerNames)];
+
+            return {
+              id: Number(order['id']),
+              reference: String(order['orderCode'] ?? order['code'] ?? order['id']),
+              supplierName:
+                uniqueSellerNames.length > 1
+                  ? 'Multiple suppliers'
+                  : (uniqueSellerNames[0] ?? 'Unknown supplier'),
+              itemCount: items.length,
+              totalAmount: Number(order['total'] ?? order['totalAmount'] ?? 0),
+              paymentStatus: String(order['paymentStatus'] ?? 'UNKNOWN'),
+              orderStatus: String(order['status'] ?? 'UNKNOWN'),
+              createdAt: String(order['createdAt'] ?? ''),
+            };
+          });
+
+          // Latest purchases first.
+          return purchases.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+
+            return dateB - dateA;
+          });
         }),
       );
   }

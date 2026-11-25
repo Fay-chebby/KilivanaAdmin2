@@ -29,9 +29,10 @@ import {
   initials,
   statusTone,
   titleCase,
+  FarmerPurchase,
 } from '../../models/farmer.model';
 
-type Tab = 'overview' | 'farms' | 'documents' | 'products';
+type Tab = 'overview' | 'farms' | 'documents' | 'products' | 'purchases';
 type LoadState = 'loading' | 'ready' | 'notfound' | 'error';
 
 @Component({
@@ -71,12 +72,16 @@ export class FarmerDetails implements OnDestroy {
     { id: 'farms', label: 'Farms' },
     { id: 'documents', label: 'Documents' },
     { id: 'products', label: 'Products' },
+    { id: 'purchases', label: 'Purchases' },
   ];
 
   readonly tab = signal<Tab>('overview');
   readonly state = signal<LoadState>('loading');
   readonly errorMsg = signal('');
   readonly farmer = signal<FarmerDetail | null>(null);
+  readonly purchases = signal<FarmerPurchase[]>([]);
+  readonly purchasesLoading = signal(false);
+  readonly purchasesError = signal<string | null>(null);
 
   readonly dialog = signal<FarmerAction | null>(null);
   readonly busy = signal(false);
@@ -215,6 +220,7 @@ export class FarmerDetails implements OnDestroy {
       .subscribe((farmer) => {
         this.farmer.set(farmer);
         this.state.set('ready');
+        this.loadFarmerPurchases(farmer.id);
       });
   }
 
@@ -263,5 +269,21 @@ export class FarmerDetails implements OnDestroy {
 
     this.currentImageUrls.clear();
     this.loadedProfileImages.set({});
+  }
+  private loadFarmerPurchases(farmerId: string | number): void {
+    this.purchasesLoading.set(true);
+    this.purchasesError.set(null);
+    this.purchases.set([]);
+
+    this.service.getFarmerPurchases(farmerId).subscribe({
+      next: (purchases) => {
+        this.purchases.set(purchases);
+        this.purchasesLoading.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.purchasesError.set(apiError(error));
+        this.purchasesLoading.set(false);
+      },
+    });
   }
 }

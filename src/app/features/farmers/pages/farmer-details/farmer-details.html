@@ -44,7 +44,6 @@
             @switch (f.status) {
               @case ('pending') {
                 <button type="button" class="btn reject" (click)="ask('reject')">Reject</button>
-
                 <button type="button" class="btn approve" (click)="ask('approve')">Approve</button>
               }
 
@@ -70,7 +69,6 @@
               </span>
 
               <h2>{{ f.name }}</h2>
-
               <span class="code">{{ f.code }}</span>
 
               <app-farmer-badge [tone]="statusTone(f.status)">
@@ -90,9 +88,7 @@
 
                 <div>
                   <dt>Email</dt>
-                  <dd class="trunc" [title]="f.email">
-                    {{ f.email }}
-                  </dd>
+                  <dd class="trunc" [title]="f.email">{{ f.email }}</dd>
                 </div>
 
                 <div>
@@ -197,8 +193,7 @@
                 } @else {
                   <div class="card empty">
                     <strong>No farm profile yet</strong>
-
-                    <span> Add the farm name and location so this farmer can be reviewed. </span>
+                    <span>Add the farm name and location so this farmer can be reviewed.</span>
 
                     <a class="btn solid" [routerLink]="['/farmers', f.id, 'edit']">
                       Add farm profile
@@ -232,7 +227,7 @@
                 } @else {
                   <div class="card empty">
                     <strong>No farms yet</strong>
-                    <span> Farms registered by this farmer will appear here. </span>
+                    <span>Farms registered by this farmer will appear here.</span>
                   </div>
                 }
               }
@@ -272,7 +267,7 @@
                 } @else {
                   <div class="card empty">
                     <strong>No documents uploaded</strong>
-                    <span> KYC documents from this farmer will appear here. </span>
+                    <span>KYC documents from this farmer will appear here.</span>
                   </div>
                 }
               }
@@ -314,16 +309,11 @@
                               <td>
                                 <div class="product-name">
                                   <strong>{{ product.name }}</strong>
-
-                                  <small>
-                                    {{ product.farmName || 'No farm specified' }}
-                                  </small>
+                                  <small>{{ product.farmName || 'No farm specified' }}</small>
                                 </div>
                               </td>
 
-                              <td>
-                                {{ product.categoryName || 'Uncategorised' }}
-                              </td>
+                              <td>{{ product.categoryName || 'Uncategorised' }}</td>
 
                               <td class="mono">
                                 {{ product.price | currency: 'KES' : 'code' : '1.2-2' }}
@@ -331,17 +321,13 @@
                               </td>
 
                               <td>
-                                <strong>
-                                  {{ product.stockQty - product.reservedQty }}
-                                </strong>
+                                <strong>{{ product.stockQty - product.reservedQty }}</strong>
                                 {{ product.unit }}
                               </td>
 
                               <td>{{ product.soldQty }} {{ product.unit }}</td>
 
-                              <td>
-                                {{ product.qualityGrade || '—' }}
-                              </td>
+                              <td>{{ product.qualityGrade || '—' }}</td>
 
                               <td>
                                 <span
@@ -382,7 +368,89 @@
                 } @else {
                   <div class="card empty">
                     <strong>No products listed</strong>
-                    <span> This farmer has not listed any products yet. </span>
+                    <span>This farmer has not listed any products yet.</span>
+                  </div>
+                }
+              }
+
+              <!-- SUPPLIER PURCHASES TAB -->
+              <!-- SUPPLIER PURCHASES TAB -->
+              @case ('purchases') {
+                <div class="products-header">
+                  <div>
+                    <h2>Supplier purchases</h2>
+                    <p class="note">Purchases made by {{ f.name }} from suppliers.</p>
+                  </div>
+
+                  <span class="product-count">
+                    {{ purchases().length }}
+                    {{ purchases().length === 1 ? 'purchase' : 'purchases' }}
+                  </span>
+                </div>
+
+                @if (purchasesLoading()) {
+                  <div class="card empty">
+                    <strong>Loading purchases...</strong>
+                  </div>
+                } @else if (purchasesError()) {
+                  <div class="card empty">
+                    <strong>Couldn't load purchases</strong>
+                    <span>{{ purchasesError() }}</span>
+                  </div>
+                } @else if (purchases().length) {
+                  <div class="card products-table-card">
+                    <div class="scroll">
+                      <table class="products-table">
+                        <thead>
+                          <tr>
+                            <th>Order reference</th>
+                            <th>Supplier</th>
+                            <th>Items</th>
+                            <th>Total amount</th>
+                            <th>Payment status</th>
+                            <th>Order status</th>
+                            <th>Purchase date</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          @for (purchase of purchases(); track purchase.id) {
+                            <tr>
+                              <td>
+                                <strong>{{ purchase.reference }}</strong>
+                              </td>
+                              <td>{{ purchase.supplierName }}</td>
+                              <td>{{ purchase.itemCount }}</td>
+
+                              <td class="mono">
+                                {{ purchase.totalAmount | currency: 'KES' : 'code' : '1.2-2' }}
+                              </td>
+
+                              <td>
+                                <span class="product-status">
+                                  {{ titleCase(purchase.paymentStatus) }}
+                                </span>
+                              </td>
+
+                              <td>
+                                <span class="product-status">
+                                  {{ titleCase(purchase.orderStatus) }}
+                                </span>
+                              </td>
+
+                              <td class="mono">
+                                {{ purchase.createdAt | date: 'yyyy-MM-dd' }}
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="card empty">
+                    <strong>No supplier purchases</strong>
+                    <span>Purchases made by this farmer from suppliers will appear here.</span>
                   </div>
                 }
               }

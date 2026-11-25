@@ -103,7 +103,7 @@
 
           <div class="pricing-item">
             <dt>Total sold</dt>
-            <dd>{{ num(p.soldQty) }} {{ p.unit }}</dd>
+            <dd>{{ num(p.soldQty ?? 0) }} {{ p.unit }}</dd>
           </div>
 
           <div class="pricing-item">
