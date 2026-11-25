@@ -76,6 +76,11 @@ export class NotificationService {
     return this.http.post(this.endpoint, payload);
   }
 
+  // CREATE NOTIFICATION FOR ALL USERS
+  broadcastNotification(payload: Omit<CreateNotificationRequest, 'userId'>): Observable<unknown> {
+    return this.http.post(`${this.endpoint}/broadcast`, payload);
+  }
+
   // ==========================================
   // MARK ONE NOTIFICATION AS READ
   // ==========================================

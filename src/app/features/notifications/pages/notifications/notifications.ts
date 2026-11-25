@@ -307,6 +307,11 @@ export class Notifications implements OnInit {
   // CREATE NOTIFICATION
   // ==========================================
 
+  // ==========================================
+  // CREATE NOTIFICATION
+  // SUPPORTS SPECIFIC USER AND BROADCAST
+  // ==========================================
+
   createNotification(): void {
     if (this.creating()) return;
 
@@ -315,59 +320,95 @@ export class Notifications implements OnInit {
     const title = form.title.trim();
     const message = form.message.trim();
 
+    // Validate title
     if (!title) {
       this.createError.set('Please enter a notification title.');
       return;
     }
 
+    // Validate message
     if (!message) {
       this.createError.set('Please enter a notification message.');
       return;
     }
 
-    let userId: number | undefined;
-
-    if (this.recipientType() === 'specific') {
-      const parsedUserId = Number(form.userId);
-
-      if (!form.userId.trim() || !Number.isInteger(parsedUserId) || parsedUserId <= 0) {
-        this.createError.set('Please enter a valid user ID.');
-        return;
-      }
-
-      userId = parsedUserId;
-    }
-
-    const payload: CreateNotificationRequest = {
+    const payload = {
       title,
       message,
       type: form.type,
-      ...(userId !== undefined ? { userId } : {}),
     };
 
     this.creating.set(true);
     this.createError.set(null);
 
-    this.service.createNotification(payload).subscribe({
-      next: () => {
-        this.creating.set(false);
-        this.showCreateModal.set(false);
+    // ==========================================
+    // BROADCAST TO ALL USERS
+    // ==========================================
 
-        this.success.set('Notification created successfully.');
+    if (this.recipientType() === 'all') {
+      this.service.broadcastNotification(payload).subscribe({
+        next: (response) => {
+          console.log('Broadcast notification response:', response);
 
-        this.loadNotifications();
-      },
+          this.creating.set(false);
+          this.showCreateModal.set(false);
 
-      error: (err) => {
-        console.error('Failed to create notification:', err);
+          this.success.set('Broadcast notification sent successfully.');
 
-        this.creating.set(false);
+          this.loadNotifications();
+        },
 
-        this.createError.set(
-          err?.error?.message ?? 'Could not create notification. Please try again.',
-        );
-      },
-    });
+        error: (err) => {
+          console.error('Failed to send broadcast notification:', err);
+
+          this.creating.set(false);
+
+          this.createError.set(
+            err?.error?.message ?? 'Could not send broadcast notification. Please try again.',
+          );
+        },
+      });
+
+      return;
+    }
+
+    // ==========================================
+    // SEND TO ONE SPECIFIC USER
+    // ==========================================
+
+    const parsedUserId = Number(form.userId);
+
+    if (!form.userId.trim() || !Number.isInteger(parsedUserId) || parsedUserId <= 0) {
+      this.creating.set(false);
+      this.createError.set('Please enter a valid user ID.');
+      return;
+    }
+
+    this.service
+      .createNotification({
+        ...payload,
+        userId: parsedUserId,
+      })
+      .subscribe({
+        next: () => {
+          this.creating.set(false);
+          this.showCreateModal.set(false);
+
+          this.success.set('Notification sent successfully.');
+
+          this.loadNotifications();
+        },
+
+        error: (err) => {
+          console.error('Failed to create notification:', err);
+
+          this.creating.set(false);
+
+          this.createError.set(
+            err?.error?.message ?? 'Could not create notification. Please try again.',
+          );
+        },
+      });
   }
 
   // ==========================================
