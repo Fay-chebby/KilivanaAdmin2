@@ -30,3 +30,18 @@ export interface AuditRow {
   action: string;
   target: string;
 }
+
+export interface PlatformSettingResponse {
+  transactionFee: number;
+  inspectionFee: number;
+  payoutDelayDays: number;
+  notificationPreferences: Record<string, boolean>;
+  updatedAt: string;
+}
+
+export interface PlatformSettingRequest {
+  transactionFee: number;
+  inspectionFee: number;
+  payoutDelayDays: number;
+  notificationPreferences: Record<string, boolean>;
+}
