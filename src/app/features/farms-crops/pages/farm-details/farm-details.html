@@ -1,4 +1,11 @@
-@if (farm(); as f) {
+@if (loading()) {
+  <div class="empty">Loading farm details...</div>
+} @else if (error()) {
+  <div class="empty">
+    {{ error() }}
+    <a routerLink="/farms-crops">Back to farms</a>
+  </div>
+} @else if (farm(); as f) {
   <nav class="crumbs" aria-label="Breadcrumb">
     <a routerLink="/dashboard">Dashboard</a>
     <span>/</span>
@@ -150,8 +157,8 @@
     />
   }
 } @else {
-  <p class="empty">
+  <!-- <p class="empty">
     Farm not found.
     <a routerLink="/farms-crops">Back to farms</a>
-  </p>
+  </p> -->
 }
