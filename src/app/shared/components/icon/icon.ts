@@ -101,6 +101,12 @@ export const ICONS: Record<string, string[]> = {
 
   'arrow-down-right': ['M7 7l10 10', 'M17 7v10H7'],
   inbox: ['M4 4h16v12H4z', 'M4 12h4l2 3h4l2-3h4', 'M4 16v4h16v-4'],
+  wallet: [
+    'M3 6.5A2.5 2.5 0 0 1 5.5 4H20',
+    'M3 6.5V18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5.5A2.5 2.5 0 0 1 3 6.5Z',
+    'M21 11h-5a2 2 0 0 0 0 4h5',
+    circle(16, 13, 0.5),
+  ],
 };
 
 @Component({

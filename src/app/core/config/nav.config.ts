@@ -28,6 +28,8 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Orders', icon: 'cart', route: '/orders' },
       { label: 'Payments & Finance', icon: 'card', route: '/payments' },
+      { label: 'Admin Wallet', icon: 'wallet', route: '/payments/wallet' },
+      { label: 'Seller Wallets', icon: 'users', route: '/payments/seller-wallets' },
       { label: 'KYC & Verification', icon: 'shield-check', route: '/kyc' },
       { label: 'Logistics', icon: 'compass', route: '/logistics' },
       { label: 'Disputes & Support', icon: 'flag', route: '/disputes' },
