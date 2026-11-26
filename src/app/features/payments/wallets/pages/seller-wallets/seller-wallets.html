@@ -1,0 +1,86 @@
+<nav class="crumbs" aria-label="Breadcrumb">
+  <span>AgriAdmin</span><span class="sep">/</span><a routerLink="/payments">Payments</a
+  ><span class="sep">/</span><a routerLink="/payments/wallet">Admin Wallet</a
+  ><span class="sep">/</span>
+  @if (id) {
+    <a routerLink="/payments/wallet/sellers">Seller wallets</a><span class="sep">/</span
+    ><span class="cur">{{ title() }}</span>
+  } @else {
+    <span class="cur">Seller wallets</span>
+  }
+</nav>
+
+@if (!id) {
+  <header class="head">
+    <div>
+      <h1>Seller wallets</h1>
+      <p class="sub">
+        What Kilivana owes each farmer and supplier. Balances come from the ledger and cannot be
+        edited here.
+      </p>
+    </div>
+    <div class="actions">
+      <a routerLink="/payments/monthly-payouts" class="btn ghost">Monthly payouts</a>
+      <button type="button" class="btn ghost" (click)="load()">Refresh</button>
+    </div>
+  </header>
+
+  <form class="bar" (ngSubmit)="submitSearch()">
+    <label class="grow"
+      ><span class="sr">Search sellers</span>
+      <input
+        type="search"
+        name="q"
+        placeholder="Search by name or phone…"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </label>
+    <label
+      ><span class="sr">Seller type</span>
+      <select name="type" [ngModel]="sellerType()" (ngModelChange)="setType($event)">
+        @for (o of typeOptions; track o.value) {
+          <option [value]="o.value">{{ o.label }}</option>
+        }
+      </select>
+    </label>
+    <button type="submit" class="btn primary">Search</button>
+  </form>
+
+  @if (error(); as e) {
+    <app-wallet-error [message]="e.message" [notAvailable]="e.notAvailable" (retry)="load()" />
+  } @else {
+    <app-seller-wallet-table
+      [data]="list()"
+      [loading]="loading()"
+      [sort]="filter().sort"
+      [dir]="filter().dir"
+      (sortChange)="sortBy($event)"
+      (pageChange)="goPage($event)"
+    />
+  }
+} @else {
+  @if (error(); as e) {
+    <app-wallet-error [message]="e.message" [notAvailable]="e.notAvailable" (retry)="load()" />
+  } @else {
+    <app-wallet-account-summary [wallet]="wallet()" [loading]="loading()" />
+    <h2>Transactions</h2>
+    @if (txnError(); as e) {
+      <app-wallet-error
+        [message]="e.message"
+        [notAvailable]="e.notAvailable"
+        (retry)="loadTxns()"
+      />
+    } @else {
+      <app-wallet-transactions-table
+        [data]="txns()"
+        [loading]="txnLoading()"
+        [sort]="txnFilter().sort"
+        [dir]="txnFilter().dir"
+        (sortChange)="sortTxns($event)"
+        (pageChange)="goTxnPage($event)"
+        (select)="openTxn($event)"
+      />
+    }
+  }
+}

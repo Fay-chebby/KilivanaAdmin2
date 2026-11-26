@@ -5,6 +5,7 @@ import { SortDir } from '../../models/Wallet filter.model';
 import { SellerWallet, sellerTypeLabel } from '../../models/seller-wallet.model';
 import { statusLabel, statusTone } from '../../models/wallet-transaction.model';
 
+
 @Component({
   selector: 'app-seller-wallet-table',
   standalone: true,

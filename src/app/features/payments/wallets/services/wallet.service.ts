@@ -11,6 +11,7 @@ import {
   WalletChartPoint,
 } from '../models/wallet.model';
 import { FinancialAccount } from '../models/finance-account.model';
+import { SellerWallet } from '../models/seller-wallet.model';
 import { LedgerEntry } from '../models/Ledger entry.model';
 import { DateRange, WalletFilter, toQuery } from '../models/Wallet filter.model';
 import { WalletTransaction } from '../models/wallet-transaction.model';
@@ -26,6 +27,8 @@ export const WALLET_ENDPOINTS = {
   transactions: `${API_BASE}/admin/wallet/transactions`,
   transaction: (id: string) => `${API_BASE}/admin/wallet/transactions/${encodeURIComponent(id)}`,
   ledger: `${API_BASE}/admin/wallet/ledger`,
+  sellers: `${API_BASE}/admin/wallet/sellers`,
+  seller: (id: string) => `${API_BASE}/admin/wallet/sellers/${encodeURIComponent(id)}`,
   charts: `${API_BASE}/admin/wallet/charts`,
   reconciliation: `${API_BASE}/admin/wallet/reconciliation-summary`,
   exportTransactions: `${API_BASE}/admin/wallet/transactions/export`,
@@ -53,6 +56,15 @@ export class AdminWalletService {
   }
   ledger(f: Partial<WalletFilter>) {
     return this.get<Page<LedgerEntry>>(WALLET_ENDPOINTS.ledger, toQuery(f));
+  }
+  sellerWallets(f: Partial<WalletFilter>, sellerType = '') {
+    return this.get<Page<SellerWallet>>(WALLET_ENDPOINTS.sellers, {
+      ...toQuery(f),
+      ...(sellerType ? { sellerType } : {}),
+    });
+  }
+  sellerWallet(id: string) {
+    return this.get<SellerWallet>(WALLET_ENDPOINTS.seller(id));
   }
   charts(range: DateRange | null) {
     return this.get<WalletChartPoint[]>(WALLET_ENDPOINTS.charts, rangeParams(range));

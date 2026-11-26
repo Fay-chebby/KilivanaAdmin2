@@ -1,0 +1,35 @@
+<p>wallet-balance-breakdown works!</p>
+<section class="card wrap" aria-labelledby="bb-title">
+  <h2 id="bb-title">Platform balance breakdown</h2>
+  @if (loading() && !breakdown()) {
+    <div class="groups">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <span class="skeleton" style="height: 96px" aria-hidden="true"></span>
+      }
+    </div>
+  } @else if (breakdown()) {
+    <div class="groups">
+      @for (g of groups(); track g.title) {
+        <div class="group">
+          <h3>{{ g.title }}</h3>
+          <p class="cap">{{ g.caption }}</p>
+          <dl>
+            @for (r of g.rows; track r.label) {
+              <div class="row" [class.strong]="r.strong">
+                <dt>
+                  {{ r.label }}
+                  @if (r.note) {
+                    <span class="tag">{{ r.note }}</span>
+                  }
+                </dt>
+                <dd class="mono">{{ r.value }}</dd>
+              </div>
+            }
+          </dl>
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="empty">No balance information yet.</p>
+  }
+</section>

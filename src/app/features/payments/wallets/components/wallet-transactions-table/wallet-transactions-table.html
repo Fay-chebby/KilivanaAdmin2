@@ -1,1 +1,108 @@
-<p>wallet-transactions-table works!</p>
+<div class="table-card">
+  <div class="table-header">
+    <div>
+      <h3>Wallet Transactions</h3>
+      <p>View transaction history and wallet activity</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <p>Loading transactions...</p>
+    </div>
+  } @else if (!data() || data()!.content.length === 0) {
+    <div class="empty-state">
+      <h4>No transactions found</h4>
+      <p>Transactions will appear here when wallet activity occurs.</p>
+    </div>
+  } @else {
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>
+              <button class="sort-button" type="button" (click)="sortChange.emit('reference')">
+                Reference
+                @if (sort() === 'reference') {
+                  ↕
+                }
+              </button>
+            </th>
+
+            <th>Type</th>
+            <th>Description</th>
+            <th class="num">Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (txn of data()!.content; track txn.id) {
+            <tr>
+              <td>
+                <span class="reference">{{ txn.reference }}</span>
+              </td>
+
+              <td>{{ txn.transactionType }}</td>
+
+              <td>
+                <span class="description">
+                  {{ txn.description || '—' }}
+                </span>
+              </td>
+
+              <td class="amount num">
+                {{ txn.amount | number: '1.2-2' }}
+              </td>
+
+              <td>
+                <span
+                  class="status"
+                  [class.status--completed]="txn.status === 'COMPLETED' || txn.status === 'PAID'"
+                  [class.status--pending]="txn.status === 'PENDING'"
+                  [class.status--failed]="txn.status === 'FAILED'"
+                  [class.status--reversed]="txn.status === 'REVERSED' || txn.status === 'REFUNDED'"
+                >
+                  {{ txn.status }}
+                </span>
+              </td>
+
+              <td>{{ txn.createdAt | date: 'medium' }}</td>
+
+              <td>
+                <button type="button" class="row-action" (click)="select.emit(txn)">View</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-footer">
+      <span class="pagination-info">
+        Page {{ data()!.number + 1 }} of {{ data()!.totalPages }} ·
+        {{ data()!.totalElements }} transactions
+      </span>
+
+      <div class="pagination">
+        <button
+          type="button"
+          [disabled]="data()!.number <= 0"
+          (click)="pageChange.emit(data()!.number - 1)"
+        >
+          Previous
+        </button>
+
+        <button
+          type="button"
+          [disabled]="data()!.number >= data()!.totalPages - 1"
+          (click)="pageChange.emit(data()!.number + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</div>
