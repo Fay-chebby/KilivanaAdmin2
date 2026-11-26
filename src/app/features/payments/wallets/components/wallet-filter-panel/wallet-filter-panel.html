@@ -1,1 +1,154 @@
-<p>wallet-filter-panel works!</p>
+<form class="card panel" (ngSubmit)="submit()" #f="ngForm" aria-label="Filters">
+  <div class="row main">
+    <label class="grow">
+      <span class="sr">Search</span>
+      <input
+        type="search"
+        name="q"
+        placeholder="Search reference, order, seller…"
+        [ngModel]="draft().q"
+        (ngModelChange)="set('q', $event)"
+      />
+    </label>
+    @if (mode() === 'transactions') {
+      <label>
+        <span>Type</span>
+        <select name="type" [ngModel]="draft().type" (ngModelChange)="set('type', $event)">
+          <option value="">All types</option>
+          @for (t of types; track t.value) {
+            <option [value]="t.value">{{ t.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Status</span>
+        <select name="status" [ngModel]="draft().status" (ngModelChange)="set('status', $event)">
+          <option value="">All statuses</option>
+          @for (s of statuses; track s) {
+            <option [value]="s">{{ statusLabel(s) }}</option>
+          }
+        </select>
+      </label>
+    } @else {
+      <label>
+        <span>Entry</span>
+        <select
+          name="direction"
+          [ngModel]="draft().direction"
+          (ngModelChange)="set('direction', $event)"
+        >
+          <option value="">Debit and credit</option>
+          <option value="DEBIT">Debit only</option>
+          <option value="CREDIT">Credit only</option>
+        </select>
+      </label>
+    }
+    @if (!hideAccount()) {
+      <label>
+        <span>Account</span>
+        <select
+          name="accountId"
+          [ngModel]="draft().accountId"
+          (ngModelChange)="set('accountId', $event)"
+        >
+          <option value="">All accounts</option>
+          @for (a of accounts(); track a.id) {
+            <option [value]="a.id">{{ a.accountName }}</option>
+          }
+        </select>
+      </label>
+    }
+    <label>
+      <span>Date</span>
+      <select name="range" [ngModel]="rangeKey()" (ngModelChange)="pickRange($event)">
+        <option value="">Any date</option>
+        @for (r of ranges; track r.key) {
+          <option [value]="r.key">{{ r.label }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (rangeKey() === 'custom') {
+    <div class="row">
+      <label
+        ><span>From</span
+        ><input
+          type="date"
+          name="from"
+          [ngModel]="draft().from"
+          (ngModelChange)="set('from', $event)"
+      /></label>
+      <label
+        ><span>To</span
+        ><input type="date" name="to" [ngModel]="draft().to" (ngModelChange)="set('to', $event)"
+      /></label>
+    </div>
+  }
+
+  <button
+    type="button"
+    class="more"
+    [attr.aria-expanded]="expanded()"
+    (click)="expanded.set(!expanded())"
+  >
+    {{ expanded() ? 'Hide' : 'More' }} filters
+  </button>
+  @if (expanded()) {
+    <div class="row">
+      <label
+        ><span>Min amount (KSh)</span
+        ><input
+          type="number"
+          min="0"
+          step="0.01"
+          name="min"
+          [ngModel]="draft().minAmount"
+          (ngModelChange)="set('minAmount', num($event === null ? '' : '' + $event))"
+      /></label>
+      <label
+        ><span>Max amount (KSh)</span
+        ><input
+          type="number"
+          min="0"
+          step="0.01"
+          name="max"
+          [ngModel]="draft().maxAmount"
+          (ngModelChange)="set('maxAmount', num($event === null ? '' : '' + $event))"
+      /></label>
+      <label
+        ><span>Order reference</span
+        ><input
+          type="text"
+          name="order"
+          [ngModel]="draft().orderReference"
+          (ngModelChange)="set('orderReference', $event)"
+      /></label>
+      <label
+        ><span>Transaction reference</span
+        ><input
+          type="text"
+          name="ref"
+          [ngModel]="draft().reference"
+          (ngModelChange)="set('reference', $event)"
+      /></label>
+      <label
+        ><span>Seller ID</span
+        ><input
+          type="text"
+          name="seller"
+          [ngModel]="draft().sellerId"
+          (ngModelChange)="set('sellerId', $event)"
+      /></label>
+    </div>
+  }
+
+  @if (amountError() || dateError()) {
+    <p class="error" role="alert">{{ amountError() || dateError() }}</p>
+  }
+
+  <div class="actions">
+    <button type="submit" class="btn primary" [disabled]="invalid()">Apply filters</button>
+    <button type="button" class="btn ghost" (click)="reset()">Reset</button>
+  </div>
+</form>

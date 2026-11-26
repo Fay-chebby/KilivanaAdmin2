@@ -1,0 +1,105 @@
+<section class="card">
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th
+            class="sortable"
+            scope="col"
+            [attr.aria-sort]="ariaSort('sellerName')"
+            (click)="sortChange.emit('sellerName')"
+            tabindex="0"
+            (keydown.enter)="sortChange.emit('sellerName')"
+          >
+            Seller {{ arrow('sellerName') }}
+          </th>
+          <th scope="col">Type</th>
+          <th
+            class="sortable num"
+            scope="col"
+            [attr.aria-sort]="ariaSort('availableBalance')"
+            (click)="sortChange.emit('availableBalance')"
+            tabindex="0"
+            (keydown.enter)="sortChange.emit('availableBalance')"
+          >
+            Available {{ arrow('availableBalance') }}
+          </th>
+          <th class="num" scope="col">Pending</th>
+          <th
+            class="sortable num"
+            scope="col"
+            [attr.aria-sort]="ariaSort('totalEarned')"
+            (click)="sortChange.emit('totalEarned')"
+            tabindex="0"
+            (keydown.enter)="sortChange.emit('totalEarned')"
+          >
+            Total earned {{ arrow('totalEarned') }}
+          </th>
+          <th class="num" scope="col">Paid out</th>
+          <th scope="col">Last payout</th>
+          <th scope="col">Status</th>
+          <th scope="col"><span class="sr">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading() && !rows().length) {
+          @for (p of placeholders; track p) {
+            <tr aria-hidden="true">
+              <td colspan="9"><span class="skeleton" style="height: 14px"></span></td>
+            </tr>
+          }
+        } @else {
+          @for (w of rows(); track w.sellerId) {
+            <tr>
+              <td class="strong">
+                {{ w.sellerName }}<span class="phone">{{ w.phone || 'No phone on file' }}</span>
+              </td>
+              <td>{{ typeLabel(w.sellerType) }}</td>
+              <td class="num mono strong">{{ kes(w.availableBalance) }}</td>
+              <td class="num mono">{{ kes(w.pendingBalance) }}</td>
+              <td class="num mono">{{ kes(w.totalEarned) }}</td>
+              <td class="num mono">{{ kes(w.totalPaidOut) }}</td>
+              <td class="mono muted">{{ date(w.lastPayoutAt) }}</td>
+              <td>
+                <span [class]="'badge ' + tone(w.status)">{{ label(w.status) }}</span>
+              </td>
+              <td>
+                <a class="btn small" [routerLink]="['/payments/wallet/sellers', w.sellerId]"
+                  >View</a
+                >
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="empty">No seller wallets match your search.</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <footer class="foot">
+    <span class="muted">{{ range() }}</span>
+    @if (pages() > 1) {
+      <div class="pager">
+        <button
+          type="button"
+          class="btn small"
+          [disabled]="page() === 0"
+          (click)="pageChange.emit(page() - 1)"
+        >
+          Previous
+        </button>
+        <span>Page {{ page() + 1 }} of {{ pages() }}</span>
+        <button
+          type="button"
+          class="btn small"
+          [disabled]="page() + 1 >= pages()"
+          (click)="pageChange.emit(page() + 1)"
+        >
+          Next
+        </button>
+      </div>
+    }
+  </footer>
+</section>

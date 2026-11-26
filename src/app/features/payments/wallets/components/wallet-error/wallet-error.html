@@ -1,1 +1,7 @@
-<p>wallet-error works!</p>
+<div class="err" role="alert">
+  <div>
+    <strong>{{ notAvailable() ? 'Not available yet' : 'Something went wrong' }}</strong>
+    <p>{{ message() }}</p>
+  </div>
+  <button type="button" class="retry" (click)="retry.emit()">Try again</button>
+</div>

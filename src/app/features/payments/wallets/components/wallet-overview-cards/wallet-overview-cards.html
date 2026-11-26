@@ -1,1 +1,36 @@
-<p>wallet-overview-cards works!</p>
+<div class="grid" role="list">
+  @if (loading() && !overview()) {
+    @for (p of placeholders; track p) {
+      <div class="card tile" role="listitem" aria-hidden="true">
+        <span class="skeleton" style="width: 40%; height: 12px"></span>
+        <span class="skeleton" style="width: 70%; height: 24px; margin-top: 10px"></span>
+        <span class="skeleton" style="width: 55%; height: 11px; margin-top: 10px"></span>
+      </div>
+    }
+  } @else if (overview()) {
+    @for (c of cards(); track c.key) {
+      <div class="card tile" role="listitem">
+        <div class="top">
+          <span class="label">{{ c.label }}</span>
+          <span class="ico" [class]="'ico ' + c.tone" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path
+                [attr.d]="c.icon"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+        </div>
+        <strong class="value mono">{{ c.value }}</strong>
+        <span class="hint">{{ c.hint }}</span>
+        @if (c.change !== null) {
+          <span class="change" [class.down]="c.change < 0">{{ c.changeText }}</span>
+        }
+      </div>
+    }
+  }
+</div>

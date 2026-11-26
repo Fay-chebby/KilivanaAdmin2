@@ -1,0 +1,63 @@
+:host {
+  display: block;
+}
+.card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  border-left-width: 4px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.card.green {
+  border-left-color: #15803d;
+}
+.card.amber {
+  border-left-color: #d97706;
+}
+.card.blue {
+  border-left-color: #2563eb;
+}
+.card.gray {
+  border-left-color: #94a3b8;
+}
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+.value {
+  font-size: 20px;
+  overflow-wrap: anywhere;
+  color: #0f172a;
+}
+.mono {
+  font-variant-numeric: tabular-nums;
+}
+.hint {
+  font-size: 12px;
+  color: #64748b;
+}
+.skeleton {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

@@ -1,0 +1,106 @@
+<nav class="crumbs" aria-label="Breadcrumb">
+  <span>AgriAdmin</span><span class="sep">/</span><a routerLink="/payments">Payments</a><span class="sep">/</span><span class="cur">Admin Wallet</span>
+</nav>
+
+<header class="head">
+  <div>
+    <h1>Admin Wallet</h1>
+    <p class="sub">Monitor Kilivana's platform funds, revenue, liabilities and financial activity.</p>
+    <p class="updated">Last updated: {{ date(overview().data?.lastUpdated) }}</p>
+  </div>
+  <div class="actions">
+    <label class="range">
+      <span class="sr">Date range</span>
+      <select [ngModel]="rangeKey()" (ngModelChange)="setRange($event)" name="range">
+        @for (r of ranges; track r.key) { <option [value]="r.key">{{ r.label }}</option> }
+      </select>
+    </label>
+    @if (rangeKey() === 'custom') {
+      <input type="date" aria-label="From date" [ngModel]="customFrom()" (ngModelChange)="customFrom.set($event)" name="from" />
+      <input type="date" aria-label="To date" [ngModel]="customTo()" (ngModelChange)="customTo.set($event)" name="to" />
+      <button type="button" class="btn ghost" [disabled]="!!rangeError()" (click)="refresh()">Apply</button>
+    }
+    <button type="button" class="btn ghost" (click)="refresh()">Refresh</button>
+    <button type="button" class="btn primary" (click)="exporting.set(true)">Export</button>
+  </div>
+</header>
+@if (rangeError(); as e) { <p class="inline-err" role="alert">{{ e }}</p> }
+@if (exportError(); as e) { <p class="inline-err" role="alert">{{ e }}</p> }
+
+<nav class="links" aria-label="Wallet sections">
+  <a routerLink="/payments/wallet/transactions" class="btn ghost">Transactions</a>
+  <a routerLink="/payments/wallet/ledger" class="btn ghost">Ledger</a>
+  <a routerLink="/payments/wallet/accounts" class="btn ghost">Accounts</a>
+  <a routerLink="/payments/monthly-payouts" class="btn ghost">Seller payouts</a>
+  <a routerLink="/payments" class="btn ghost">Payments &amp; refunds</a>
+</nav>
+
+@if (overview().error; as e) {
+  <app-wallet-error [message]="e.message" [notAvailable]="e.notAvailable" (retry)="loadOverview()" />
+} @else {
+  <app-wallet-overview-cards [overview]="overview().data" [loading]="overview().loading" />
+  <div class="gap"></div>
+  <app-wallet-balance-breakdown [breakdown]="overview().data?.breakdown ?? null" [loading]="overview().loading" />
+}
+
+<section class="block">
+  <div class="block-head">
+    <h2>Financial accounts</h2>
+    <a routerLink="/payments/wallet/accounts" class="more">View all</a>
+  </div>
+  @if (accounts().error; as e) {
+    <app-wallet-error [message]="e.message" [notAvailable]="e.notAvailable" (retry)="loadAccounts()" />
+  } @else {
+    <app-financial-account-cards [accounts]="accounts().data ?? []" [loading]="accounts().loading" />
+  }
+</section>
+
+<section class="block card chart">
+  <div class="block-head">
+    <h2>Financial activity</h2>
+    <div class="tabs" role="tablist" aria-label="Chart series">
+      @for (s of series; track s.key) {
+        <button type="button" role="tab" class="tab" [class.on]="chartSeries() === s.key" [attr.aria-selected]="chartSeries() === s.key" (click)="chartSeries.set(s.key)">{{ s.label }}</button>
+      }
+    </div>
+  </div>
+  @if (charts().error; as e) {
+    <app-wallet-error [message]="e.message" [notAvailable]="e.notAvailable" (retry)="loadCharts()" />
+  } @else if (charts().loading && !charts().data) {
+    <span class="skeleton" style="height: 220px" aria-hidden="true"></span>
+  } @else if (chartPoints().length) {
+    <app-revenue-chart [points]="chartPoints()" [title]="chartMeta().label + ' (KSh)'" [valueHeader]="chartMeta().header" />
+  } @else {
+    <p class="empty">No activity in this period.</p>
+  }
+</section>
+
+<section class="block card recon">
+  <div class="block-head">
+    <h2>Reconciliation</h2>
+    <a routerLink="/payments/reconciliation" class="btn ghost small">Open reconciliation</a>
+  </div>
+  @if (recon().error; as e) {
+    <app-wallet-error [message]="e.message" [notAvailable]="e.notAvailable" (retry)="loadRecon()" />
+  } @else if (recon().loading && !recon().data) {
+    <span class="skeleton" style="height: 90px" aria-hidden="true"></span>
+  } @else if (recon().data; as r) {
+    <dl class="rgrid">
+      <div><dt>Payments expected</dt><dd class="mono">{{ kes(r.paymentsExpected) }}</dd></div>
+      <div><dt>Payments confirmed</dt><dd class="mono">{{ kes(r.paymentsConfirmed) }}</dd></div>
+      <div><dt>Payouts expected</dt><dd class="mono">{{ kes(r.payoutsExpected) }}</dd></div>
+      <div><dt>Payouts confirmed</dt><dd class="mono">{{ kes(r.payoutsConfirmed) }}</dd></div>
+      <div><dt>Unmatched payments</dt><dd class="mono">{{ r.unmatchedPayments }}</dd></div>
+      <div><dt>Unmatched payouts</dt><dd class="mono">{{ r.unmatchedPayouts }}</dd></div>
+      <div><dt>Discrepancies</dt><dd class="mono">{{ r.discrepancies }}</dd></div>
+      <div><dt>Last reconciled</dt><dd>{{ date(r.lastReconciledAt) }}</dd></div>
+      <div><dt>Status</dt><dd>{{ statusLabel(r.status) }}</dd></div>
+    </dl>
+  }
+</section>
+
+@if (exporting()) {
+  <app-wallet-export-dialog
+    message="Download the transactions for the selected period as a CSV file?"
+    (confirmed)="download()" (dismissed)="exporting.set(false)" />
+}

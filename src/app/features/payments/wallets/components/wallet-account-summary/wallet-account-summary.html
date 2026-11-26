@@ -1,0 +1,42 @@
+@if (wallet(); as w) {
+  <header class="who">
+    <div>
+      <h2>{{ w.sellerName }}</h2>
+      <p class="meta">
+        {{ typeLabel(w.sellerType) }} · {{ w.phone || 'No phone on file' }} · Updated
+        {{ date(w.lastUpdated) }}
+      </p>
+    </div>
+    <span [class]="'badge ' + toneClass()">{{ label(w.status) }}</span>
+  </header>
+}
+<div class="grid">
+  <app-wallet-balance-card
+    label="Available to pay out"
+    [value]="money(wallet()?.availableBalance)"
+    hint="Earned and ready"
+    tone="green"
+    [loading]="loading() && !wallet()"
+  />
+  <app-wallet-balance-card
+    label="Pending"
+    [value]="money(wallet()?.pendingBalance)"
+    hint="Not payable yet"
+    tone="amber"
+    [loading]="loading() && !wallet()"
+  />
+  <app-wallet-balance-card
+    label="Total earned"
+    [value]="money(wallet()?.totalEarned)"
+    hint="After platform fee"
+    tone="blue"
+    [loading]="loading() && !wallet()"
+  />
+  <app-wallet-balance-card
+    label="Total paid out"
+    [value]="money(wallet()?.totalPaidOut)"
+    [hint]="wallet() ? 'Last payout: ' + date(wallet()?.lastPayoutAt) : ''"
+    tone="gray"
+    [loading]="loading() && !wallet()"
+  />
+</div>

@@ -1,1 +1,9 @@
-<p>wallet-export-dialog works!</p>
+<app-payment-action-dialog
+  title="Export financial report"
+  [message]="message()"
+  [lines]="lines()"
+  confirmLabel="Download CSV"
+  tone="green"
+  (confirmed)="confirmed.emit()"
+  (dismissed)="dismissed.emit()"
+/>

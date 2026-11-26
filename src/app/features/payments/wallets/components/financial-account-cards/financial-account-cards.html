@@ -1,1 +1,28 @@
-<p>financial-account-cards works!</p>
+<div class="grid">
+  @if (loading() && !accounts().length) {
+    @for (p of placeholders; track p) {
+      <span class="skeleton" style="height: 150px" aria-hidden="true"></span>
+    }
+  } @else {
+    @for (a of accounts(); track a.id) {
+      <a
+        class="card acct"
+        [routerLink]="['/payments/wallet/accounts', a.id]"
+        [attr.aria-label]="'Open ' + a.accountName + ' account'"
+      >
+        <div class="head">
+          <div>
+            <h3>{{ a.accountName }}</h3>
+            <span class="type">{{ a.accountType }} · {{ a.accountCode }}</span>
+          </div>
+          <span [class]="'badge ' + tone(a.status)">{{ label(a.status) }}</span>
+        </div>
+        <strong class="bal mono">{{ kes(a.balance) }}</strong>
+        <p class="desc">{{ a.description || 'No description' }}</p>
+        <span class="upd">Updated {{ date(a.lastUpdated) }}</span>
+      </a>
+    } @empty {
+      <p class="empty">No financial accounts returned yet.</p>
+    }
+  }
+</div>

@@ -1,0 +1,15 @@
+<div class="card" [class]="'card ' + tone()">
+  <span class="label">{{ label() }}</span>
+  @if (loading()) {
+    <span
+      class="skeleton"
+      style="width: 70%; height: 24px; margin-top: 8px"
+      aria-hidden="true"
+    ></span>
+  } @else {
+    <strong class="value mono">{{ value() }}</strong>
+  }
+  @if (hint()) {
+    <span class="hint">{{ hint() }}</span>
+  }
+</div>
